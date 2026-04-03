@@ -9,21 +9,25 @@ import SendEmailForgottenPasswd from './features/auth/pages/SendEmailForgottenPa
 import LeaguePage from './features/league/pages/LeaguePage'
 import TeamPage from './features/team/pages/TeamPage'
 import StatisticPage from './features/statistic/pages/StatisticPage'
+import PrivateRoute from './features/auth/components/PrivateRoute'
 
 function App() {
 
   return (
     <>
       <Routes>
+        {/* Rutas públicas */}
         <Route path='/' element={<PublicDashboardPage />} />
-        <Route path='/dashboard' element={<DashboardPage />} />
-        <Route path='/comunication_form' element={<FormComunication />} />
         <Route path='/login' element={<LoginPage />} />
         <Route path='/register' element={<RegisterPage />} />
-        <Route path='/send-email' element={<SendEmailForgottenPasswd />} />
-        <Route path='/leagues' element={<LeaguePage />} />
-        <Route path='/teams' element={<TeamPage />} />
-        <Route path='/statistics' element={<StatisticPage />} />
+
+        {/* Rutas protegidas */}
+        <Route path='/dashboard' element={<PrivateRoute><DashboardPage /></PrivateRoute>} />
+        <Route path='/comunication_form' element={<PrivateRoute><FormComunication /></PrivateRoute>} />
+        <Route path='/send-email' element={<PrivateRoute><SendEmailForgottenPasswd /></PrivateRoute>} />
+        <Route path='/leagues' element={<PrivateRoute><LeaguePage /></PrivateRoute>} />
+        <Route path='/teams' element={<PrivateRoute><TeamPage /></PrivateRoute>} />
+        <Route path='/statistics' element={<PrivateRoute><StatisticPage /></PrivateRoute>} />
       </Routes>
     </>
   )
