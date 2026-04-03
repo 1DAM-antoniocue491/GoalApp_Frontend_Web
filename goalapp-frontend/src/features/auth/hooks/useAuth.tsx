@@ -5,8 +5,8 @@ import {
   getCurrentUser,
   saveToken,
   getToken,
-  User
 } from '../services/authApi';
+import type { User } from '../services/authApi';
 
 // Tipos del contexto
 interface AuthContextType {
@@ -106,11 +106,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     clearError,
     isAuthenticated: !!token,
   };
-
-  // Mostrar nada mientras se inicializa para evitar flashes
-  if (isInitializing) {
-    return null;
-  }
 
   return (
     <AuthContext.Provider value={value}>

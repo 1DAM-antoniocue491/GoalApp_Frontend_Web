@@ -1,4 +1,3 @@
-import React from "react";
 import Nav from "../../../components/Nav";
 import { TfiCup } from "react-icons/tfi";
 import { MdOutlineSecurity } from "react-icons/md";
@@ -12,8 +11,10 @@ import ActivityItem from "../components/dashboard/ActivityItem";
 import SummaryCard from "../components/dashboard/SummaryCard";
 import SectionHeader from "../components/dashboard/SectionHeader";
 import Badge from "../../../components/ui/Badge";
+import { useAuth } from "../../auth/hooks/useAuth";
 
 export default function DashboardPage() {
+    const { user } = useAuth();
 
     const quickActions = [
         { icon: TfiCup, label: "+ Nueva Liga" },
@@ -58,11 +59,11 @@ export default function DashboardPage() {
         <div className="flex flex-col bg-zinc-950 p-5 sm:px-10 gap-5 sm:gap-10">
 
             <h1 className="text-white text-2xl font-semibold">
-                Hola, Juan Pérez
+                Hola, {user?.nombre || 'Usuario'}
             </h1>
 
             {/* USER CARD */}
-            <UserCard name="John Doe" role="Administrador">
+            <UserCard name={user?.nombre || 'Usuario'} role={user?.rol_principal || 'Usuario'}>
                 <Badge variant="info">Gestionar roles</Badge>
             </UserCard>
 
