@@ -198,36 +198,40 @@ export default function PublicDashboardPage() {
             </div>
             <div className="shadow-md shadow-zinc-900 rounded-md mt-5">
                 <table className="w-full text-sm">
-                    <tr>
-                        <th className="text-zinc-400 py-2">POS</th>
-                        <th className="text-start pl-5 text-zinc-400 py-2">EQUIPO</th>
-                        <th className="text-zinc-400 py-2">PJ</th>
-                        <th className="text-zinc-400 py-2">PTS</th>
-                    </tr>
-                    <tr className="border-t border-zinc-700">
-                        <td className="text-center text-zinc-300 font-semibold py-2">1</td>
-                        <td className="pl-5 text-zinc-300 font-semibold py-2">Manchester City</td>
-                        <td className="text-center text-zinc-400 font-semibold py-2">28</td>
-                        <td className="text-center text-lime-300 font-semibold py-2">72</td>
-                    </tr>
-                    <tr className="border-t border-zinc-700">
-                        <td className="text-center text-zinc-300 font-semibold py-2">2</td>
-                        <td className="pl-5 text-zinc-300 font-semibold py-2">Arsenal</td>
-                        <td className="text-center text-zinc-400 font-semibold py-2">28</td>
-                        <td className="text-center text-lime-300 font-semibold py-2">68</td>
-                    </tr>
-                    <tr className="border-t border-zinc-700">
-                        <td className="text-center text-zinc-300 font-semibold py-2">3</td>
-                        <td className="pl-5 text-zinc-300 font-semibold py-2">Liverpool</td>
-                        <td className="text-center text-zinc-400 font-semibold py-2">28</td>
-                        <td className="text-center text-lime-300 font-semibold py-2">65</td>
-                    </tr>
-                    <tr className="border-t border-zinc-700">
-                        <td className="text-center text-zinc-300 font-semibold py-2">4</td>
-                        <td className="pl-5 text-zinc-300 font-semibold py-2">Aston Villa</td>
-                        <td className="text-center text-zinc-400 font-semibold py-2">28</td>
-                        <td className="text-center text-lime-300 font-semibold py-2">58</td>
-                    </tr>
+                    <thead>
+                        <tr>
+                            <th className="text-zinc-400 py-2">POS</th>
+                            <th className="text-start pl-5 text-zinc-400 py-2">EQUIPO</th>
+                            <th className="text-zinc-400 py-2">PJ</th>
+                            <th className="text-zinc-400 py-2">PTS</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr className="border-t border-zinc-700">
+                            <td className="text-center text-zinc-300 font-semibold py-2">1</td>
+                            <td className="pl-5 text-zinc-300 font-semibold py-2">Manchester City</td>
+                            <td className="text-center text-zinc-400 font-semibold py-2">28</td>
+                            <td className="text-center text-lime-300 font-semibold py-2">72</td>
+                        </tr>
+                        <tr className="border-t border-zinc-700">
+                            <td className="text-center text-zinc-300 font-semibold py-2">2</td>
+                            <td className="pl-5 text-zinc-300 font-semibold py-2">Arsenal</td>
+                            <td className="text-center text-zinc-400 font-semibold py-2">28</td>
+                            <td className="text-center text-lime-300 font-semibold py-2">68</td>
+                        </tr>
+                        <tr className="border-t border-zinc-700">
+                            <td className="text-center text-zinc-300 font-semibold py-2">3</td>
+                            <td className="pl-5 text-zinc-300 font-semibold py-2">Liverpool</td>
+                            <td className="text-center text-zinc-400 font-semibold py-2">28</td>
+                            <td className="text-center text-lime-300 font-semibold py-2">65</td>
+                        </tr>
+                        <tr className="border-t border-zinc-700">
+                            <td className="text-center text-zinc-300 font-semibold py-2">4</td>
+                            <td className="pl-5 text-zinc-300 font-semibold py-2">Aston Villa</td>
+                            <td className="text-center text-zinc-400 font-semibold py-2">28</td>
+                            <td className="text-center text-lime-300 font-semibold py-2">58</td>
+                        </tr>
+                    </tbody>
                 </table>
             </div>
         </div>
