@@ -123,3 +123,5 @@ my-football-app/
 6. **Estilos:** CSS Modules, Tailwind o Styled Components, variables en `styles/variables.ts`.
 7. **Rutas:** React Router v6+, dividir por feature.
 8. **Tipado:** TypeScript obligatorio para mantener consistencia.
+
+##5. este es ejemplo con la platoforma
