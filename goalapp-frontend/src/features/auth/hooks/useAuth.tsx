@@ -1,30 +1,58 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+/**
+ * Contexto de autenticación para GoalApp
+ * Proporciona estado y funciones de autenticación a toda la aplicación
+ */
+
+import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
 import {
   login as apiLogin,
   logout as apiLogout,
   getCurrentUser,
-  saveToken,
   getToken,
+  getStoredUser,
+  clearAuthData,
+  isTokenExpiringSoon,
+  refreshToken,
 } from '../services/authApi';
 import type { User } from '../services/authApi';
 
-// Tipos del contexto
-interface AuthContextType {
+// ============================================
+// TIPOS DEL CONTEXTO
+// ============================================
+
+export interface AuthContextType {
+  /** Usuario actualmente autenticado */
   user: User | null;
+  /** Token de acceso actual */
   token: string | null;
-  isLoading: boolean;
-  isInitializing: boolean;
-  error: string | null;
-  login: (email: string, password: string) => Promise<boolean>;
-  logout: () => void;
-  clearError: () => void;
+  /** Indica si está autenticado */
   isAuthenticated: boolean;
+  /** Indica si está cargando (durante login/logout) */
+  isLoading: boolean;
+  /** Indica si está inicializando (carga inicial del usuario) */
+  isInitializing: boolean;
+  /** Error de autenticación si existe */
+  error: string | null;
+  /** Función para iniciar sesión */
+  login: (email: string, password: string) => Promise<boolean>;
+  /** Función para cerrar sesión */
+  logout: () => Promise<void>;
+  /** Función para limpiar el error */
+  clearError: () => void;
+  /** Función para refrescar los datos del usuario */
+  refreshUser: () => Promise<boolean>;
 }
 
-// Contexto
+// ============================================
+// CONTEXTO
+// ============================================
+
 const AuthContext = createContext<AuthContextType | null>(null);
 
-// Proveedor
+// ============================================
+// PROVIDER
+// ============================================
+
 interface AuthProviderProps {
   children: ReactNode;
 }
@@ -36,42 +64,70 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [isInitializing, setIsInitializing] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Cargar usuario al montar si hay token guardado
+  // ============================================
+  // CARGAR USUARIO AL INICIAR
+  // ============================================
   useEffect(() => {
     async function loadUser() {
       const savedToken = getToken();
+      const storedUser = getStoredUser();
+
       if (savedToken) {
+        setToken(savedToken);
+
+        // Usar usuario almacenado mientras carga
+        if (storedUser) {
+          setUser(storedUser);
+        }
+
+        // Verificar si el token está próximo a expirar
+        if (isTokenExpiringSoon()) {
+          try {
+            await refreshToken();
+          } catch {
+            // Si falla el refresh, limpiar todo
+            clearAuthData();
+            setToken(null);
+            setUser(null);
+            setIsInitializing(false);
+            return;
+          }
+        }
+
+        // Obtener datos actualizados del usuario
         try {
-          const userData = await getCurrentUser(savedToken);
+          const userData = await getCurrentUser();
           setUser(userData);
-          setToken(savedToken);
         } catch {
-          // Token inválido, limpiar
-          apiLogout();
+          // Token inválido o error de red
+          clearAuthData();
           setToken(null);
           setUser(null);
         }
       }
+
       setIsInitializing(false);
     }
+
     loadUser();
   }, []);
 
-  // Función de login
-  const login = async (email: string, password: string): Promise<boolean> => {
+  // ============================================
+  // FUNCIÓN DE LOGIN
+  // ============================================
+  const login = useCallback(async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
     setError(null);
 
     try {
-      // Llamar a la API
+      // Llamar a la API de login
       const response = await apiLogin(email, password);
 
-      // Guardar token
-      saveToken(response.access_token);
+      // Actualizar el estado con el token
       setToken(response.access_token);
 
       // Obtener información del usuario
-      const userData = await getCurrentUser(response.access_token);
+      const userData = await getCurrentUser();
       setUser(userData);
 
       return true;
@@ -82,43 +138,85 @@ export function AuthProvider({ children }: AuthProviderProps) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  // Función de logout
-  const logout = () => {
-    apiLogout();
-    setToken(null);
-    setUser(null);
+  // ============================================
+  // FUNCIÓN DE LOGOUT
+  // ============================================
+  const logout = useCallback(async () => {
+    setIsLoading(true);
+
+    try {
+      await apiLogout();
+    } catch {
+      // Ignorar errores del logout en el servidor
+    } finally {
+      setToken(null);
+      setUser(null);
+      setError(null);
+      setIsLoading(false);
+    }
+  }, []);
+
+  // ============================================
+  // FUNCIÓN PARA REFRESCAR USUARIO
+  // ============================================
+  const refreshUser = useCallback(async (): Promise<boolean> => {
+    if (!token) return false;
+
+    try {
+      const userData = await getCurrentUser();
+      setUser(userData);
+      return true;
+    } catch {
+      return false;
+    }
+  }, [token]);
+
+  // ============================================
+  // LIMPIAR ERROR
+  // ============================================
+  const clearError = useCallback(() => {
     setError(null);
-  };
+  }, []);
 
-  // Limpiar error
-  const clearError = () => setError(null);
-
+  // ============================================
+  // VALOR DEL CONTEXTO
+  // ============================================
   const value: AuthContextType = {
     user,
     token,
+    isAuthenticated: !!token,
     isLoading,
     isInitializing,
     error,
     login,
     logout,
     clearError,
-    isAuthenticated: !!token,
+    refreshUser,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-// Hook para usar el contexto
-export function useAuth() {
+// ============================================
+// HOOK PARA USAR EL CONTEXTO
+// ============================================
+
+/**
+ * Hook para acceder al contexto de autenticación
+ * @returns AuthContextType con el estado y funciones de autenticación
+ * @throws Error si se usa fuera de un AuthProvider
+ */
+export function useAuth(): AuthContextType {
   const context = useContext(AuthContext);
+
   if (!context) {
     throw new Error('useAuth debe usarse dentro de un AuthProvider');
   }
+
   return context;
 }
+
+// Exportar el contexto para casos especiales
+export { AuthContext };

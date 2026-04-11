@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { type ReactNode } from "react";
 import { TfiCup } from "react-icons/tfi";
 import Badge from "../../../../components/ui/Badge";
 

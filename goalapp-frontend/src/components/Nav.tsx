@@ -1,38 +1,12 @@
 import { FaChevronDown } from "react-icons/fa";
 import { IoIosNotificationsOutline, IoMdMenu } from "react-icons/io";
 import { useState } from "react";
-import { useNavigate } from 'react-router-dom';
 import { NavLink } from "react-router-dom";
 import { TfiCup } from "react-icons/tfi";
 
 export default function Nav() {
-    const navigate = useNavigate();
-    const [notifications, setNotification] = useState<boolean>(false);
-    const [page, setPage] = useState<string>('');
-    const [showMenu, setShowMenu] = useState<boolean>(false)
-
-    const redirection = (pageName: string) => {
-        setPage(pageName);
-        
-        switch (pageName) {
-            case "home":
-                navigate('/dashboard');
-                break;
-            case "league":
-                navigate('/leagues');
-                break;
-            case "teams":
-                navigate('/teams');
-                break;
-            case "statistics":
-                navigate('/statistics');
-                break;
-            default:
-                navigate('/dashboard');
-        }
-
-        console.log(page);
-    };
+    const [notifications] = useState<boolean>(false);
+    const [showMenu, setShowMenu] = useState<boolean>(false);
 
     const navItems = [
     { label: 'Inicio', path: '/dashboard' },
