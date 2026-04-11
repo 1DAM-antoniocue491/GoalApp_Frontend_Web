@@ -21,7 +21,7 @@ export default function LoginPage() {
   // Redirigir si ya está autenticado
   useEffect(() => {
     if (isAuthenticated) {
-      navigate('/dashboard', { replace: true });
+      navigate('/onboarding', { replace: true });
     }
   }, [isAuthenticated, navigate]);
 
@@ -60,7 +60,7 @@ export default function LoginPage() {
     const success = await login(email, password);
 
     if (success) {
-      navigate('/dashboard');
+      navigate('/onboarding');
     }
     // Si falla, el error se maneja en el contexto
   };

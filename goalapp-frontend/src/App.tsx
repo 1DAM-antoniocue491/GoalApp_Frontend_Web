@@ -10,6 +10,7 @@ import LeaguePage from './features/league/pages/LeaguePage'
 import TeamPage from './features/team/pages/TeamPage'
 import StatisticPage from './features/statistic/pages/StatisticPage'
 import PrivateRoute from './features/auth/components/PrivateRoute'
+import { OnboardingPage } from './features/onboarding'
 
 function App() {
 
@@ -22,6 +23,7 @@ function App() {
         <Route path='/register' element={<RegisterPage />} />
 
         {/* Rutas protegidas */}
+        <Route path='/onboarding' element={<PrivateRoute><OnboardingPage /></PrivateRoute>} />
         <Route path='/dashboard' element={<PrivateRoute><DashboardPage /></PrivateRoute>} />
         <Route path='/comunication_form' element={<PrivateRoute><FormComunication /></PrivateRoute>} />
         <Route path='/send-email' element={<PrivateRoute><SendEmailForgottenPasswd /></PrivateRoute>} />

@@ -9,6 +9,8 @@ import {
   API_TIMEOUT,
   AUTH_TOKEN_KEY,
   AUTH_REFRESH_TOKEN_KEY,
+  API_RETRY_COUNT,
+  API_RETRY_DELAY,
 } from './config';
 
 // Tipos para el manejo de errores
@@ -90,8 +92,23 @@ const createApiClient = (): AxiosInstance => {
 
       // Error de red (sin respuesta del servidor)
       if (!error.response) {
+        // Intentar reintento si no se ha excedido el límite
+        if (!originalRequest._retry && API_RETRY_COUNT > 0) {
+          originalRequest._retry = true;
+
+          // Esperar antes de reintentar
+          await new Promise(resolve => setTimeout(resolve, API_RETRY_DELAY));
+
+          // Reintentar la petición
+          try {
+            return await client(originalRequest);
+          } catch {
+            // Si el reintento también falla, continuar con el error
+          }
+        }
+
         const networkError: ApiError = {
-          message: 'Error de conexión. Verifica tu conexión a internet.',
+          message: 'El servidor está iniciando. Por favor, espera un momento e intenta de nuevo.',
           statusCode: 0,
           isNetworkError: true,
           isAuthError: false,
