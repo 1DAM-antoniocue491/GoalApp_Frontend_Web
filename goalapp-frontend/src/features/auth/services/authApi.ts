@@ -1,6 +1,7 @@
 /**
  * Servicio de autenticación para GoalApp
  * Maneja todas las operaciones relacionadas con autenticación usando el cliente HTTP centralizado
+ * Soporta modo mock cuando VITE_USE_MOCKS=true
  */
 
 import {
@@ -16,6 +17,8 @@ import {
   AUTH_ENDPOINTS,
 } from '../../../services/api/config';
 import type { ApiError } from '../../../services/api';
+import { isMockEnabled } from '../../../mocks/env';
+import * as mockApi from '../../../mocks/api';
 
 // ============================================
 // TIPOS
@@ -92,6 +95,21 @@ export interface ResetPasswordRequest {
  * @throws ApiError si las credenciales son inválidas o hay error de red
  */
 export async function login(email: string, password: string): Promise<LoginResponse> {
+  // Modo mock: simular login exitoso
+  if (isMockEnabled()) {
+    const response = await mockApi.mockLogin(email, password);
+
+    // Guardar tokens mock en localStorage
+    if (response.access_token) {
+      localStorage.setItem(AUTH_TOKEN_KEY, response.access_token);
+    }
+    if (response.refresh_token) {
+      localStorage.setItem(AUTH_REFRESH_TOKEN_KEY, response.refresh_token);
+    }
+
+    return response;
+  }
+
   try {
     // El backend espera form-data con 'username' y 'password' (OAuth2PasswordRequestForm)
     const response = await apiLogin<LoginResponse>(AUTH_ENDPOINTS.LOGIN, email, password);
@@ -117,6 +135,13 @@ export async function login(email: string, password: string): Promise<LoginRespo
  * @throws ApiError si el token es inválido o expiró
  */
 export async function getCurrentUser(): Promise<User> {
+  // Modo mock: devolver usuario mock
+  if (isMockEnabled()) {
+    const user = await mockApi.mockGetCurrentUser();
+    localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
+    return user as unknown as User;
+  }
+
   try {
     const user = await apiGet<User>(AUTH_ENDPOINTS.ME);
 
@@ -136,6 +161,15 @@ export async function getCurrentUser(): Promise<User> {
  * - Opcionalmente llama al endpoint de logout en el backend
  */
 export async function logout(): Promise<void> {
+  // Modo mock: solo limpiar localStorage
+  if (isMockEnabled()) {
+    await mockApi.mockLogout();
+    localStorage.removeItem(AUTH_TOKEN_KEY);
+    localStorage.removeItem(AUTH_REFRESH_TOKEN_KEY);
+    localStorage.removeItem(AUTH_USER_KEY);
+    return;
+  }
+
   try {
     // Intentar notificar al backend (opcional)
     await apiPost(AUTH_ENDPOINTS.LOGOUT).catch(() => {
@@ -155,6 +189,12 @@ export async function logout(): Promise<void> {
  * @returns Promesa con la respuesta
  */
 export async function forgotPassword(email: string): Promise<ForgotPasswordResponse> {
+  // Modo mock: simular respuesta exitosa
+  if (isMockEnabled()) {
+    const response = await mockApi.mockForgotPassword(email);
+    return response as ForgotPasswordResponse;
+  }
+
   try {
     const response = await apiPost<ForgotPasswordResponse>(AUTH_ENDPOINTS.FORGOT_PASSWORD, {
       email,
@@ -171,6 +211,12 @@ export async function forgotPassword(email: string): Promise<ForgotPasswordRespo
  * @returns Promesa con la respuesta
  */
 export async function resetPassword(data: ResetPasswordRequest): Promise<{ message: string }> {
+  // Modo mock: simular respuesta exitosa
+  if (isMockEnabled()) {
+    const response = await mockApi.mockResetPassword(data.token, data.new_password);
+    return response;
+  }
+
   try {
     const response = await apiPost<{ message: string }>(AUTH_ENDPOINTS.RESET_PASSWORD, data);
     return response;
@@ -184,6 +230,18 @@ export async function resetPassword(data: ResetPasswordRequest): Promise<{ messa
  * @returns Promesa con el nuevo access token
  */
 export async function refreshToken(): Promise<LoginResponse> {
+  // Modo mock: simular refresh exitoso
+  if (isMockEnabled()) {
+    const response = await mockApi.mockRefreshToken();
+    if (response.access_token) {
+      localStorage.setItem(AUTH_TOKEN_KEY, response.access_token);
+    }
+    if (response.refresh_token) {
+      localStorage.setItem(AUTH_REFRESH_TOKEN_KEY, response.refresh_token);
+    }
+    return response;
+  }
+
   const storedRefreshToken = localStorage.getItem(AUTH_REFRESH_TOKEN_KEY);
 
   if (!storedRefreshToken) {

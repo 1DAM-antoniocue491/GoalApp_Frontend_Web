@@ -4,8 +4,10 @@
  */
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router';
 import { FiSearch, FiBell, FiLoader, FiAlertCircle, FiRefreshCw } from 'react-icons/fi';
 import { useAuth } from '../../auth/hooks/useAuth';
+import { useSelectedLeague } from '../../../context';
 import { CreateLeagueModal } from '../../league';
 import { ActionCard } from '../components/ActionCard';
 import { LeagueCard } from '../components/LeagueCard';
@@ -97,6 +99,10 @@ export function OnboardingPage() {
   const [isCreateLeagueModalOpen, setIsCreateLeagueModalOpen] = useState(false);
   const [togglingFavoriteId, setTogglingFavoriteId] = useState<number | null>(null);
   const [favoriteError, setFavoriteError] = useState<string | null>(null);
+
+  // Hooks de navegación y contexto
+  const navigate = useNavigate();
+  const { selectLeague } = useSelectedLeague();
 
   // Obtener usuario desde el contexto de autenticación
   const { user, isInitializing } = useAuth();
@@ -191,8 +197,24 @@ export function OnboardingPage() {
   };
 
   const handleEnterLeague = (leagueId: number) => {
-    console.log('Entrar a liga:', leagueId);
-    // TODO: Navegar al dashboard de la liga
+    // Encontrar la liga seleccionada
+    const league = leagues.find((l) => l.id === leagueId);
+    if (!league) {
+      console.error('Liga no encontrada:', leagueId);
+      return;
+    }
+
+    // Guardar la liga seleccionada en el contexto
+    selectLeague({
+      id: league.id,
+      nombre: league.nombre,
+      temporada: league.temporada,
+      rol: league.rol,
+      miEquipo: league.miEquipo,
+    });
+
+    // Redirigir al dashboard
+    navigate('/dashboard');
   };
 
   const handleReactivateLeague = (leagueId: number) => {

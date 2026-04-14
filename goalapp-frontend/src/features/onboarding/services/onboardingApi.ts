@@ -1,10 +1,13 @@
 /**
  * Servicio de API para el módulo de Onboarding
  * Maneja las llamadas relacionadas con ligas del usuario y seguimiento de ligas
+ * Soporta modo mock cuando VITE_USE_MOCKS=true
  */
 
 import { apiGet, apiPost, apiDelete, getErrorMessage } from '../../../services/api';
 import type { ApiError } from '../../../services/api';
+import { isMockEnabled } from '../../../mocks/env';
+import * as mockApi from '../../../mocks/api';
 import type { UserLeague, UserRole } from '../types';
 
 // ============================================
@@ -63,6 +66,11 @@ export interface DejarSeguirResponseApi {
  * @throws ApiError si hay error de autenticación o de red
  */
 export async function fetchUserLeaguesWithRole(): Promise<LigaConRolApi[]> {
+  // Modo mock: devolver ligas mock con rol
+  if (isMockEnabled()) {
+    return mockApi.mockFetchUserLeaguesWithRole() as Promise<LigaConRolApi[]>;
+  }
+
   try {
     const ligas = await apiGet<LigaConRolApi[]>('/usuarios/me/ligas');
     return ligas;
@@ -78,6 +86,11 @@ export async function fetchUserLeaguesWithRole(): Promise<LigaConRolApi[]> {
  * @throws ApiError si hay error de autenticación o de red
  */
 export async function fetchLigasSeguidas(): Promise<number[]> {
+  // Modo mock: devolver IDs de ligas seguidas mock
+  if (isMockEnabled()) {
+    return mockApi.mockFetchLigasSeguidasIds();
+  }
+
   try {
     const ligas = await apiGet<LigaSeguidaApi[]>('/usuarios/me/ligas-seguidas');
     // Retornar solo los IDs para facilitar verificación
@@ -97,6 +110,12 @@ export async function fetchLigasSeguidas(): Promise<number[]> {
  * @throws ApiError si hay error de autenticación, validación o de red
  */
 export async function seguirLiga(ligaId: number): Promise<SeguimientoResponseApi> {
+  // Modo mock: simular seguimiento exitoso
+  if (isMockEnabled()) {
+    const response = await mockApi.mockSeguirLiga(ligaId);
+    return response as SeguimientoResponseApi;
+  }
+
   try {
     const response = await apiPost<SeguimientoResponseApi>(
       `/usuarios/me/ligas/${ligaId}/seguir`
@@ -115,6 +134,12 @@ export async function seguirLiga(ligaId: number): Promise<SeguimientoResponseApi
  * @throws ApiError si hay error de autenticación o de red
  */
 export async function dejarDeSeguirLiga(ligaId: number): Promise<DejarSeguirResponseApi> {
+  // Modo mock: simular dejar de seguir exitoso
+  if (isMockEnabled()) {
+    const response = await mockApi.mockDejarDeSeguirLiga(ligaId);
+    return response as DejarSeguirResponseApi;
+  }
+
   try {
     const response = await apiDelete<DejarSeguirResponseApi>(
       `/usuarios/me/ligas/${ligaId}/seguir`
@@ -196,6 +221,12 @@ export async function toggleLigaFavorita(
   ligaId: number,
   esFavorita: boolean
 ): Promise<void> {
+  // Modo mock: delegar al mock API
+  if (isMockEnabled()) {
+    await mockApi.mockToggleLigaFavorita(ligaId, esFavorita);
+    return;
+  }
+
   if (esFavorita) {
     // Si ya es favorita, dejar de seguir
     await dejarDeSeguirLiga(ligaId);

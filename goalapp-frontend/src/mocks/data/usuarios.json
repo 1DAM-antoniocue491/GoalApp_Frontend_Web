@@ -1,0 +1,106 @@
+[
+  {
+    "id_usuario": 1,
+    "nombre": "Carlos García López",
+    "email": "carlos.garcia@email.com",
+    "telefono": "+34 612 345 678",
+    "fecha_nacimiento": "1990-03-15",
+    "rol_principal": "admin",
+    "imagen_url": null,
+    "activo": true,
+    "roles": [
+      { "id_rol": 1, "nombre": "admin", "descripcion": "Administrador del sistema" }
+    ]
+  },
+  {
+    "id_usuario": 2,
+    "nombre": "María Fernández Ruiz",
+    "email": "maria.fernandez@email.com",
+    "telefono": "+34 623 456 789",
+    "fecha_nacimiento": "1985-07-22",
+    "rol_principal": "entrenador",
+    "imagen_url": null,
+    "activo": true,
+    "roles": [
+      { "id_rol": 2, "nombre": "entrenador", "descripcion": "Entrenador de equipo" }
+    ]
+  },
+  {
+    "id_usuario": 3,
+    "nombre": "Javier Martínez Sánchez",
+    "email": "javier.martinez@email.com",
+    "telefono": "+34 634 567 890",
+    "fecha_nacimiento": "1992-11-08",
+    "rol_principal": "jugador",
+    "imagen_url": null,
+    "activo": true,
+    "roles": [
+      { "id_rol": 3, "nombre": "jugador", "descripcion": "Jugador de equipo" }
+    ]
+  },
+  {
+    "id_usuario": 4,
+    "nombre": "Ana López Díaz",
+    "email": "ana.lopez@email.com",
+    "telefono": "+34 645 678 901",
+    "fecha_nacimiento": "1988-01-30",
+    "rol_principal": "delegado",
+    "imagen_url": null,
+    "activo": true,
+    "roles": [
+      { "id_rol": 4, "nombre": "delegado", "descripcion": "Delegado de partido" }
+    ]
+  },
+  {
+    "id_usuario": 5,
+    "nombre": "Pedro Sánchez Moreno",
+    "email": "pedro.sanchez@email.com",
+    "telefono": "+34 656 789 012",
+    "fecha_nacimiento": "1995-05-12",
+    "rol_principal": "jugador",
+    "imagen_url": null,
+    "activo": true,
+    "roles": [
+      { "id_rol": 3, "nombre": "jugador", "descripcion": "Jugador de equipo" }
+    ]
+  },
+  {
+    "id_usuario": 6,
+    "nombre": "Laura Rodríguez Navarro",
+    "email": "laura.rodriguez@email.com",
+    "telefono": "+34 667 890 123",
+    "fecha_nacimiento": "1993-09-18",
+    "rol_principal": "entrenador",
+    "imagen_url": null,
+    "activo": true,
+    "roles": [
+      { "id_rol": 2, "nombre": "entrenador", "descripcion": "Entrenador de equipo" }
+    ]
+  },
+  {
+    "id_usuario": 7,
+    "nombre": "Diego Torres Vidal",
+    "email": "diego.torres@email.com",
+    "telefono": "+34 678 901 234",
+    "fecha_nacimiento": "1997-12-04",
+    "rol_principal": "jugador",
+    "imagen_url": null,
+    "activo": true,
+    "roles": [
+      { "id_rol": 3, "nombre": "jugador", "descripcion": "Jugador de equipo" }
+    ]
+  },
+  {
+    "id_usuario": 8,
+    "nombre": "Sofía Herrero Blanco",
+    "email": "sofia.herrero@email.com",
+    "telefono": "+34 689 012 345",
+    "fecha_nacimiento": "1991-04-25",
+    "rol_principal": "delegado",
+    "imagen_url": null,
+    "activo": true,
+    "roles": [
+      { "id_rol": 4, "nombre": "delegado", "descripcion": "Delegado de partido" }
+    ]
+  }
+]

@@ -1,0 +1,56 @@
+[
+  {
+    "id_notificacion": 1,
+    "id_usuario": 1,
+    "tipo": "partido_programado",
+    "titulo": "Nuevo partido programado",
+    "mensaje": "Tu equipo tiene un partido programado contra UD San Blas el domingo 14 de abril a las 19:00",
+    "leido": false,
+    "created_at": "2026-04-12T10:30:00Z"
+  },
+  {
+    "id_notificacion": 2,
+    "id_usuario": 1,
+    "tipo": "convocatoria",
+    "titulo": "Convocatoria de partido",
+    "mensaje": "Has sido convocado para el partido contra Atlético Hortaleza del día 13 de abril",
+    "leido": false,
+    "created_at": "2026-04-11T18:00:00Z"
+  },
+  {
+    "id_notificacion": 3,
+    "id_usuario": 1,
+    "tipo": "resultado",
+    "titulo": "Resultado del partido",
+    "mensaje": "CD Fútbol Base Madrid 3 - UD San Blas 1. Tu equipo ha ganado.",
+    "leido": true,
+    "created_at": "2026-03-20T20:15:00Z"
+  },
+  {
+    "id_notificacion": 4,
+    "id_usuario": 2,
+    "tipo": "jugador_nuevo",
+    "titulo": "Nuevo jugador en tu equipo",
+    "mensaje": "Se ha añadido a Roberto Vega Hernández a la plantilla de UD San Blas",
+    "leido": true,
+    "created_at": "2026-04-10T09:00:00Z"
+  },
+  {
+    "id_notificacion": 5,
+    "id_usuario": 1,
+    "tipo": "liga_actualizacion",
+    "titulo": "Actualización de liga",
+    "mensaje": "Se ha actualizado la clasificación de la Liga Amateur Madrid tras la jornada 14",
+    "leido": true,
+    "created_at": "2026-03-22T22:00:00Z"
+  },
+  {
+    "id_notificacion": 6,
+    "id_usuario": 3,
+    "tipo": "tarjeta",
+    "titulo": "Tarjeta amarilla",
+    "mensaje": "Has recibido una tarjeta amarilla en el partido contra UD San Blas",
+    "leido": false,
+    "created_at": "2026-03-20T18:30:00Z"
+  }
+]

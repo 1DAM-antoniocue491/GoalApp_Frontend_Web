@@ -1,10 +1,13 @@
 /**
  * Servicio de API para el módulo de Ligas
  * Maneja las llamadas relacionadas con la gestión de ligas
+ * Soporta modo mock cuando VITE_USE_MOCKS=true
  */
 
 import { apiPost, apiGet, getErrorMessage } from '../../../services/api';
 import type { ApiError } from '../../../services/api';
+import { isMockEnabled } from '../../../mocks/env';
+import * as mockApi from '../../../mocks/api';
 
 // ============================================
 // TIPOS DE API
@@ -56,6 +59,16 @@ export interface CreateLeagueResult {
  * Requiere autenticación con rol Admin
  */
 export async function createLeague(data: CreateLeagueRequest): Promise<CreateLeagueResult> {
+  // Modo mock: simular creación exitosa
+  if (isMockEnabled()) {
+    const result = await mockApi.mockCreateLeague(data);
+    return {
+      success: result.success,
+      data: result.data as LeagueResponse | undefined,
+      error: result.error,
+    };
+  }
+
   try {
     const response = await apiPost<LeagueResponse>('/ligas/', data);
     return {
@@ -77,6 +90,12 @@ export async function createLeague(data: CreateLeagueRequest): Promise<CreateLea
  * @returns Promesa con la lista de ligas
  */
 export async function fetchAllLeagues(): Promise<LeagueResponse[]> {
+  // Modo mock: devolver ligas mock
+  if (isMockEnabled()) {
+    const ligas = await mockApi.mockFetchAllLeagues();
+    return ligas as LeagueResponse[];
+  }
+
   try {
     return await apiGet<LeagueResponse[]>('/ligas/');
   } catch (error) {
@@ -92,6 +111,12 @@ export async function fetchAllLeagues(): Promise<LeagueResponse[]> {
  * @returns Promesa con la liga
  */
 export async function fetchLeagueById(id: number): Promise<LeagueResponse> {
+  // Modo mock: buscar liga mock por ID
+  if (isMockEnabled()) {
+    const liga = await mockApi.mockFetchLeagueById(id);
+    return liga as LeagueResponse;
+  }
+
   try {
     return await apiGet<LeagueResponse>(`/ligas/${id}`);
   } catch (error) {
