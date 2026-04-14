@@ -14,7 +14,6 @@ export default function UpcomingMatchCard({ teams, league, time }: UpcomingMatch
                 <FaRegClock className="text-zinc-500"/>
                 <div>
                     <p className="text-zinc-300 text-[12px] font-semibold">{teams}</p>
-                    <p className="text-zinc-500 text-[12px]">{league}</p>
                 </div>
             </div>
             <Badge variant="info">{time}</Badge>

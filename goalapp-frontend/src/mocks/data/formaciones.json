@@ -1,0 +1,56 @@
+[
+  {
+    "id_formacion": 1,
+    "nombre": "4-4-2",
+    "descripcion": "Formación clásica con doble delantero",
+    "posiciones": [
+      { "posicion": "POR", "x": 50, "y": 90 },
+      { "posicion": "LI", "x": 15, "y": 70 },
+      { "posicion": "DFC1", "x": 35, "y": 72 },
+      { "posicion": "DFC2", "x": 65, "y": 72 },
+      { "posicion": "LD", "x": 85, "y": 70 },
+      { "posicion": "MI", "x": 20, "y": 48 },
+      { "posicion": "MC1", "x": 40, "y": 50 },
+      { "posicion": "MC2", "x": 60, "y": 50 },
+      { "posicion": "MD", "x": 80, "y": 48 },
+      { "posicion": "DC1", "x": 38, "y": 25 },
+      { "posicion": "DC2", "x": 62, "y": 25 }
+    ]
+  },
+  {
+    "id_formacion": 2,
+    "nombre": "4-3-3",
+    "descripcion": "Formación ofensiva con triple punta",
+    "posiciones": [
+      { "posicion": "POR", "x": 50, "y": 90 },
+      { "posicion": "LI", "x": 15, "y": 70 },
+      { "posicion": "DFC1", "x": 35, "y": 72 },
+      { "posicion": "DFC2", "x": 65, "y": 72 },
+      { "posicion": "LD", "x": 85, "y": 70 },
+      { "posicion": "MC", "x": 35, "y": 50 },
+      { "posicion": "MCO", "x": 50, "y": 45 },
+      { "posicion": "MC2", "x": 65, "y": 50 },
+      { "posicion": "EI", "x": 20, "y": 25 },
+      { "posicion": "DC", "x": 50, "y": 22 },
+      { "posicion": "ED", "x": 80, "y": 25 }
+    ]
+  },
+  {
+    "id_formacion": 3,
+    "nombre": "3-5-2",
+    "descripcion": "Formación con tres centrales y carriles",
+    "posiciones": [
+      { "posicion": "POR", "x": 50, "y": 90 },
+      { "posicion": "DFC1", "x": 25, "y": 72 },
+      { "posicion": "DFC2", "x": 50, "y": 74 },
+      { "posicion": "DFC3", "x": 75, "y": 72 },
+      { "posicion": "CAI", "x": 10, "y": 50 },
+      { "posicion": "MC1", "x": 35, "y": 52 },
+      { "posicion": "MCO", "x": 50, "y": 45 },
+      { "posicion": "MC2", "x": 65, "y": 52 },
+      { "posicion": "CAD", "x": 90, "y": 50 },
+      { "posicion": "DC1", "x": 38, "y": 25 },
+      { "posicion": "DC2", "x": 62, "y": 25 }
+    ]
+  }
+]

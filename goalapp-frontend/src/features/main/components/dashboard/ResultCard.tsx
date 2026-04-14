@@ -12,18 +12,19 @@ export default function ResultCard({ league, home, away, score, status }: Result
     return (
         <div>
             {/* DESKTOP */}
-            <Card variant="default" padding="sm" className="hidden sm:flex flex-row justify-between items-end gap-4">
-                <div className="flex flex-col gap-2">
-                    <p className="text-zinc-500 text-[12px]">{league}</p>
+            <Card variant="default" padding="sm" className="hidden sm:flex flex-row items-center gap-4">
+                <div className="flex flex-col gap-2 flex-1">
                     <p className="text-zinc-300 text-[12px] font-semibold">{home}</p>
                 </div>
 
-                <div className="flex flex-col items-center">
+                <div className="flex flex-col items-center shrink-0">
                     <p className="text-zinc-300 bg-zinc-800 px-3 rounded-lg font-semibold">{score}</p>
                     <p className="text-zinc-600 text-[10px]">{status}</p>
                 </div>
 
-                <p className="text-zinc-300 text-[12px] font-semibold">{away}</p>
+                <div className="flex flex-col items-end gap-2 flex-1">
+                    <p className="text-zinc-300 text-[12px] font-semibold">{away}</p>
+                </div>
             </Card>
 
             {/* MOBILE */}

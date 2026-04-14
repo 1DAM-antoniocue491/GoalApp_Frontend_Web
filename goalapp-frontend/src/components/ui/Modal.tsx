@@ -1,4 +1,4 @@
-import { ReactNode, useEffect } from "react";
+import { type ReactNode, useEffect } from "react";
 import { FaTimes } from "react-icons/fa";
 
 interface ModalProps {

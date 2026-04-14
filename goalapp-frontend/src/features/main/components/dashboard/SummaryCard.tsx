@@ -3,13 +3,15 @@ import Card from "../../../../components/ui/Card";
 interface SummaryCardProps {
     label: string;
     value: number | string;
-    color?: "lime" | "blue";
+    color?: "lime" | "blue" | "purple" | "orange";
 }
 
 export default function SummaryCard({ label, value, color = "lime" }: SummaryCardProps) {
     const colors = {
         lime: "text-lime-300",
-        blue: "text-blue-400"
+        blue: "text-blue-400",
+        purple: "text-purple-400",
+        orange: "text-orange-400"
     };
 
     return (
