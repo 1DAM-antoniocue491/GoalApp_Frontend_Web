@@ -11,6 +11,7 @@ import StatisticPage from './features/statistic/pages/StatisticPage'
 // TODO: Restaurar PrivateRoute cuando el backend funcione correctamente
 // import PrivateRoute from './features/auth/components/PrivateRoute'
 import { OnboardingPage } from './features/onboarding'
+import Caledario from './features/calendario/pages/Caledario'
 
 function App() {
 
@@ -29,6 +30,7 @@ function App() {
         <Route path='/leagues' element={<LeaguePage />} />
         <Route path='/teams' element={<TeamPage />} />
         <Route path='/statistics' element={<StatisticPage />} />
+        <Route path='/calendar' element={<Caledario/>}/>
       </Routes>
     </>
   )
