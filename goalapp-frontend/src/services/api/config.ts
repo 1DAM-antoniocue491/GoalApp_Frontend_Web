@@ -22,6 +22,7 @@ export const AUTH_ENDPOINTS = {
   REFRESH: '/auth/refresh',
   FORGOT_PASSWORD: '/auth/forgot-password',
   RESET_PASSWORD: '/auth/reset-password',
+  REGISTER: '/usuarios/',
 } as const;
 
 // Endpoints públicos

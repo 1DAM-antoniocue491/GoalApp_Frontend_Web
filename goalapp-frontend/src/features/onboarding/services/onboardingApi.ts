@@ -4,7 +4,7 @@
  * Soporta modo mock cuando VITE_USE_MOCKS=true
  */
 
-import { apiGet, apiPost, apiDelete, getErrorMessage } from '../../../services/api';
+import { apiGet, apiPost, apiDelete, apiPut, getErrorMessage } from '../../../services/api';
 import type { ApiError } from '../../../services/api';
 import { isMockEnabled } from '../../../mocks/env';
 import * as mockApi from '../../../mocks/api';
@@ -210,6 +210,26 @@ export async function loadUserLeagues(): Promise<UserLeague[]> {
 }
 
 /**
+ * Reactivar una liga finalizada
+ * PUT /ligas/{liga_id}/reactivar
+ * @param ligaId - ID de la liga a reactivar
+ * @returns Promesa que resuelve cuando la operación se completa
+ * @throws Error si la operación falla
+ */
+export async function reactivarLiga(ligaId: number): Promise<void> {
+  if (isMockEnabled()) {
+    await mockApi.mockReactivarLiga(ligaId);
+    return;
+  }
+
+  try {
+    await apiPut(`/ligas/${ligaId}/reactivar`, {});
+  } catch (error) {
+    throw new Error(getErrorMessage(error as ApiError));
+  }
+}
+
+/**
  * Alternar el estado de favorito de una liga
  * Si es favorito, deja de seguir; si no es favorito, comienza a seguir
  * @param ligaId - ID de la liga
@@ -233,5 +253,56 @@ export async function toggleLigaFavorita(
   } else {
     // Si no es favorita, seguir
     await seguirLiga(ligaId);
+  }
+}
+
+// ============================================
+// UNIRSE A LIGA CON CÓDIGO DE INVITACIÓN
+// ============================================
+
+/**
+ * Respuesta del endpoint de unirse a liga por código
+ */
+export interface JoinLeagueResponse {
+  id_seguimiento: number;
+  id_usuario: number;
+  id_liga: number;
+  created_at: string;
+}
+
+/**
+ * Unirse a una liga mediante código de invitación
+ * POST /usuarios/me/ligas/codigo/{codigo}
+ *
+ * NOTA: El backend NO tiene un endpoint específico para unirse por código.
+ * El endpoint actual usa liga_id: POST /usuarios/me/ligas/{liga_id}/seguir
+ * Se usa este endpoint como alternativa mientras el backend implementa
+ * el endpoint por código de invitación.
+ *
+ * @param codigo - Código de invitación de la liga
+ * @returns Promesa con la respuesta del seguimiento
+ * @throws Error si el código es inválido o la operación falla
+ */
+export async function joinLeagueByCode(codigo: string): Promise<JoinLeagueResponse> {
+  // Modo mock: simular unión exitosa
+  if (isMockEnabled()) {
+    const response = await mockApi.mockJoinLeagueByCode(codigo);
+    return response as JoinLeagueResponse;
+  }
+
+  try {
+    // NOTA: El backend no tiene endpoint por código aún.
+    // Se intenta usar el código como si fuera el id_liga temporalmente.
+    // Cuando el backend implemente el endpoint correcto, se cambiará aquí.
+    const ligaId = parseInt(codigo, 10);
+    if (isNaN(ligaId)) {
+      throw new Error('Código de invitación inválido. Debe ser un número de liga válido.');
+    }
+    const response = await apiPost<JoinLeagueResponse>(
+      `/usuarios/me/ligas/${ligaId}/seguir`
+    );
+    return response;
+  } catch (error) {
+    throw new Error(getErrorMessage(error as ApiError));
   }
 }

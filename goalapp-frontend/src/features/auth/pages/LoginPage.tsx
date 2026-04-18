@@ -68,13 +68,11 @@ export default function LoginPage() {
   // Manejar cambio de email
   const handleEmailChange = (value: string) => {
     setEmail(value);
-    if (error) clearError();
   };
 
   // Manejar cambio de contraseña
   const handlePasswordChange = (value: string) => {
     setPassword(value);
-    if (error) clearError();
   };
 
   return (

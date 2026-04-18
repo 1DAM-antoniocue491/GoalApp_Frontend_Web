@@ -5,11 +5,14 @@ import PublicDashboardPage from './features/main/pages/PublicDashboardPage'
 import LoginPage from './features/auth/pages/LoginPage'
 import RegisterPage from './features/auth/pages/RegisterPage'
 import SendEmailForgottenPasswd from './features/auth/pages/SendEmailForgottenPasswd'
+import EmailSentPage from './features/auth/pages/EmailSentPage'
+import ResetPasswordPage from './features/auth/pages/ResetPasswordPage'
 import LeaguePage from './features/league/pages/LeaguePage'
 import TeamPage from './features/team/pages/TeamPage'
 import StatisticPage from './features/statistic/pages/StatisticPage'
-// TODO: Restaurar PrivateRoute cuando el backend funcione correctamente
-// import PrivateRoute from './features/auth/components/PrivateRoute'
+import CalendarPage from './features/calendary/pages/CalendarPage'
+import UsersPage from './features/users/pages/UsersPage'
+import PrivateRoute from './features/auth/components/PrivateRoute'
 import { OnboardingPage } from './features/onboarding'
 
 function App() {
@@ -21,14 +24,20 @@ function App() {
         <Route path='/' element={<PublicDashboardPage />} />
         <Route path='/login' element={<LoginPage />} />
         <Route path='/register' element={<RegisterPage />} />
+        <Route path='/forgot-password' element={<SendEmailForgottenPasswd />} />
+        <Route path='/email-sent' element={<EmailSentPage />} />
+        <Route path='/reset-password' element={<ResetPasswordPage />} />
 
-        {/* Rutas protegidas (temporalmente sin autenticación) */}
-        <Route path='/onboarding' element={<OnboardingPage />} />
-        <Route path='/dashboard' element={<DashboardPage />} />
-        <Route path='/send-email' element={<SendEmailForgottenPasswd />} />
-        <Route path='/leagues' element={<LeaguePage />} />
-        <Route path='/teams' element={<TeamPage />} />
-        <Route path='/statistics' element={<StatisticPage />} />
+        {/* Rutas protegidas */}
+        <Route element={<PrivateRoute />}>
+          <Route path='/onboarding' element={<OnboardingPage />} />
+          <Route path='/dashboard' element={<DashboardPage />} />
+          <Route path='/leagues' element={<LeaguePage />} />
+          <Route path='/teams' element={<TeamPage />} />
+          <Route path='/statistics' element={<StatisticPage />} />
+          <Route path='/calendar' element={<CalendarPage />} />
+          <Route path='/users' element={<UsersPage />} />
+        </Route>
       </Routes>
     </>
   )

@@ -137,10 +137,10 @@ export async function mockLogout(): Promise<void> {
 /**
  * Solicitar recuperacion de contrasena
  */
-export async function mockForgotPassword(_email: string): Promise<{ message: string; success: boolean }> {
+export async function mockForgotPassword(_email: string): Promise<{ mensaje: string; success: boolean }> {
   await simulateDelay(MOCK_WRITE_DELAY_MS);
   return {
-    message: 'Si el email existe, se ha enviado un enlace de recuperacion.',
+    mensaje: 'Si el email existe, se ha enviado un enlace de recuperacion.',
     success: true,
   };
 }
@@ -159,6 +159,47 @@ export async function mockResetPassword(_token: string, _newPassword: string): P
 export async function mockRefreshToken(): Promise<MockLoginResponse> {
   await simulateDelay(200);
   return mockLogin('carlos.garcia@email.com', 'mock');
+}
+
+/**
+ * Registrar un nuevo usuario mock
+ */
+export async function mockRegister(
+  nombre: string,
+  email: string,
+  _password: string,
+): Promise<{ success: boolean; message: string; user?: MockUsuario }> {
+  await simulateDelay(MOCK_WRITE_DELAY_MS);
+
+  // Verificar si el email ya existe
+  const emailExiste = usuarios.find((u) => u.email === email);
+  if (emailExiste) {
+    return {
+      success: false,
+      message: 'Ya existe una cuenta con este email.',
+    };
+  }
+
+  // Crear nuevo usuario
+  const nuevoUsuario: MockUsuario = {
+    id_usuario: generateId(),
+    nombre,
+    email,
+    telefono: null,
+    fecha_nacimiento: null,
+    rol_principal: 'jugador',
+    imagen_url: null,
+    activo: true,
+    roles: [{ id_rol: 5, nombre: 'jugador', descripcion: 'Jugador' }],
+  };
+
+  usuarios.push(nuevoUsuario);
+
+  return {
+    success: true,
+    message: 'Registro exitoso.',
+    user: nuevoUsuario,
+  };
 }
 
 // ============================================
@@ -192,6 +233,10 @@ export async function mockCreateLeague(data: {
   nombre: string;
   temporada: string;
   activa?: boolean;
+  categoria?: string;
+  cantidad_partidos?: number;
+  duracion_partido?: number;
+  logo_url?: string;
 }): Promise<MockCreateLeagueResult> {
   await simulateDelay(MOCK_WRITE_DELAY_MS);
 
@@ -210,6 +255,125 @@ export async function mockCreateLeague(data: {
     success: true,
     data: nuevaLiga,
   };
+}
+
+/**
+ * Actualizar una liga existente
+ */
+export async function mockUpdateLeague(
+  id: number,
+  data: { nombre?: string; temporada?: string; activa?: boolean }
+): Promise<{ success: boolean; data?: MockLiga; error?: string }> {
+  await simulateDelay(MOCK_WRITE_DELAY_MS);
+
+  const index = ligas.findIndex((l) => l.id_liga === id);
+  if (index === -1) {
+    return { success: false, error: `Liga con id ${id} no encontrada` };
+  }
+
+  ligas[index] = {
+    ...ligas[index],
+    ...(data.nombre !== undefined && { nombre: data.nombre }),
+    ...(data.temporada !== undefined && { temporada: data.temporada }),
+    ...(data.activa !== undefined && { activa: data.activa }),
+    updated_at: new Date().toISOString(),
+  };
+
+  return { success: true, data: { ...ligas[index] } };
+}
+
+// ============================================
+// CONFIGURACIÓN DE LIGA
+// ============================================
+
+const leagueConfigs: Record<number, {
+  id_configuracion: number;
+  id_liga: number;
+  hora_partidos: string;
+  min_equipos: number;
+  max_equipos: number;
+  min_convocados: number;
+  max_convocados: number;
+  min_plantilla: number;
+  max_plantilla: number;
+  min_jugadores_equipo: number;
+  min_partidos_entre_equipos: number;
+  minutos_partido: number;
+  max_partidos: number;
+  created_at: string;
+  updated_at: string;
+}> = {
+  1: {
+    id_configuracion: 1, id_liga: 1, hora_partidos: '17:00:00',
+    min_equipos: 6, max_equipos: 30, min_convocados: 18, max_convocados: 28,
+    min_plantilla: 18, max_plantilla: 28, min_jugadores_equipo: 7,
+    min_partidos_entre_equipos: 2, minutos_partido: 90, max_partidos: 45,
+    created_at: '2025-09-01T10:00:00Z', updated_at: '2025-09-01T10:00:00Z',
+  },
+  2: {
+    id_configuracion: 2, id_liga: 2, hora_partidos: '18:00:00',
+    min_equipos: 4, max_equipos: 16, min_convocados: 14, max_convocados: 22,
+    min_plantilla: 14, max_plantilla: 22, min_jugadores_equipo: 7,
+    min_partidos_entre_equipos: 2, minutos_partido: 80, max_partidos: 30,
+    created_at: '2025-09-15T14:30:00Z', updated_at: '2025-09-15T14:30:00Z',
+  },
+  3: {
+    id_configuracion: 3, id_liga: 3, hora_partidos: '19:00:00',
+    min_equipos: 4, max_equipos: 42, min_convocados: 18, max_convocados: 28,
+    min_plantilla: 18, max_plantilla: 28, min_jugadores_equipo: 7,
+    min_partidos_entre_equipos: 2, minutos_partido: 90, max_partidos: 45,
+    created_at: '2024-08-20T09:00:00Z', updated_at: '2025-06-30T18:00:00Z',
+  },
+};
+
+export async function mockFetchLeagueConfig(id: number) {
+  await simulateDelay();
+  const config = leagueConfigs[id];
+  if (!config) {
+    // Devolver configuración por defecto si no existe
+    return {
+      id_configuracion: id * 100, id_liga: id, hora_partidos: '17:00:00',
+      min_equipos: 2, max_equipos: 20, min_convocados: 14, max_convocados: 22,
+      min_plantilla: 11, max_plantilla: 25, min_jugadores_equipo: 7,
+      min_partidos_entre_equipos: 2, minutos_partido: 90, max_partidos: 30,
+      created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+    };
+  }
+  return { ...config };
+}
+
+export async function mockUpdateLeagueConfig(
+  id: number,
+  data: Record<string, unknown>
+): Promise<{ success: boolean; data?: typeof leagueConfigs[number]; error?: string }> {
+  await simulateDelay(MOCK_WRITE_DELAY_MS);
+
+  if (!leagueConfigs[id]) {
+    return { success: false, error: `Configuración de liga ${id} no encontrada` };
+  }
+
+  Object.entries(data).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && key in leagueConfigs[id]) {
+      (leagueConfigs[id] as Record<string, unknown>)[key] = value;
+    }
+  });
+  leagueConfigs[id].updated_at = new Date().toISOString();
+
+  return { success: true, data: { ...leagueConfigs[id] } };
+}
+
+export async function mockDeleteLeague(id: number): Promise<{ success: boolean; error?: string }> {
+  await simulateDelay(MOCK_WRITE_DELAY_MS);
+
+  const index = ligas.findIndex((l) => l.id_liga === id);
+  if (index === -1) {
+    return { success: false, error: `Liga con id ${id} no encontrada` };
+  }
+
+  ligas.splice(index, 1);
+  delete leagueConfigs[id];
+
+  return { success: true };
 }
 
 // ============================================
@@ -305,6 +469,47 @@ export async function mockToggleLigaFavorita(ligaId: number, esFavorita: boolean
   } else {
     await mockSeguirLiga(ligaId);
   }
+}
+
+/**
+ * Reactivar una liga finalizada
+ */
+export async function mockReactivarLiga(ligaId: number): Promise<void> {
+  await simulateDelay(MOCK_WRITE_DELAY_MS);
+
+  const liga = ligas.find((l) => l.id_liga === ligaId);
+  if (!liga) {
+    throw new Error(`Liga con id ${ligaId} no encontrada`);
+  }
+  liga.activa = true;
+}
+
+/**
+ * Unirse a una liga mediante código de invitación
+ * Simula la validación del código y el seguimiento de la liga
+ */
+export async function mockJoinLeagueByCode(codigo: string): Promise<MockSeguimientoResponse> {
+  await simulateDelay(MOCK_WRITE_DELAY_MS);
+
+  // Buscar liga por código (simulado: el código es el ID de la liga)
+  const ligaId = parseInt(codigo, 10);
+  const liga = ligas.find((l) => l.id_liga === ligaId);
+
+  if (!liga) {
+    throw new Error('Código de invitación inválido o expirado');
+  }
+
+  // Seguir la liga
+  if (!ligasSeguidasIds.includes(ligaId)) {
+    ligasSeguidasIds.push(ligaId);
+  }
+
+  return {
+    id_seguimiento: generateId(),
+    id_usuario: 1,
+    id_liga: ligaId,
+    created_at: new Date().toISOString(),
+  };
 }
 
 // ============================================
@@ -474,6 +679,16 @@ export async function mockMarkNotificationAsRead(id: number): Promise<MockNotifi
   }
   notificacion.leido = true;
   return { ...notificacion };
+}
+
+/**
+ * Marcar todas las notificaciones como leidas
+ */
+export async function mockMarkAllNotificationsAsRead(): Promise<void> {
+  await simulateDelay(MOCK_WRITE_DELAY_MS);
+  notificaciones.forEach((n) => {
+    n.leido = true;
+  });
 }
 
 // ============================================

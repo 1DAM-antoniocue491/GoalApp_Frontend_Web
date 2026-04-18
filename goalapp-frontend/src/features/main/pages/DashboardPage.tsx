@@ -102,7 +102,7 @@ export default function DashboardPage() {
   return (
     <>
       <Nav leagueName={selectedLeague.nombre} userRole={userRole} />
-      <div className="flex flex-col bg-zinc-950 p-5 sm:px-10 gap-5 sm:gap-6">
+      <div className="flex flex-col bg-zinc-950 p-5 px-10 py-6 md:px-20 lg:px-60 gap-5 sm:gap-6">
         {renderDashboardByRole()}
       </div>
     </>

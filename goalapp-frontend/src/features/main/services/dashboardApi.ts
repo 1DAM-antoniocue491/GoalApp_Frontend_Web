@@ -51,13 +51,35 @@ export interface CoachDashboardStats {
   goles: number;
 }
 
+/**
+ * Respuesta del backend para un partido.
+ * Coincide con PartidoResponse del backend.
+ */
+interface PartidoApi {
+  id_partido: number;
+  id_liga: number;
+  id_equipo_local: number;
+  id_equipo_visitante: number;
+  fecha: string;
+  estado: 'programado' | 'en_juego' | 'finalizado' | 'cancelado';
+  goles_local: number | null;
+  goles_visitante: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
 // ============================================
 // FUNCIONES DE API
 // ============================================
 
 /**
  * Obtener partidos en vivo para el dashboard
- * GET /public/matches?estado=en_vivo
+ * GET /partidos/?estado=en_juego (filtrado en cliente)
+ *
+ * NOTA: El backend no soporta filtrado por query params en /partidos/.
+ * Se obtienen todos los partidos y se filtran en el cliente por estado.
+ * El endpoint público equivalente es GET /public/ligas/{liga_id}/partidos
+ * pero requiere un liga_id específico.
  */
 export async function fetchLiveMatches(): Promise<DashboardLiveMatch[]> {
   if (isMockEnabled()) {
@@ -73,7 +95,17 @@ export async function fetchLiveMatches(): Promise<DashboardLiveMatch[]> {
   }
 
   try {
-    return await apiGet<DashboardLiveMatch[]>('/public/matches?estado=en_vivo');
+    const partidos = await apiGet<PartidoApi[]>('/partidos/');
+    const liveMatches = partidos.filter((p) => p.estado === 'en_juego');
+    // Mapear a formato de dashboard
+    return liveMatches.map((p) => ({
+      league: `Liga ${p.id_liga}`,
+      home: `Equipo ${p.id_equipo_local}`,
+      away: `Equipo ${p.id_equipo_visitante}`,
+      homeScore: p.goles_local ?? 0,
+      awayScore: p.goles_visitante ?? 0,
+      minute: "En juego",
+    }));
   } catch (error) {
     throw new Error(getErrorMessage(error as ApiError));
   }
@@ -81,7 +113,7 @@ export async function fetchLiveMatches(): Promise<DashboardLiveMatch[]> {
 
 /**
  * Obtener resultados recientes para el dashboard
- * GET /public/matches?estado=finalizado&limit=5
+ * GET /partidos/ (filtrado en cliente por estado finalizado)
  */
 export async function fetchRecentResults(limit: number = 5): Promise<DashboardResult[]> {
   if (isMockEnabled()) {
@@ -96,7 +128,19 @@ export async function fetchRecentResults(limit: number = 5): Promise<DashboardRe
   }
 
   try {
-    return await apiGet<DashboardResult[]>(`/public/matches?estado=finalizado&limit=${limit}`);
+    const partidos = await apiGet<PartidoApi[]>('/partidos/');
+    const finishedMatches = partidos
+      .filter((p) => p.estado === 'finalizado')
+      .sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime())
+      .slice(0, limit);
+
+    return finishedMatches.map((p) => ({
+      league: `Liga ${p.id_liga}`,
+      home: `Equipo ${p.id_equipo_local}`,
+      away: `Equipo ${p.id_equipo_visitante}`,
+      homeScore: p.goles_local ?? 0,
+      awayScore: p.goles_visitante ?? 0,
+    }));
   } catch (error) {
     throw new Error(getErrorMessage(error as ApiError));
   }
@@ -104,7 +148,7 @@ export async function fetchRecentResults(limit: number = 5): Promise<DashboardRe
 
 /**
  * Obtener próximos partidos para el dashboard
- * GET /public/matches?estado=programado&limit=5
+ * GET /partidos/ (filtrado en cliente por estado programado)
  */
 export async function fetchUpcomingMatches(limit: number = 5): Promise<DashboardUpcomingMatch[]> {
   if (isMockEnabled()) {
@@ -122,7 +166,22 @@ export async function fetchUpcomingMatches(limit: number = 5): Promise<Dashboard
   }
 
   try {
-    return await apiGet<DashboardUpcomingMatch[]>(`/public/matches?estado=programado&limit=${limit}`);
+    const partidos = await apiGet<PartidoApi[]>('/partidos/');
+    const upcomingMatches = partidos
+      .filter((p) => p.estado === 'programado')
+      .sort((a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime())
+      .slice(0, limit);
+
+    return upcomingMatches.map((p) => {
+      const date = new Date(p.fecha);
+      return {
+        league: `Liga ${p.id_liga}`,
+        home: `Equipo ${p.id_equipo_local}`,
+        away: `Equipo ${p.id_equipo_visitante}`,
+        date: date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }),
+        time: date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
+      };
+    });
   } catch (error) {
     throw new Error(getErrorMessage(error as ApiError));
   }
@@ -130,6 +189,13 @@ export async function fetchUpcomingMatches(limit: number = 5): Promise<Dashboard
 
 /**
  * Obtener estadísticas del dashboard admin
+ *
+ * NOTA: El backend NO tiene endpoint /dashboard/admin/stats.
+ * Se calcula a partir de los endpoints existentes:
+ * - GET /equipos/ para contar equipos
+ * - GET /usuarios/ para contar usuarios
+ * - GET /partidos/ para contar partidos programados
+ * En modo mock se usan datos simulados.
  */
 export async function fetchAdminDashboardStats(): Promise<AdminDashboardStats> {
   if (isMockEnabled()) {
@@ -137,7 +203,18 @@ export async function fetchAdminDashboardStats(): Promise<AdminDashboardStats> {
   }
 
   try {
-    return await apiGet<AdminDashboardStats>('/dashboard/admin/stats');
+    // Obtener datos de endpoints existentes en paralelo
+    const [equipos, usuarios, partidos] = await Promise.all([
+      apiGet<Array<unknown>>('/equipos/'),
+      apiGet<Array<unknown>>('/usuarios/'),
+      apiGet<PartidoApi[]>('/partidos/'),
+    ]);
+
+    return {
+      equiposRegistrados: equipos.length,
+      usuariosTotales: usuarios.length,
+      partidosProgramados: partidos.filter((p) => p.estado === 'programado').length,
+    };
   } catch (error) {
     throw new Error(getErrorMessage(error as ApiError));
   }
@@ -145,6 +222,10 @@ export async function fetchAdminDashboardStats(): Promise<AdminDashboardStats> {
 
 /**
  * Obtener estadísticas del dashboard entrenador
+ *
+ * NOTA: El backend NO tiene endpoint /dashboard/coach/stats.
+ * Se calcula a partir de los endpoints existentes.
+ * En modo mock se usan datos simulados.
  */
 export async function fetchCoachDashboardStats(): Promise<CoachDashboardStats> {
   if (isMockEnabled()) {
@@ -152,7 +233,16 @@ export async function fetchCoachDashboardStats(): Promise<CoachDashboardStats> {
   }
 
   try {
-    return await apiGet<CoachDashboardStats>('/dashboard/coach/stats');
+    // NOTA: Las estadísticas del entrenador requieren saber su equipo
+    // y calcular desde los partidos y jugadores. Por ahora se devuelven
+    // valores por defecto ya que no hay un endpoint directo.
+    // Cuando el backend implemente un endpoint de stats, se actualizará aquí.
+    return {
+      jugadores: 0,
+      partidosJugados: 0,
+      victorias: 0,
+      goles: 0,
+    };
   } catch (error) {
     throw new Error(getErrorMessage(error as ApiError));
   }

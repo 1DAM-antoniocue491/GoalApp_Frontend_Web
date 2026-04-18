@@ -7,12 +7,15 @@ import { createContext, useContext, useState, useEffect, useCallback, type React
 import {
   login as apiLogin,
   logout as apiLogout,
+  register as apiRegister,
   getCurrentUser,
   getToken,
   getStoredUser,
   clearAuthData,
   isTokenExpiringSoon,
   refreshToken,
+  saveToken,
+  saveRefreshToken,
 } from '../services/authApi';
 import type { User } from '../services/authApi';
 
@@ -35,6 +38,8 @@ export interface AuthContextType {
   error: string | null;
   /** Función para iniciar sesión */
   login: (email: string, password: string) => Promise<boolean>;
+  /** Función para registrar un nuevo usuario */
+  register: (nombre: string, email: string, password: string) => Promise<boolean>;
   /** Función para cerrar sesión */
   logout: () => Promise<void>;
   /** Función para limpiar el error */
@@ -123,8 +128,56 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // Llamar a la API de login
       const response = await apiLogin(email, password);
 
-      // Actualizar el estado con el token
+      // Guardar el token en localStorage ANTES de llamar a getCurrentUser
+      // para que el interceptor de Axios lo incluya en la petición /me
+      saveToken(response.access_token);
+      if (response.refresh_token) {
+        saveRefreshToken(response.refresh_token);
+      }
+
+      // Obtener información del usuario
+      const userData = await getCurrentUser();
+
+      // Todo OK — guardar en el estado
       setToken(response.access_token);
+      setUser(userData);
+
+      return true;
+    } catch (err) {
+      // Si algo falla (login o getCurrentUser), limpiar todo para no dejar tokens huérfanos
+      clearAuthData();
+      setToken(null);
+      setUser(null);
+
+      const errorMessage = err instanceof Error ? err.message : 'Error al iniciar sesión';
+      setError(errorMessage);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // ============================================
+  // FUNCIÓN DE REGISTRO
+  // ============================================
+  const register = useCallback(async (nombre: string, email: string, password: string): Promise<boolean> => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      // Llamar a la API de registro
+      const response = await apiRegister(nombre, email, password);
+
+      if (!response.success) {
+        setError(response.message);
+        return false;
+      }
+
+      // Auto-login tras registro exitoso
+      const loginResponse = await apiLogin(email, password);
+
+      // Actualizar el estado con el token
+      setToken(loginResponse.access_token);
 
       // Obtener información del usuario
       const userData = await getCurrentUser();
@@ -132,7 +185,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       return true;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error al iniciar sesión';
+      const errorMessage = err instanceof Error ? err.message : 'Error al registrarse';
       setError(errorMessage);
       return false;
     } finally {
@@ -191,6 +244,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     isInitializing,
     error,
     login,
+    register,
     logout,
     clearError,
     refreshUser,
