@@ -42,7 +42,7 @@ export async function fetchNotifications(): Promise<Notification[]> {
  */
 export async function markNotificationAsRead(notificationId: number): Promise<void> {
   if (isMockEnabled()) {
-    await mockApi.mockMarkAsRead(notificationId);
+    await mockApi.mockMarkNotificationAsRead(notificationId);
     return;
   }
 
@@ -61,7 +61,7 @@ export async function markNotificationAsRead(notificationId: number): Promise<vo
  */
 export async function markAllNotificationsAsRead(): Promise<void> {
   if (isMockEnabled()) {
-    await mockApi.mockMarkAllAsRead();
+    await mockApi.mockMarkAllNotificationsAsRead();
     return;
   }
 

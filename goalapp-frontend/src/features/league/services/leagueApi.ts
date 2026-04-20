@@ -104,6 +104,7 @@ export interface UpdateLeagueConfigRequest {
   min_partidos_entre_equipos?: number;
   minutos_partido?: number;
   max_partidos?: number;
+  [key: string]: string | number | undefined;
 }
 
 export interface UpdateLeagueConfigResult {

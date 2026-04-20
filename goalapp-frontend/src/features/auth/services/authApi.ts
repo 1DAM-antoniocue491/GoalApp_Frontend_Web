@@ -233,10 +233,11 @@ export async function register(nombre: string, email: string, password: string):
 
   try {
     // El backend POST /usuarios/ devuelve UsuarioResponse directamente
+    // Nota: el backend usa el alias "contraseña" para el campo password
     const userResponse = await apiPost<User>(AUTH_ENDPOINTS.REGISTER, {
       nombre,
       email,
-      password,
+      contraseña: password,
     });
 
     return {
@@ -437,6 +438,94 @@ export interface UpdateProfileRequest {
   telefono?: string | null;
   fecha_nacimiento?: string | null;
   imagen_url?: string | null;
+}
+
+// ============================================
+// INVITACIONES
+// ============================================
+
+/**
+ * Respuesta de validar invitación
+ */
+export interface InvitationValidationResponse {
+  valido: boolean;
+  email?: string;
+  liga_nombre?: string;
+  equipo_nombre?: string | null;
+  rol?: string | null;
+  dorsal?: string | null;
+  posicion?: string | null;
+  tipo_jugador?: string | null;
+  motivo?: string | null;
+}
+
+/**
+ * Validar un token de invitación
+ * GET /invitaciones/validar/{token}
+ *
+ * @param token - Token de invitación
+ * @returns Promesa con la validación de la invitación
+ * @throws Error si la invitación es inválida o expirada
+ */
+export async function validateInvitation(token: string): Promise<InvitationValidationResponse> {
+  if (isMockEnabled()) {
+    // Mock: devolver invitación válida simulada
+    return {
+      valido: true,
+      email: 'invitado@test.com',
+      liga_nombre: 'Liga de Prueba',
+      equipo_nombre: 'Equipo Mock',
+      rol: 'player',
+      dorsal: '10',
+      posicion: 'Delantero',
+      tipo_jugador: 'titular',
+    };
+  }
+
+  try {
+    const response = await apiGet<InvitationValidationResponse>(`/invitaciones/validar/${token}`);
+    return response;
+  } catch (error) {
+    throw new Error(getErrorMessage(error as ApiError));
+  }
+}
+
+/**
+ * Aceptar invitación y crear usuario
+ * POST /invitaciones/aceptar/{token}
+ *
+ * @param token - Token de invitación
+ * @param nombre - Nombre del usuario
+ * @param email - Email del usuario
+ * @param password - Contraseña del usuario
+ * @returns Promesa con la respuesta del servidor
+ * @throws Error si la aceptación falla
+ */
+export async function acceptInvitation(
+  token: string,
+  nombre: string,
+  email: string,
+  password: string
+): Promise<{ mensaje: string; usuario_id: number; email: string }> {
+  if (isMockEnabled()) {
+    return {
+      mensaje: 'Invitación aceptada correctamente. Usuario creado.',
+      usuario_id: 100,
+      email: email,
+    };
+  }
+
+  try {
+    // Nota: el backend usa el alias "contraseña" para el campo password
+    const response = await apiPost(`/invitaciones/aceptar/${token}`, {
+      nombre,
+      email,
+      contraseña: password,
+    });
+    return response;
+  } catch (error) {
+    throw new Error(getErrorMessage(error as ApiError));
+  }
 }
 
 /**

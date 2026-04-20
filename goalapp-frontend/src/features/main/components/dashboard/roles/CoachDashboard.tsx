@@ -42,9 +42,9 @@ export default function CoachDashboard({ league, userName, userRole }: CoachDash
       try {
         const [statsData, liveData, resultsData, upcomingData] = await Promise.allSettled([
           fetchCoachDashboardStats(),
-          fetchLiveMatches(),
-          fetchRecentResults(3),
-          fetchUpcomingMatches(3),
+          fetchLiveMatches(league.id),
+          fetchRecentResults(league.id, 3),
+          fetchUpcomingMatches(league.id, 3),
         ]);
 
         if (statsData.status === 'fulfilled') setStats(statsData.value);

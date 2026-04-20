@@ -68,20 +68,43 @@ interface PartidoApi {
   updated_at: string;
 }
 
+/**
+ * Respuesta del backend para un equipo.
+ * Coincide con EquipoResponse del backend.
+ */
+interface EquipoApi {
+  id_equipo: number;
+  id_liga: number;
+  nombre: string;
+  escudo_url?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Respuesta del backend para una liga.
+ * Coincide con LigaResponse del backend.
+ */
+interface LigaApi {
+  id_liga: number;
+  nombre: string;
+  temporada: string;
+  activa: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 // ============================================
 // FUNCIONES DE API
 // ============================================
 
 /**
  * Obtener partidos en vivo para el dashboard
- * GET /partidos/?estado=en_juego (filtrado en cliente)
+ * GET /partidos/?liga_id={leagueId} (filtrado en cliente por estado en_juego)
  *
- * NOTA: El backend no soporta filtrado por query params en /partidos/.
- * Se obtienen todos los partidos y se filtran en el cliente por estado.
- * El endpoint público equivalente es GET /public/ligas/{liga_id}/partidos
- * pero requiere un liga_id específico.
+ * @param leagueId - ID de la liga para filtrar los partidos
  */
-export async function fetchLiveMatches(): Promise<DashboardLiveMatch[]> {
+export async function fetchLiveMatches(leagueId: number): Promise<DashboardLiveMatch[]> {
   if (isMockEnabled()) {
     const partidos = await mockApi.mockFetchLiveMatches();
     return partidos.map((p) => ({
@@ -95,13 +118,26 @@ export async function fetchLiveMatches(): Promise<DashboardLiveMatch[]> {
   }
 
   try {
-    const partidos = await apiGet<PartidoApi[]>('/partidos/');
+    // Obtener partidos filtrados por liga y equipos de la liga en paralelo
+    const [partidos, equipos, liga] = await Promise.all([
+      apiGet<PartidoApi[]>('/partidos/', { liga_id: leagueId }),
+      apiGet<EquipoApi[]>('/equipos/', { liga_id: leagueId }),
+      apiGet<LigaApi>(`/ligas/${leagueId}`),
+    ]);
+
     const liveMatches = partidos.filter((p) => p.estado === 'en_juego');
-    // Mapear a formato de dashboard
+
+    // Crear mapa de equipos por ID para búsqueda rápida
+    const equiposMap = new Map<number, string>();
+    equipos.forEach((eq) => {
+      equiposMap.set(eq.id_equipo, eq.nombre);
+    });
+
+    // Mapear a formato de dashboard con nombres reales
     return liveMatches.map((p) => ({
-      league: `Liga ${p.id_liga}`,
-      home: `Equipo ${p.id_equipo_local}`,
-      away: `Equipo ${p.id_equipo_visitante}`,
+      league: liga.nombre,
+      home: equiposMap.get(p.id_equipo_local) || `Equipo ${p.id_equipo_local}`,
+      away: equiposMap.get(p.id_equipo_visitante) || `Equipo ${p.id_equipo_visitante}`,
       homeScore: p.goles_local ?? 0,
       awayScore: p.goles_visitante ?? 0,
       minute: "En juego",
@@ -113,9 +149,12 @@ export async function fetchLiveMatches(): Promise<DashboardLiveMatch[]> {
 
 /**
  * Obtener resultados recientes para el dashboard
- * GET /partidos/ (filtrado en cliente por estado finalizado)
+ * GET /partidos/?liga_id={leagueId} (filtrado en cliente por estado finalizado)
+ *
+ * @param leagueId - ID de la liga para filtrar los partidos
+ * @param limit - Número máximo de resultados a devolver
  */
-export async function fetchRecentResults(limit: number = 5): Promise<DashboardResult[]> {
+export async function fetchRecentResults(leagueId: number, limit: number = 5): Promise<DashboardResult[]> {
   if (isMockEnabled()) {
     const partidos = await mockApi.mockFetchRecentMatches(limit);
     return partidos.map((p) => ({
@@ -128,16 +167,28 @@ export async function fetchRecentResults(limit: number = 5): Promise<DashboardRe
   }
 
   try {
-    const partidos = await apiGet<PartidoApi[]>('/partidos/');
+    // Obtener partidos filtrados por liga y equipos de la liga en paralelo
+    const [partidos, equipos, liga] = await Promise.all([
+      apiGet<PartidoApi[]>('/partidos/', { liga_id: leagueId }),
+      apiGet<EquipoApi[]>('/equipos/', { liga_id: leagueId }),
+      apiGet<LigaApi>(`/ligas/${leagueId}`),
+    ]);
+
     const finishedMatches = partidos
       .filter((p) => p.estado === 'finalizado')
       .sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime())
       .slice(0, limit);
 
+    // Crear mapa de equipos por ID para búsqueda rápida
+    const equiposMap = new Map<number, string>();
+    equipos.forEach((eq) => {
+      equiposMap.set(eq.id_equipo, eq.nombre);
+    });
+
     return finishedMatches.map((p) => ({
-      league: `Liga ${p.id_liga}`,
-      home: `Equipo ${p.id_equipo_local}`,
-      away: `Equipo ${p.id_equipo_visitante}`,
+      league: liga.nombre,
+      home: equiposMap.get(p.id_equipo_local) || `Equipo ${p.id_equipo_local}`,
+      away: equiposMap.get(p.id_equipo_visitante) || `Equipo ${p.id_equipo_visitante}`,
       homeScore: p.goles_local ?? 0,
       awayScore: p.goles_visitante ?? 0,
     }));
@@ -148,9 +199,12 @@ export async function fetchRecentResults(limit: number = 5): Promise<DashboardRe
 
 /**
  * Obtener próximos partidos para el dashboard
- * GET /partidos/ (filtrado en cliente por estado programado)
+ * GET /partidos/?liga_id={leagueId} (filtrado en cliente por estado programado)
+ *
+ * @param leagueId - ID de la liga para filtrar los partidos
+ * @param limit - Número máximo de resultados a devolver
  */
-export async function fetchUpcomingMatches(limit: number = 5): Promise<DashboardUpcomingMatch[]> {
+export async function fetchUpcomingMatches(leagueId: number, limit: number = 5): Promise<DashboardUpcomingMatch[]> {
   if (isMockEnabled()) {
     const partidos = await mockApi.mockFetchUpcomingMatches(limit);
     return partidos.map((p) => {
@@ -166,18 +220,30 @@ export async function fetchUpcomingMatches(limit: number = 5): Promise<Dashboard
   }
 
   try {
-    const partidos = await apiGet<PartidoApi[]>('/partidos/');
+    // Obtener partidos filtrados por liga y equipos de la liga en paralelo
+    const [partidos, equipos, liga] = await Promise.all([
+      apiGet<PartidoApi[]>('/partidos/', { liga_id: leagueId }),
+      apiGet<EquipoApi[]>('/equipos/', { liga_id: leagueId }),
+      apiGet<LigaApi>(`/ligas/${leagueId}`),
+    ]);
+
     const upcomingMatches = partidos
       .filter((p) => p.estado === 'programado')
       .sort((a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime())
       .slice(0, limit);
 
+    // Crear mapa de equipos por ID para búsqueda rápida
+    const equiposMap = new Map<number, string>();
+    equipos.forEach((eq) => {
+      equiposMap.set(eq.id_equipo, eq.nombre);
+    });
+
     return upcomingMatches.map((p) => {
       const date = new Date(p.fecha);
       return {
-        league: `Liga ${p.id_liga}`,
-        home: `Equipo ${p.id_equipo_local}`,
-        away: `Equipo ${p.id_equipo_visitante}`,
+        league: liga.nombre,
+        home: equiposMap.get(p.id_equipo_local) || `Equipo ${p.id_equipo_local}`,
+        away: equiposMap.get(p.id_equipo_visitante) || `Equipo ${p.id_equipo_visitante}`,
         date: date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }),
         time: date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
       };
@@ -188,27 +254,32 @@ export async function fetchUpcomingMatches(limit: number = 5): Promise<Dashboard
 }
 
 /**
- * Obtener estadísticas del dashboard admin
+ * Obtener estadísticas del dashboard admin para una liga específica
  *
  * NOTA: El backend NO tiene endpoint /dashboard/admin/stats.
- * Se calcula a partir de los endpoints existentes:
- * - GET /equipos/ para contar equipos
- * - GET /usuarios/ para contar usuarios
- * - GET /partidos/ para contar partidos programados
+ * Se calcula a partir de los endpoints existentes filtrados por liga:
+ * - GET /equipos/?liga_id={leagueId} para contar equipos
+ * - GET /partidos/?liga_id={leagueId} para contar partidos programados
+ * - GET /usuarios/ para contar usuarios (global)
  * En modo mock se usan datos simulados.
+ *
+ * @param leagueId - ID de la liga para filtrar las estadísticas
  */
-export async function fetchAdminDashboardStats(): Promise<AdminDashboardStats> {
+export async function fetchAdminDashboardStats(leagueId: number): Promise<AdminDashboardStats> {
   if (isMockEnabled()) {
     return mockApi.mockGetAdminDashboardStats();
   }
 
   try {
-    // Obtener datos de endpoints existentes en paralelo
-    const [equipos, usuarios, partidos] = await Promise.all([
-      apiGet<Array<unknown>>('/equipos/'),
-      apiGet<Array<unknown>>('/usuarios/'),
-      apiGet<PartidoApi[]>('/partidos/'),
+    // Obtener datos de endpoints existentes en paralelo, filtrados por liga
+    const [equipos, partidos] = await Promise.all([
+      apiGet<Array<unknown>>('/equipos/', { liga_id: leagueId }),
+      apiGet<PartidoApi[]>('/partidos/', { liga_id: leagueId }),
     ]);
+
+    // Para usuarios, usamos el endpoint global ya que no hay filtrado por liga
+    // En el futuro se podría añadir un endpoint /ligas/{liga_id}/usuarios
+    const usuarios = await apiGet<Array<unknown>>('/usuarios/');
 
     return {
       equiposRegistrados: equipos.length,

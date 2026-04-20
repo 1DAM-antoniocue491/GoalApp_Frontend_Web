@@ -292,6 +292,18 @@ export const apiPost = async <T>(url: string, data?: unknown): Promise<T> => {
 };
 
 /**
+ * Función para hacer peticiones POST con FormData (imágenes, archivos)
+ */
+export const apiPostRaw = async <T>(url: string, data: FormData): Promise<T> => {
+  const response = await apiClient.post<T>(url, data, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+  return response.data;
+};
+
+/**
  * Función para hacer peticiones PUT
  */
 export const apiPut = async <T>(url: string, data?: unknown): Promise<T> => {

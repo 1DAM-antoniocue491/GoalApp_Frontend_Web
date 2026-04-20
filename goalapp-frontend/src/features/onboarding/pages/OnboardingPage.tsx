@@ -175,7 +175,7 @@ export function OnboardingPage() {
     id: user.id_usuario,
     nombre: user.nombre,
     email: user.email,
-    avatar: user.imagen_url,
+    avatar: user.imagen_url ?? undefined,
   } : null;
 
   // ============================================

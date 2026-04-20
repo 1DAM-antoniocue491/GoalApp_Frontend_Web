@@ -9,6 +9,7 @@ import EmailSentPage from './features/auth/pages/EmailSentPage'
 import ResetPasswordPage from './features/auth/pages/ResetPasswordPage'
 import LeaguePage from './features/league/pages/LeaguePage'
 import TeamPage from './features/team/pages/TeamPage'
+import TeamDetailPage from './features/team/pages/TeamDetailPage'
 import StatisticPage from './features/statistic/pages/StatisticPage'
 import CalendarPage from './features/calendary/pages/CalendarPage'
 import UsersPage from './features/users/pages/UsersPage'
@@ -34,6 +35,7 @@ function App() {
           <Route path='/dashboard' element={<DashboardPage />} />
           <Route path='/leagues' element={<LeaguePage />} />
           <Route path='/teams' element={<TeamPage />} />
+          <Route path='/teams/:equipoId' element={<TeamDetailPage />} />
           <Route path='/statistics' element={<StatisticPage />} />
           <Route path='/calendar' element={<CalendarPage />} />
           <Route path='/users' element={<UsersPage />} />

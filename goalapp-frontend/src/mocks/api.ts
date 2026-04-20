@@ -536,6 +536,327 @@ export async function mockFetchTeamById(id: number): Promise<MockEquipo> {
   return { ...equipo };
 }
 
+/**
+ * Crear un nuevo equipo
+ */
+export async function mockCreateTeam(data: {
+  nombre: string;
+  escudo?: string;
+  colores?: string;
+  id_liga: number;
+  id_entrenador?: number;
+  id_delegado?: number;
+}): Promise<MockEquipo> {
+  await simulateDelay(MOCK_WRITE_DELAY_MS);
+
+  const nuevoEquipo: MockEquipo = {
+    id_equipo: generateId(),
+    nombre: data.nombre,
+    escudo: data.escudo ?? null,
+    colores: data.colores ?? '#D4FF59',
+    id_liga: data.id_liga,
+    id_entrenador: data.id_entrenador ?? 1,
+    id_delegado: data.id_delegado ?? 1,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+
+  equipos.push(nuevoEquipo);
+
+  return { ...nuevoEquipo };
+}
+
+/**
+ * Obtener detalle completo de un equipo
+ */
+export async function mockFetchTeamDetail(id: number): Promise<{
+  id_equipo: number;
+  nombre: string;
+  escudo: string | null;
+  colores: string | null;
+  id_liga: number;
+  id_entrenador: number;
+  id_delegado: number;
+  ciudad: string | null;
+  estadio: string | null;
+  created_at: string;
+  updated_at: string;
+  posicion_liga: number;
+  puntos: number;
+  tasa_victoria: number;
+  goles_favor: number;
+  goles_contra: number;
+}> {
+  await simulateDelay();
+  const equipo = equipos.find((e) => e.id_equipo === id);
+  if (!equipo) {
+    throw new Error(`Equipo con id ${id} no encontrado`);
+  }
+
+  // Calcular estadísticas mock
+  const partidosEquipo = partidos.filter(
+    (p) => p.id_equipo_local === id || p.id_equipo_visitante === id
+  );
+  let victorias = 0, empates = 0, derrotas = 0, goles_favor = 0, goles_contra = 0, puntos = 0;
+
+  partidosEquipo.forEach((p) => {
+    if (p.estado === 'finalizado' && p.goles_local !== null && p.goles_visitante !== null) {
+      const esLocal = p.id_equipo_local === id;
+      const golesEquipo = esLocal ? p.goles_local : p.goles_visitante;
+      const golesRival = esLocal ? p.goles_visitante : p.goles_local;
+      goles_favor += golesEquipo;
+      goles_contra += golesRival;
+      if (golesEquipo > golesRival) {
+        victorias++;
+        puntos += 3;
+      } else if (golesEquipo === golesRival) {
+        empates++;
+        puntos += 1;
+      } else {
+        derrotas++;
+      }
+    }
+  });
+
+  const partidos_jugados = victorias + empates + derrotas;
+  const tasa_victoria = partidos_jugados > 0 ? Math.round((victorias / partidos_jugados) * 100 * 10) / 10 : 0;
+
+  return {
+    ...equipo,
+    ciudad: equipo.ciudad ?? 'Madrid',
+    estadio: equipo.estadio ?? 'Estadio Municipal',
+    posicion_liga: 2,
+    puntos,
+    tasa_victoria,
+    goles_favor,
+    goles_contra,
+  };
+}
+
+/**
+ * Obtener próximos partidos de un equipo
+ */
+export async function mockFetchTeamNextMatches(id: number): Promise<{
+  id_partido: number;
+  fecha: string;
+  estado: string;
+  id_equipo_local: number;
+  id_equipo_visitante: number;
+  nombre_equipo_local: string;
+  nombre_equipo_visitante: string;
+  escudo_equipo_local: string | null;
+  escudo_equipo_visitante: string | null;
+  goles_local: number | null;
+  goles_visitante: number | null;
+}[]> {
+  await simulateDelay();
+
+  const proximos = partidos
+    .filter((p) =>
+      (p.id_equipo_local === id || p.id_equipo_visitante === id) &&
+      (p.estado === 'programado' || p.estado === 'En Juego')
+    )
+    .sort((a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime())
+    .slice(0, 5);
+
+  return proximos.map((p) => ({
+    id_partido: p.id_partido,
+    fecha: p.fecha,
+    estado: p.estado,
+    id_equipo_local: p.id_equipo_local,
+    id_equipo_visitante: p.id_equipo_visitante,
+    nombre_equipo_local: equipos.find((e) => e.id_equipo === p.id_equipo_local)?.nombre ?? 'Unknown',
+    nombre_equipo_visitante: equipos.find((e) => e.id_equipo === p.id_equipo_visitante)?.nombre ?? 'Unknown',
+    escudo_equipo_local: equipos.find((e) => e.id_equipo === p.id_equipo_local)?.escudo ?? null,
+    escudo_equipo_visitante: equipos.find((e) => e.id_equipo === p.id_equipo_visitante)?.escudo ?? null,
+    goles_local: p.goles_local,
+    goles_visitante: p.goles_visitante,
+  }));
+}
+
+/**
+ * Obtener últimos partidos de un equipo
+ */
+export async function mockFetchTeamLastMatches(id: number): Promise<{
+  id_partido: number;
+  fecha: string;
+  estado: string;
+  id_equipo_local: number;
+  id_equipo_visitante: number;
+  nombre_equipo_local: string;
+  nombre_equipo_visitante: string;
+  escudo_equipo_local: string | null;
+  escudo_equipo_visitante: string | null;
+  goles_local: number | null;
+  goles_visitante: number | null;
+  resultado?: 'W' | 'D' | 'L';
+}[]> {
+  await simulateDelay();
+
+  const ultimos = partidos
+    .filter(
+      (p) =>
+        (p.id_equipo_local === id || p.id_equipo_visitante === id) &&
+        p.estado === 'finalizado'
+    )
+    .sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime())
+    .slice(0, 5);
+
+  return ultimos.reverse().map((p) => {
+    const esLocal = p.id_equipo_local === id;
+    const golesEquipo = esLocal ? (p.goles_local ?? 0) : (p.goles_visitante ?? 0);
+    const golesRival = esLocal ? (p.goles_visitante ?? 0) : (p.goles_local ?? 0);
+    let resultado: 'W' | 'D' | 'L' | undefined = undefined;
+    if (golesEquipo > golesRival) resultado = 'W';
+    else if (golesEquipo === golesRival) resultado = 'D';
+    else resultado = 'L';
+
+    return {
+      id_partido: p.id_partido,
+      fecha: p.fecha,
+      estado: p.estado,
+      id_equipo_local: p.id_equipo_local,
+      id_equipo_visitante: p.id_equipo_visitante,
+      nombre_equipo_local: equipos.find((e) => e.id_equipo === p.id_equipo_local)?.nombre ?? 'Unknown',
+      nombre_equipo_visitante: equipos.find((e) => e.id_equipo === p.id_equipo_visitante)?.nombre ?? 'Unknown',
+      escudo_equipo_local: equipos.find((e) => e.id_equipo === p.id_equipo_local)?.escudo ?? null,
+      escudo_equipo_visitante: equipos.find((e) => e.id_equipo === p.id_equipo_visitante)?.escudo ?? null,
+      goles_local: p.goles_local,
+      goles_visitante: p.goles_visitante,
+      resultado,
+    };
+  });
+}
+
+/**
+ * Obtener máximos goleadores de un equipo
+ */
+export async function mockFetchTeamTopScorers(id: number): Promise<{
+  id_jugador: number;
+  id_usuario: number;
+  id_equipo: number;
+  posicion: string;
+  dorsal: number;
+  activo: boolean;
+  nombre: string;
+  goles: number;
+  asistencias: number;
+  tarjetas_amarillas: number;
+  tarjetas_rojas: number;
+  partidos_jugados: number;
+}[]> {
+  await simulateDelay();
+
+  const jugadoresEquipo = jugadores.filter((j) => j.id_equipo === id && j.activo);
+  const usuariosMap = new Map(usuarios.map((u) => [u.id_usuario, u]));
+
+  // Calcular goles por jugador desde eventos
+  const golesPorJugador = new Map<number, number>();
+  eventos
+    .filter((e) => e.tipo_evento === 'gol' && e.id_jugador !== null)
+    .forEach((e) => {
+      const jid = e.id_jugador!;
+      golesPorJugador.set(jid, (golesPorJugador.get(jid) || 0) + 1);
+    });
+
+  return jugadoresEquipo
+    .map((j) => ({
+      id_jugador: j.id_jugador,
+      id_usuario: j.id_usuario,
+      id_equipo: j.id_equipo,
+      posicion: j.posicion,
+      dorsal: j.dorsal,
+      activo: j.activo,
+      nombre: usuariosMap.get(j.id_usuario)?.nombre ?? `Jugador ${j.id_jugador}`,
+      goles: golesPorJugador.get(j.id_jugador) || 0,
+      asistencias: 0,
+      tarjetas_amarillas: 0,
+      tarjetas_rojas: 0,
+      partidos_jugados: 0,
+    }))
+    .sort((a, b) => b.goles - a.goles)
+    .slice(0, 3);
+}
+
+/**
+ * Obtener plantilla completa de un equipo
+ */
+export async function mockFetchTeamSquad(id: number): Promise<{
+  id_jugador: number;
+  id_usuario: number;
+  id_equipo: number;
+  posicion: string;
+  dorsal: number;
+  activo: boolean;
+  nombre: string;
+  goles: number;
+  asistencias: number;
+  tarjetas_amarillas: number;
+  tarjetas_rojas: number;
+  partidos_jugados: number;
+  rating?: number;
+}[]> {
+  await simulateDelay();
+
+  const jugadoresEquipo = jugadores.filter((j) => j.id_equipo === id && j.activo);
+  const usuariosMap = new Map(usuarios.map((u) => [u.id_usuario, u]));
+
+  return jugadoresEquipo.map((j) => ({
+    id_jugador: j.id_jugador,
+    id_usuario: j.id_usuario,
+    id_equipo: j.id_equipo,
+    posicion: j.posicion,
+    dorsal: j.dorsal,
+    activo: j.activo,
+    nombre: usuariosMap.get(j.id_usuario)?.nombre ?? `Jugador ${j.id_jugador}`,
+    goles: 0,
+    asistencias: 0,
+    tarjetas_amarillas: 0,
+    tarjetas_rojas: 0,
+    partidos_jugados: 0,
+    rating: 7.5 + Math.random() * 2, // Rating mock entre 7.5 y 9.5
+  }));
+}
+
+/**
+ * Obtener staff de un equipo
+ */
+export async function mockFetchTeamStaff(id: number): Promise<{
+  entrenador: { id_usuario: number; nombre: string } | null;
+  capitan: { id_jugador: number; nombre: string; dorsal: number } | null;
+}> {
+  await simulateDelay();
+
+  const equipo = equipos.find((e) => e.id_equipo === id);
+  const usuariosMap = new Map(usuarios.map((u) => [u.id_usuario, u]));
+
+  let entrenador = null;
+  if (equipo?.id_entrenador) {
+    const usuarioEntrenador = usuariosMap.get(equipo.id_entrenador);
+    if (usuarioEntrenador) {
+      entrenador = {
+        id_usuario: usuarioEntrenador.id_usuario,
+        nombre: usuarioEntrenador.nombre,
+      };
+    }
+  }
+
+  let capitan = null;
+  const primerJugador = jugadores.find((j) => j.id_equipo === id && j.activo);
+  if (primerJugador) {
+    const usuarioCapitan = usuariosMap.get(primerJugador.id_usuario);
+    if (usuarioCapitan) {
+      capitan = {
+        id_jugador: primerJugador.id_jugador,
+        nombre: usuarioCapitan.nombre,
+        dorsal: primerJugador.dorsal,
+      };
+    }
+  }
+
+  return { entrenador, capitan };
+}
+
 // ============================================
 // JUGADORES
 // ============================================

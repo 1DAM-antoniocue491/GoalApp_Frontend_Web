@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react';
-import { FaSpinner, FaExclamationCircle, FaChartBar } from 'react-icons/fa';
+import { FaSpinner, FaExclamationCircle, FaChartBar, FaUser } from 'react-icons/fa';
 import Nav from '../../../components/Nav';
 import { useSelectedLeague } from '../../../context/SelectedLeagueContext';
-import { fetchTeamsByLeague } from '../../team/services/teamApi';
-import { fetchPlayersWithStatsByTeam, type PlayerWithStatsResponse } from '../../team/services/teamApi';
+import { apiGet } from '../../../services/api';
 
-interface PlayerWithTeam extends PlayerWithStatsResponse {
-  nombreEquipo: string;
+interface UsuarioConRol {
+  id_usuario: number;
+  nombre: string;
+  email: string;
+  id_rol: number;
+  rol: string;
 }
 
 export default function StatisticPage() {
@@ -14,11 +17,11 @@ export default function StatisticPage() {
   const leagueName = selectedLeague?.nombre;
   const userRole = selectedLeague?.rol;
 
-  const [players, setPlayers] = useState<PlayerWithTeam[]>([]);
+  const [usuarios, setUsuarios] = useState<UsuarioConRol[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const loadStats = async () => {
+  const loadUsuarios = async () => {
     if (!selectedLeague) {
       setIsLoading(false);
       return;
@@ -27,23 +30,10 @@ export default function StatisticPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const teams = await fetchTeamsByLeague(selectedLeague.id);
-      const allPlayers: PlayerWithTeam[] = [];
-
-      for (const team of teams) {
-        const teamPlayers = await fetchPlayersWithStatsByTeam(team.id_equipo);
-        const playersWithTeam = teamPlayers.map((p: PlayerWithStatsResponse) => ({
-          ...p,
-          nombreEquipo: team.nombre,
-        }));
-        allPlayers.push(...playersWithTeam);
-      }
-
-      // Ordenar por goles descendente
-      allPlayers.sort((a, b) => b.goles - a.goles);
-      setPlayers(allPlayers);
+      const data = await apiGet<UsuarioConRol[]>(`/usuarios/ligas/${selectedLeague.id}/usuarios`);
+      setUsuarios(data);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Error al cargar las estadísticas';
+      const message = err instanceof Error ? err.message : 'Error al cargar los usuarios';
       setError(message);
     } finally {
       setIsLoading(false);
@@ -51,7 +41,7 @@ export default function StatisticPage() {
   };
 
   useEffect(() => {
-    loadStats();
+    loadUsuarios();
   }, [selectedLeague]);
 
   // Sin liga seleccionada
@@ -98,40 +88,32 @@ export default function StatisticPage() {
         )}
 
         {/* Empty */}
-        {!isLoading && !error && players.length === 0 && (
+        {!isLoading && !error && usuarios.length === 0 && (
           <div className="flex flex-col items-center justify-center py-20">
-            <FaChartBar className="text-zinc-600 text-5xl mb-4" />
-            <p className="text-zinc-400 text-sm">No hay estadísticas disponibles</p>
+            <FaUser className="text-zinc-600 text-5xl mb-4" />
+            <p className="text-zinc-400 text-sm">No hay usuarios con rol en esta liga</p>
           </div>
         )}
 
-        {/* Stats table */}
-        {!isLoading && !error && players.length > 0 && (
+        {/* Usuarios table */}
+        {!isLoading && !error && usuarios.length > 0 && (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-zinc-700">
                   <th className="text-left text-zinc-400 font-semibold py-3 px-2">#</th>
-                  <th className="text-left text-zinc-400 font-semibold py-3 px-2">Jugador</th>
-                  <th className="text-left text-zinc-400 font-semibold py-3 px-2">Equipo</th>
-                  <th className="text-center text-zinc-400 font-semibold py-3 px-2">Goles</th>
-                  <th className="text-center text-zinc-400 font-semibold py-3 px-2">Asist.</th>
-                  <th className="text-center text-zinc-400 font-semibold py-3 px-2">TA</th>
-                  <th className="text-center text-zinc-400 font-semibold py-3 px-2">TR</th>
-                  <th className="text-center text-zinc-400 font-semibold py-3 px-2">PJ</th>
+                  <th className="text-left text-zinc-400 font-semibold py-3 px-2">Usuario</th>
+                  <th className="text-left text-zinc-400 font-semibold py-3 px-2">Email</th>
+                  <th className="text-center text-zinc-400 font-semibold py-3 px-2">Rol</th>
                 </tr>
               </thead>
               <tbody>
-                {players.map((player, index) => (
-                  <tr key={player.id_jugador} className="border-b border-zinc-800 hover:bg-zinc-800/50 transition-colors">
+                {usuarios.map((usuario, index) => (
+                  <tr key={usuario.id_usuario} className="border-b border-zinc-800 hover:bg-zinc-800/50 transition-colors">
                     <td className="py-3 px-2 text-zinc-500">{index + 1}</td>
-                    <td className="py-3 px-2 text-white font-medium">{player.nombre}</td>
-                    <td className="py-3 px-2 text-zinc-400">{player.nombreEquipo}</td>
-                    <td className="py-3 px-2 text-center text-lime-400 font-semibold">{player.goles}</td>
-                    <td className="py-3 px-2 text-center text-zinc-300">{player.asistencias}</td>
-                    <td className="py-3 px-2 text-center text-yellow-400">{player.tarjetas_amarillas}</td>
-                    <td className="py-3 px-2 text-center text-red-400">{player.tarjetas_rojas}</td>
-                    <td className="py-3 px-2 text-center text-zinc-400">{player.partidos_jugados}</td>
+                    <td className="py-3 px-2 text-white font-medium">{usuario.nombre}</td>
+                    <td className="py-3 px-2 text-zinc-400">{usuario.email}</td>
+                    <td className="py-3 px-2 text-center text-lime-400 font-semibold">{usuario.rol}</td>
                   </tr>
                 ))}
               </tbody>

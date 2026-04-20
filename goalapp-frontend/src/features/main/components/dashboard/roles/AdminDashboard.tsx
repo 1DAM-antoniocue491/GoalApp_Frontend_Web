@@ -12,7 +12,7 @@ import SectionHeader from '../SectionHeader';
 import Badge from '../../../../../components/ui/Badge';
 import { EditLeagueModal } from '../../../../league/components/EditLeagueModal';
 import type { SelectedLeague } from '../../../../../context';
-import type { LeagueResponse } from '../../../league/services/leagueApi';
+import type { LeagueResponse } from '../../../../league/services/leagueApi';
 import {
   fetchAdminDashboardStats,
   fetchLiveMatches,
@@ -55,10 +55,10 @@ export default function AdminDashboard({ league, userName, userRole }: AdminDash
       setIsLoadingData(true);
       try {
         const [statsData, liveData, resultsData, upcomingData] = await Promise.allSettled([
-          fetchAdminDashboardStats(),
-          fetchLiveMatches(),
-          fetchRecentResults(3),
-          fetchUpcomingMatches(3),
+          fetchAdminDashboardStats(league.id),
+          fetchLiveMatches(league.id),
+          fetchRecentResults(league.id, 3),
+          fetchUpcomingMatches(league.id, 3),
         ]);
 
         if (statsData.status === 'fulfilled') setStats(statsData.value);
