@@ -237,7 +237,7 @@ export async function createTeam(team: CreateTeamPayload): Promise<TeamResponse>
 
 /**
  * Obtener detalle de un equipo
- * GET /equipos/{equipoId}
+ * GET /equipos/{equipoId}/detalle
  */
 export async function fetchTeamDetail(equipoId: number): Promise<TeamDetailResponse> {
   if (isMockEnabled()) {
@@ -245,7 +245,7 @@ export async function fetchTeamDetail(equipoId: number): Promise<TeamDetailRespo
   }
 
   try {
-    return await apiGet<TeamDetailResponse>(`/equipos/${equipoId}`);
+    return await apiGet<TeamDetailResponse>(`/equipos/${equipoId}/detalle`);
   } catch (error) {
     throw new Error(getErrorMessage(error as ApiError));
   }
@@ -253,7 +253,7 @@ export async function fetchTeamDetail(equipoId: number): Promise<TeamDetailRespo
 
 /**
  * Obtener próximos partidos de un equipo
- * GET /partidos/equipos/{equipoId}/proximos
+ * GET /equipos/{equipoId}/partidos/proximos
  */
 export async function fetchTeamNextMatches(equipoId: number): Promise<MatchResult[]> {
   if (isMockEnabled()) {
@@ -261,7 +261,7 @@ export async function fetchTeamNextMatches(equipoId: number): Promise<MatchResul
   }
 
   try {
-    return await apiGet<MatchResult[]>(`/partidos/equipos/${equipoId}/proximos`);
+    return await apiGet<MatchResult[]>(`/equipos/${equipoId}/partidos/proximos`);
   } catch (error) {
     throw new Error(getErrorMessage(error as ApiError));
   }
@@ -269,7 +269,7 @@ export async function fetchTeamNextMatches(equipoId: number): Promise<MatchResul
 
 /**
  * Obtener últimos partidos de un equipo
- * GET /partidos/equipos/{equipoId}/ultimos
+ * GET /equipos/{equipoId}/partidos/ultimos
  */
 export async function fetchTeamLastMatches(equipoId: number): Promise<MatchResult[]> {
   if (isMockEnabled()) {
@@ -277,7 +277,7 @@ export async function fetchTeamLastMatches(equipoId: number): Promise<MatchResul
   }
 
   try {
-    return await apiGet<MatchResult[]>(`/partidos/equipos/${equipoId}/ultimos`);
+    return await apiGet<MatchResult[]>(`/equipos/${equipoId}/partidos/ultimos`);
   } catch (error) {
     throw new Error(getErrorMessage(error as ApiError));
   }
@@ -301,7 +301,7 @@ export async function fetchTeamTopScorers(equipoId: number): Promise<PlayerWithS
 
 /**
  * Obtener plantilla completa de un equipo
- * GET /jugadores/equipos/{equipoId}/plantilla
+ * GET /equipos/{equipoId}/plantilla
  */
 export async function fetchTeamSquad(equipoId: number): Promise<PlayerWithStatsResponse[]> {
   if (isMockEnabled()) {
@@ -309,7 +309,7 @@ export async function fetchTeamSquad(equipoId: number): Promise<PlayerWithStatsR
   }
 
   try {
-    return await apiGet<PlayerWithStatsResponse[]>(`/jugadores/equipos/${equipoId}/plantilla`);
+    return await apiGet<PlayerWithStatsResponse[]>(`/equipos/${equipoId}/plantilla`);
   } catch (error) {
     throw new Error(getErrorMessage(error as ApiError));
   }

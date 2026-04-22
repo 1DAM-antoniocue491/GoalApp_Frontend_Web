@@ -266,12 +266,13 @@ export function OnboardingPage() {
       return;
     }
 
-    // Guardar la liga seleccionada en el contexto
+    // Guardar la liga seleccionada en el contexto con el usuarioId
     selectLeague({
       id: league.id,
       nombre: league.nombre,
       temporada: league.temporada,
       rol: league.rol,
+      usuarioId: onboardingUser?.id,
       miEquipo: league.miEquipo,
     });
 

@@ -143,7 +143,7 @@ export default function TeamDetailPage() {
             <FaExclamationCircle className="text-red-400 text-4xl mx-auto mb-4" />
             <p className="text-red-400 text-sm mb-4">{error || 'Equipo no encontrado'}</p>
             <button
-              onClick={() => navigate('/equipos')}
+              onClick={() => navigate('/teams')}
               className="text-lime-300 text-sm font-semibold hover:text-lime-400 transition-colors"
             >
               Volver a equipos
@@ -160,7 +160,7 @@ export default function TeamDetailPage() {
       <div className="bg-zinc-950 min-h-[calc(100vh-48px)] p-6">
         {/* Header con botón volver */}
         <button
-          onClick={() => navigate('/equipos')}
+          onClick={() => navigate('/teams')}
           className="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors mb-6"
         >
           <FaArrowLeft />

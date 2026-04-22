@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaSpinner, FaExclamationCircle, FaShieldAlt, FaUser, FaCheck, FaMinus, FaTimes, FaSearch, FaPlus } from 'react-icons/fa';
+import { FaSpinner, FaExclamationCircle, FaShieldAlt, FaUser, FaCheck, FaMinus, FaTimes, FaSearch, FaPlus, FaList, FaThLarge } from 'react-icons/fa';
 import Nav from '../../../components/Nav';
 import { useSelectedLeague } from '../../../context/SelectedLeagueContext';
 import { apiGet } from '../../../services/api';
@@ -30,6 +30,7 @@ export default function TeamPage() {
   const [error, setError] = useState<string | null>(null);
   const [busqueda, setBusqueda] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [vistaClasificacion, setVistaClasificacion] = useState(true); // true = tabla, false = grid
 
   const loadEquipos = async () => {
     if (!selectedLeague) {
@@ -78,6 +79,16 @@ export default function TeamPage() {
     equipo.nombre.toLowerCase().includes(busqueda.toLowerCase())
   );
 
+  // Calcular clasificación con puntos
+  const clasificacion = [...equipos].sort((a, b) => {
+    // Ordenar por: victorias, luego diferencia de goles (si hubiera), luego goles a favor
+    if (b.victorias !== a.victorias) return b.victorias - a.victorias;
+    if (b.empates !== a.empates) return b.empates - a.empates;
+    return b.porcentaje_victorias - a.porcentaje_victorias;
+  });
+
+  const totalEquipos = clasificacion.length;
+
   return (
     <>
       <Nav leagueName={leagueName} userRole={userRole} />
@@ -89,6 +100,33 @@ export default function TeamPage() {
             <p className="text-zinc-400 text-sm">Rendimiento de los equipos</p>
           </div>
           <div className="flex flex-col sm:flex-row gap-3">
+            {/* Toggle vista */}
+            <div className="flex bg-zinc-800 rounded-lg p-1 border border-zinc-700">
+              <button
+                onClick={() => setVistaClasificacion(true)}
+                className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                  vistaClasificacion
+                    ? 'bg-lime-500 text-zinc-950'
+                    : 'text-zinc-400 hover:text-white'
+                }`}
+                title="Vista de clasificación"
+              >
+                <FaList />
+                <span className="hidden sm:inline">Tabla</span>
+              </button>
+              <button
+                onClick={() => setVistaClasificacion(false)}
+                className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                  !vistaClasificacion
+                    ? 'bg-lime-500 text-zinc-950'
+                    : 'text-zinc-400 hover:text-white'
+                }`}
+                title="Vista de cuadrícula"
+              >
+                <FaThLarge />
+                <span className="hidden sm:inline">Grid</span>
+              </button>
+            </div>
             {/* Barra de búsqueda */}
             <div className="relative">
               <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
@@ -143,9 +181,111 @@ export default function TeamPage() {
         )}
 
         {/* Mensaje sin resultados de búsqueda */}
+        {!isLoading && !error && busqueda && equiposFiltrados.length === 0 && (
+          <div className="text-center py-8 border border-dashed border-zinc-700 rounded-xl mb-6">
+            <FaSearch className="text-zinc-600 text-3xl mx-auto mb-2" />
+            <p className="text-zinc-400 text-sm">No se encontraron equipos para "{busqueda}"</p>
+          </div>
+        )}
 
-        {/* Teams grid con rendimiento */}
-        {!isLoading && !error && equiposFiltrados.length > 0 && (
+        {/* Vista de clasificación (tabla) */}
+        {!isLoading && !error && vistaClasificacion && equiposFiltrados.length > 0 && (
+          <div className="bg-zinc-800 rounded-xl border border-zinc-700 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-zinc-900 border-b border-zinc-700">
+                  <tr>
+                    <th className="text-left text-zinc-400 text-xs font-medium px-4 py-3">#</th>
+                    <th className="text-left text-zinc-400 text-xs font-medium px-4 py-3">Equipo</th>
+                    <th className="text-center text-zinc-400 text-xs font-medium px-4 py-3">PJ</th>
+                    <th className="text-center text-zinc-400 text-xs font-medium px-4 py-3">
+                      <FaCheck className="inline text-lime-400 mr-1" />
+                    </th>
+                    <th className="text-center text-zinc-400 text-xs font-medium px-4 py-3">
+                      <FaMinus className="inline text-zinc-400 mr-1" />
+                    </th>
+                    <th className="text-center text-zinc-400 text-xs font-medium px-4 py-3">
+                      <FaTimes className="inline text-red-400 mr-1" />
+                    </th>
+                    <th className="text-center text-zinc-400 text-xs font-medium px-4 py-3">Pts</th>
+                    <th className="text-center text-zinc-400 text-xs font-medium px-4 py-3">%</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {clasificacion
+                    .filter((equipo) => equipo.nombre.toLowerCase().includes(busqueda.toLowerCase()))
+                    .map((equipo, index) => {
+                      const puntos = equipo.victorias * 3 + equipo.empates;
+                      const totalEquipos = clasificacion.length;
+                      const esZonaAlta = totalEquipos <= 10 ? index < 2 : index < 3;
+                      const esZonaBaja = totalEquipos <= 10 ? index >= totalEquipos - 2 : index >= totalEquipos - 3;
+
+                      let filaClass = "border-b border-zinc-700 hover:bg-zinc-750 cursor-pointer transition-colors";
+                      let posicionClass = "";
+
+                      if (esZonaAlta) {
+                        filaClass = "border-b border-zinc-700 hover:bg-lime-900/20 cursor-pointer transition-colors bg-lime-900/10";
+                        posicionClass = "text-lime-400 font-bold";
+                      } else if (esZonaBaja) {
+                        filaClass = "border-b border-zinc-700 hover:bg-red-900/20 cursor-pointer transition-colors bg-red-900/10";
+                        posicionClass = "text-red-400 font-bold";
+                      }
+
+                      return (
+                        <tr
+                          key={equipo.id_equipo}
+                          onClick={() => navigate(`/teams/${equipo.id_equipo}`)}
+                          className={filaClass}
+                        >
+                          <td className={`px-4 py-3 text-sm ${posicionClass || 'text-zinc-400'}`}>{index + 1}</td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-3">
+                              <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                                esZonaAlta ? 'bg-lime-900/30' : esZonaBaja ? 'bg-red-900/30' : 'bg-zinc-700'
+                              }`}>
+                                <FaUser className={esZonaAlta ? 'text-lime-400' : esZonaBaja ? 'text-red-400' : 'text-zinc-400'} />
+                              </div>
+                              <span className={`font-medium text-sm ${
+                                esZonaAlta ? 'text-lime-300' : esZonaBaja ? 'text-red-300' : 'text-white'
+                              }`}>{equipo.nombre}</span>
+                            </div>
+                          </td>
+                          <td className="text-center text-zinc-300 text-sm">{equipo.partidos_jugados}</td>
+                          <td className="text-center text-lime-400 text-sm">{equipo.victorias}</td>
+                          <td className="text-center text-zinc-400 text-sm">{equipo.empates}</td>
+                          <td className="text-center text-red-400 text-sm">{equipo.derrotas}</td>
+                          <td className={`text-center font-semibold text-sm ${
+                            esZonaAlta ? 'text-lime-400' : esZonaBaja ? 'text-red-400' : 'text-white'
+                          }`}>{puntos}</td>
+                          <td className={`text-center font-medium text-sm ${
+                            esZonaAlta ? 'text-lime-400' : esZonaBaja ? 'text-red-400' : 'text-lime-400'
+                          }`}>{equipo.porcentaje_victorias}%</td>
+                        </tr>
+                      );
+                    })}
+                </tbody>
+              </table>
+            </div>
+            {/* Leyenda de zonas */}
+            <div className="bg-zinc-900 border-t border-zinc-700 px-4 py-2 flex flex-wrap gap-4 text-xs">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded bg-lime-900/30 border border-lime-700"></div>
+                <span className="text-zinc-400">
+                  {totalEquipos <= 10 ? 'Zona alta (2 primeros)' : 'Zona alta (3 primeros)'}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded bg-red-900/30 border border-red-700"></div>
+                <span className="text-zinc-400">
+                  {totalEquipos <= 10 ? 'Zona baja (2 últimos)' : 'Zona baja (3 últimos)'}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Vista de cuadrícula (grid) */}
+        {!isLoading && !error && !vistaClasificacion && equiposFiltrados.length > 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {equiposFiltrados.map((equipo) => (
               <div

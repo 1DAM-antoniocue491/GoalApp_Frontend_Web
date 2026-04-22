@@ -11,7 +11,7 @@ import LeaguePage from './features/league/pages/LeaguePage'
 import TeamPage from './features/team/pages/TeamPage'
 import TeamDetailPage from './features/team/pages/TeamDetailPage'
 import StatisticPage from './features/statistic/pages/StatisticPage'
-import CalendarPage from './features/calendary/pages/CalendarPage'
+import CalendarioPage from './features/calendario/pages/CalendarioPage'
 import UsersPage from './features/users/pages/UsersPage'
 import PrivateRoute from './features/auth/components/PrivateRoute'
 import { OnboardingPage } from './features/onboarding'
@@ -37,7 +37,7 @@ function App() {
           <Route path='/teams' element={<TeamPage />} />
           <Route path='/teams/:equipoId' element={<TeamDetailPage />} />
           <Route path='/statistics' element={<StatisticPage />} />
-          <Route path='/calendar' element={<CalendarPage />} />
+          <Route path='/calendar' element={<CalendarioPage />} />
           <Route path='/users' element={<UsersPage />} />
         </Route>
       </Routes>
