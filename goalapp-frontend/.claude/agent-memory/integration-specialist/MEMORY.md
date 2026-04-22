@@ -1,0 +1,1 @@
+- [Frontend-Backend API Connection](frontend-backend-api-connection.md) — Estado de conexión frontend web con API backend, endpoints faltantes y tipos alineados
