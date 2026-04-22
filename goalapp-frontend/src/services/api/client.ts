@@ -119,7 +119,15 @@ const createApiClient = (): AxiosInstance => {
       const statusCode = error.response.status;
 
       // Error 401 - Token expirado o inválido
-      if (statusCode === 401 && !originalRequest._retry) {
+      // No interceptar 401 en endpoints de autenticación (login, registro, etc.)
+      // ya que son errores esperados de credenciales incorrectas, no de sesión expirada
+      const isAuthEndpoint =
+        originalRequest.url?.includes('/auth/login') ||
+        originalRequest.url?.includes('/auth/register') ||
+        originalRequest.url?.includes('/auth/forgot-password') ||
+        originalRequest.url?.includes('/auth/reset-password');
+
+      if (statusCode === 401 && !originalRequest._retry && !isAuthEndpoint) {
         // Si ya estamos refrescando, encolar la petición
         if (isRefreshing) {
           return new Promise((resolve, reject) => {
@@ -159,7 +167,7 @@ const createApiClient = (): AxiosInstance => {
           // Intentar refrescar el token
           const response = await axios.post<RefreshTokenResponse>(
             `${API_BASE_URL}/auth/refresh`,
-            { refresh_token: refreshToken },
+            { token: refreshToken },
             { headers: { 'Content-Type': 'application/json' } }
           );
 
@@ -280,6 +288,18 @@ export const apiGet = async <T>(url: string, params?: Record<string, unknown>): 
  */
 export const apiPost = async <T>(url: string, data?: unknown): Promise<T> => {
   const response = await apiClient.post<T>(url, data);
+  return response.data;
+};
+
+/**
+ * Función para hacer peticiones POST con FormData (imágenes, archivos)
+ */
+export const apiPostRaw = async <T>(url: string, data: FormData): Promise<T> => {
+  const response = await apiClient.post<T>(url, data, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
   return response.data;
 };
 

@@ -1,17 +1,15 @@
 /**
  * Componente de ruta protegida
  * Verifica que el usuario esté autenticado antes de mostrar el contenido
+ * Soporta uso como layout route (<Route element={<PrivateRoute />}> ... </Route>)
+ * y como wrapper (<PrivateRoute><Component /></PrivateRoute>)
  */
 
-import { Navigate, useLocation } from 'react-router';
+import { Navigate, Outlet, useLocation } from 'react-router';
 import { useAuth } from '../hooks/useAuth';
 import { FaSpinner } from 'react-icons/fa';
 
-interface PrivateRouteProps {
-  children: React.ReactNode;
-}
-
-export default function PrivateRoute({ children }: PrivateRouteProps) {
+export default function PrivateRoute() {
   const { isAuthenticated, isInitializing } = useAuth();
   const location = useLocation();
 
@@ -32,6 +30,6 @@ export default function PrivateRoute({ children }: PrivateRouteProps) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // Si está autenticado, mostrar el contenido protegido
-  return <>{children}</>;
+  // Si está autenticado, renderizar rutas hijas vía Outlet
+  return <Outlet />;
 }

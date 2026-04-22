@@ -44,9 +44,16 @@ export default function DashboardPage() {
     );
   }
 
-  // Si no hay liga seleccionada, no renderizar nada (se redirigirá)
+  // Si no hay liga seleccionada, mostrar mensaje y redirigir
   if (!selectedLeague) {
-    return null;
+    return (
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-zinc-400 mb-4">No hay liga seleccionada</p>
+          <p className="text-zinc-500 text-sm">Redirigiendo...</p>
+        </div>
+      </div>
+    );
   }
 
   const userName = user?.nombre || 'Usuario';
@@ -102,7 +109,7 @@ export default function DashboardPage() {
   return (
     <>
       <Nav leagueName={selectedLeague.nombre} userRole={userRole} />
-      <div className="flex flex-col bg-zinc-950 p-5 sm:px-10 gap-5 sm:gap-6">
+      <div className="flex flex-col bg-zinc-950 p-5 px-10 py-6 md:px-20 lg:px-60 gap-5 sm:gap-6 min-h-screen">
         {renderDashboardByRole()}
       </div>
     </>

@@ -19,6 +19,7 @@ export interface SelectedLeague {
   nombre: string;
   temporada: string;
   rol: UserRole;
+  usuarioId?: number;
   miEquipo?: string;
 }
 
@@ -30,6 +31,7 @@ interface StoredLeague {
   nombre: string;
   temporada: string;
   rol: UserRole;
+  usuarioId?: number;
   miEquipo?: string;
 }
 

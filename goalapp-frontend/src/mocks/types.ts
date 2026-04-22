@@ -62,16 +62,18 @@ export interface MockJugador {
 export interface MockPartido {
   id_partido: number;
   id_liga: number;
+  id_jornada: number;
   equipo_local: string;
   equipo_visitante: string;
   id_equipo_local: number;
   id_equipo_visitante: number;
-  goles_local: number;
-  goles_visitante: number;
+  goles_local: number | null;
+  goles_visitante: number | null;
   fecha: string;
-  estado: 'programado' | 'en_vivo' | 'finalizado';
-  jornada: number;
-  ubicacion: string;
+  estado: 'programado' | 'en_vivo' | 'finalizado' | 'suspendido';
+  created_at: string;
+  updated_at: string;
+  ubicacion?: string;
 }
 
 export interface MockEventoPartido {

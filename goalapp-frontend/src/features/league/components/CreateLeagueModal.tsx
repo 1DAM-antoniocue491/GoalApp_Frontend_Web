@@ -107,16 +107,14 @@ export function CreateLeagueModal({ isOpen, onClose, onSuccess }: CreateLeagueMo
 
     setIsSubmitting(true);
 
-    // TODO: Cuando el backend soporte más campos, enviar también:
-    // - categoria
-    // - cantidadPartidos
-    // - duracionPartido
-    // - logoFile
-
     const request: CreateLeagueRequest = {
       nombre: formData.nombre.trim(),
       temporada: formData.temporada,
+      categoria: formData.categoria || undefined,
       activa: true,
+      cantidad_partidos: formData.cantidadPartidos ? parseInt(formData.cantidadPartidos, 10) : undefined,
+      duracion_partido: formData.duracionPartido ? parseInt(formData.duracionPartido, 10) : undefined,
+      logo_url: logoPreview || undefined,
     };
 
     const result = await createLeague(request);
@@ -156,7 +154,7 @@ export function CreateLeagueModal({ isOpen, onClose, onSuccess }: CreateLeagueMo
       />
 
       {/* Modal */}
-      <div className="relative bg-zinc-900 border border-zinc-800 rounded-xl w-full max-w-md mx-4 p-6 max-h-[90vh] overflow-y-auto">
+      <div className="relative bg-zinc-900 border border-zinc-800 rounded-xl w-full max-w-3xl mx-4 p-6 max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-white text-xl font-semibold">Nueva Liga</h2>

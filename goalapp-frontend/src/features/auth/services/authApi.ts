@@ -7,6 +7,7 @@
 import {
   apiPost,
   apiGet,
+  apiPut,
   apiLogin,
   getErrorMessage,
 } from '../../../services/api';
@@ -37,16 +38,22 @@ export interface LoginResponse {
 
 /**
  * Datos del usuario autenticado
+ * Coincide con UsuarioResponse del backend (app/schemas/usuario.py)
  */
 export interface User {
   id_usuario: number;
   nombre: string;
   email: string;
-  telefono?: string;
-  fecha_nacimiento?: string;
+  genero?: string | null;
+  telefono?: string | null;
+  fecha_nacimiento?: string | null;
+  imagen_url?: string | null;
+  created_at?: string;
+  updated_at?: string;
+  // Campos computados que no vienen del backend directamente
+  // pero se usan en el frontend. Se llenan desde otros endpoints
+  // como /usuarios/me/ligas
   rol_principal?: string;
-  imagen_url?: string;
-  activo?: boolean;
   roles?: UserRole[];
 }
 
@@ -68,19 +75,32 @@ export interface ForgotPasswordRequest {
 
 /**
  * Respuesta de recuperación de contraseña
+ * Coincide con PasswordResetResponse del backend
  */
 export interface ForgotPasswordResponse {
-  message: string;
+  mensaje: string;
   success: boolean;
 }
 
 /**
  * Datos para restablecer contraseña
+ * Coincide con PasswordResetConfirm del backend
  */
 export interface ResetPasswordRequest {
   token: string;
-  new_password: string;
-  confirm_password: string;
+  nueva_contrasena: string;
+}
+
+/**
+ * Respuesta del registro
+ * El backend POST /usuarios/ devuelve UsuarioResponse directamente.
+ * Para el frontend, envolvemos en un objeto con success/message
+ * para mantener consistencia con la lógica de registro.
+ */
+export interface RegisterResponse {
+  success: boolean;
+  message: string;
+  user?: User;
 }
 
 // ============================================
@@ -99,13 +119,7 @@ export async function login(email: string, password: string): Promise<LoginRespo
   if (isMockEnabled()) {
     const response = await mockApi.mockLogin(email, password);
 
-    // Guardar tokens mock en localStorage
-    if (response.access_token) {
-      localStorage.setItem(AUTH_TOKEN_KEY, response.access_token);
-    }
-    if (response.refresh_token) {
-      localStorage.setItem(AUTH_REFRESH_TOKEN_KEY, response.refresh_token);
-    }
+    // NO guardar tokens aquí — se guardan en useAuth después de que getCurrentUser tenga éxito
 
     return response;
   }
@@ -114,13 +128,8 @@ export async function login(email: string, password: string): Promise<LoginRespo
     // El backend espera form-data con 'username' y 'password' (OAuth2PasswordRequestForm)
     const response = await apiLogin<LoginResponse>(AUTH_ENDPOINTS.LOGIN, email, password);
 
-    // Guardar tokens en localStorage
-    if (response.access_token) {
-      localStorage.setItem(AUTH_TOKEN_KEY, response.access_token);
-    }
-    if (response.refresh_token) {
-      localStorage.setItem(AUTH_REFRESH_TOKEN_KEY, response.refresh_token);
-    }
+    // NO guardar tokens aquí — se guardan después de que getCurrentUser() tenga éxito
+    // en el hook useAuth, para evitar tokens huérfanos si /me falla
 
     return response;
   } catch (error) {
@@ -206,6 +215,47 @@ export async function forgotPassword(email: string): Promise<ForgotPasswordRespo
 }
 
 /**
+ * Registrar un nuevo usuario
+ * @param nombre - Nombre del usuario
+ * @param email - Email del usuario
+ * @param password - Contraseña del usuario
+ * @returns Promesa con la respuesta del registro
+ */
+export async function register(nombre: string, email: string, password: string): Promise<RegisterResponse> {
+  // Modo mock: simular registro exitoso
+  if (isMockEnabled()) {
+    const response = await mockApi.mockRegister(nombre, email, password);
+    if (response.success && response.user) {
+      localStorage.setItem(AUTH_USER_KEY, JSON.stringify(response.user));
+    }
+    return response as RegisterResponse;
+  }
+
+  try {
+    // El backend POST /usuarios/ devuelve UsuarioResponse directamente
+    // Nota: el backend usa el alias "contraseña" para el campo password
+    const userResponse = await apiPost<User>(AUTH_ENDPOINTS.REGISTER, {
+      nombre,
+      email,
+      contraseña: password,
+    });
+
+    return {
+      success: true,
+      message: 'Registro exitoso.',
+      user: userResponse,
+    };
+  } catch (error) {
+    // Transformar error del backend en formato esperado
+    const errorMsg = getErrorMessage(error as ApiError);
+    return {
+      success: false,
+      message: errorMsg,
+    };
+  }
+}
+
+/**
  * Restablecer contraseña con token
  * @param data - Token y nueva contraseña
  * @returns Promesa con la respuesta
@@ -213,7 +263,7 @@ export async function forgotPassword(email: string): Promise<ForgotPasswordRespo
 export async function resetPassword(data: ResetPasswordRequest): Promise<{ message: string }> {
   // Modo mock: simular respuesta exitosa
   if (isMockEnabled()) {
-    const response = await mockApi.mockResetPassword(data.token, data.new_password);
+    const response = await mockApi.mockResetPassword(data.token, data.nueva_contrasena);
     return response;
   }
 
@@ -250,7 +300,7 @@ export async function refreshToken(): Promise<LoginResponse> {
 
   try {
     const response = await apiPost<LoginResponse>(AUTH_ENDPOINTS.REFRESH, {
-      refresh_token: storedRefreshToken,
+      token: storedRefreshToken,
     });
 
     // Actualizar tokens
@@ -373,6 +423,142 @@ export function isTokenExpiringSoon(thresholdMs: number = 5 * 60 * 1000): boolea
   }
 
   return false;
+}
+
+// ============================================
+// ACTUALIZACIÓN DE PERFIL
+// ============================================
+
+/**
+ * Datos para actualizar el perfil del usuario
+ * Coincide con UsuarioUpdate del backend
+ */
+export interface UpdateProfileRequest {
+  nombre?: string;
+  telefono?: string | null;
+  fecha_nacimiento?: string | null;
+  imagen_url?: string | null;
+}
+
+// ============================================
+// INVITACIONES
+// ============================================
+
+/**
+ * Respuesta de validar invitación
+ */
+export interface InvitationValidationResponse {
+  valido: boolean;
+  email?: string;
+  liga_nombre?: string;
+  equipo_nombre?: string | null;
+  rol?: string | null;
+  dorsal?: string | null;
+  posicion?: string | null;
+  tipo_jugador?: string | null;
+  motivo?: string | null;
+}
+
+/**
+ * Validar un token de invitación
+ * GET /invitaciones/validar/{token}
+ *
+ * @param token - Token de invitación
+ * @returns Promesa con la validación de la invitación
+ * @throws Error si la invitación es inválida o expirada
+ */
+export async function validateInvitation(token: string): Promise<InvitationValidationResponse> {
+  if (isMockEnabled()) {
+    // Mock: devolver invitación válida simulada
+    return {
+      valido: true,
+      email: 'invitado@test.com',
+      liga_nombre: 'Liga de Prueba',
+      equipo_nombre: 'Equipo Mock',
+      rol: 'player',
+      dorsal: '10',
+      posicion: 'Delantero',
+      tipo_jugador: 'titular',
+    };
+  }
+
+  try {
+    const response = await apiGet<InvitationValidationResponse>(`/invitaciones/validar/${token}`);
+    return response;
+  } catch (error) {
+    throw new Error(getErrorMessage(error as ApiError));
+  }
+}
+
+/**
+ * Aceptar invitación y crear usuario
+ * POST /invitaciones/aceptar/{token}
+ *
+ * @param token - Token de invitación
+ * @param nombre - Nombre del usuario
+ * @param email - Email del usuario
+ * @param password - Contraseña del usuario
+ * @returns Promesa con la respuesta del servidor
+ * @throws Error si la aceptación falla
+ */
+export async function acceptInvitation(
+  token: string,
+  nombre: string,
+  email: string,
+  password: string
+): Promise<{ mensaje: string; usuario_id: number; email: string }> {
+  if (isMockEnabled()) {
+    return {
+      mensaje: 'Invitación aceptada correctamente. Usuario creado.',
+      usuario_id: 100,
+      email: email,
+    };
+  }
+
+  try {
+    // Nota: el backend usa el alias "contraseña" para el campo password
+    const response = await apiPost(`/invitaciones/aceptar/${token}`, {
+      nombre,
+      email,
+      contraseña: password,
+    });
+    return response;
+  } catch (error) {
+    throw new Error(getErrorMessage(error as ApiError));
+  }
+}
+
+/**
+ * Actualizar el perfil del usuario autenticado
+ * PUT /usuarios/{usuario_id}
+ *
+ * @param userId - ID del usuario a actualizar
+ * @param data - Campos a actualizar
+ * @returns Promesa con los datos del usuario actualizado
+ * @throws Error si la actualización falla
+ */
+export async function updateProfile(userId: number, data: UpdateProfileRequest): Promise<User> {
+  // Modo mock: simular actualización exitosa
+  if (isMockEnabled()) {
+    const mockUser = await mockApi.mockGetCurrentUser();
+    const updatedUser = {
+      ...mockUser,
+      ...(data.nombre !== undefined && { nombre: data.nombre }),
+      ...(data.telefono !== undefined && { telefono: data.telefono }),
+      ...(data.fecha_nacimiento !== undefined && { fecha_nacimiento: data.fecha_nacimiento }),
+    } as unknown as User;
+    localStorage.setItem(AUTH_USER_KEY, JSON.stringify(updatedUser));
+    return updatedUser;
+  }
+
+  try {
+    const updatedUser = await apiPut<User>(`/usuarios/${userId}`, data);
+    // Actualizar usuario en localStorage
+    localStorage.setItem(AUTH_USER_KEY, JSON.stringify(updatedUser));
+    return updatedUser;
+  } catch (error) {
+    throw new Error(getErrorMessage(error as ApiError));
+  }
 }
 
 // Re-exportar tipos útiles

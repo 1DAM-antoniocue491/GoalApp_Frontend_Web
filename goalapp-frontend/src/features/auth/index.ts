@@ -14,6 +14,7 @@ export {
   forgotPassword,
   resetPassword,
   refreshToken,
+  updateProfile,
   saveToken,
   saveRefreshToken,
   getToken,
@@ -24,7 +25,7 @@ export {
   clearAuthData,
   isTokenExpiringSoon,
 } from './services/authApi';
-export type { User, LoginResponse, UserRole } from './services/authApi';
+export type { User, LoginResponse, UserRole, UpdateProfileRequest } from './services/authApi';
 
 // Componentes
 export { default as PrivateRoute } from './components/PrivateRoute';
