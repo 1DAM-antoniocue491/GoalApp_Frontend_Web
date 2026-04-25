@@ -14,6 +14,7 @@ import type { ApiError } from '../../../services/api';
 // ============================================
 
 export interface DashboardLiveMatch {
+  id_partido: number;
   league: string;
   home: string;
   away: string;
@@ -31,6 +32,7 @@ export interface DashboardResult {
 }
 
 export interface DashboardUpcomingMatch {
+  id_partido: number;
   league: string;
   home: string;
   away: string;
@@ -109,11 +111,11 @@ export async function fetchLiveMatches(leagueId: number): Promise<DashboardLiveM
     const partidos = await mockApi.mockFetchLiveMatches();
     return partidos.map((p) => ({
       league: `Liga ${p.id_liga}`,
-      home: p.equipo_local,
-      away: p.equipo_visitante,
-      homeScore: p.goles_local,
-      awayScore: p.goles_visitante,
-      minute: "67'",
+      home: p.nombre_equipo_local,
+      away: p.nombre_equipo_visitante,
+      homeScore: p.goles_local ?? 0,
+      awayScore: p.goles_visitante ?? 0,
+      minute: "En juego",
     }));
   }
 
@@ -135,6 +137,7 @@ export async function fetchLiveMatches(leagueId: number): Promise<DashboardLiveM
 
     // Mapear a formato de dashboard con nombres reales
     return liveMatches.map((p) => ({
+      id_partido: p.id_partido,
       league: liga.nombre,
       home: equiposMap.get(p.id_equipo_local) || `Equipo ${p.id_equipo_local}`,
       away: equiposMap.get(p.id_equipo_visitante) || `Equipo ${p.id_equipo_visitante}`,
@@ -159,10 +162,10 @@ export async function fetchRecentResults(leagueId: number, limit: number = 5): P
     const partidos = await mockApi.mockFetchRecentMatches(limit);
     return partidos.map((p) => ({
       league: `Liga ${p.id_liga}`,
-      home: p.equipo_local,
-      away: p.equipo_visitante,
-      homeScore: p.goles_local,
-      awayScore: p.goles_visitante,
+      home: p.nombre_equipo_local,
+      away: p.nombre_equipo_visitante,
+      homeScore: p.goles_local ?? 0,
+      awayScore: p.goles_visitante ?? 0,
     }));
   }
 
@@ -211,8 +214,8 @@ export async function fetchUpcomingMatches(leagueId: number, limit: number = 5):
       const date = new Date(p.fecha);
       return {
         league: `Liga ${p.id_liga}`,
-        home: p.equipo_local,
-        away: p.equipo_visitante,
+        home: p.nombre_equipo_local,
+        away: p.nombre_equipo_visitante,
         date: date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }),
         time: date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
       };
@@ -241,6 +244,7 @@ export async function fetchUpcomingMatches(leagueId: number, limit: number = 5):
     return upcomingMatches.map((p) => {
       const date = new Date(p.fecha);
       return {
+        id_partido: p.id_partido,
         league: liga.nombre,
         home: equiposMap.get(p.id_equipo_local) || `Equipo ${p.id_equipo_local}`,
         away: equiposMap.get(p.id_equipo_visitante) || `Equipo ${p.id_equipo_visitante}`,
@@ -260,7 +264,7 @@ export async function fetchUpcomingMatches(leagueId: number, limit: number = 5):
  * Se calcula a partir de los endpoints existentes filtrados por liga:
  * - GET /equipos/?liga_id={leagueId} para contar equipos
  * - GET /partidos/?liga_id={leagueId} para contar partidos programados
- * - GET /usuarios/ para contar usuarios (global)
+ * - GET /usuarios/ligas/{liga_id}/usuarios para contar usuarios con rol en la liga
  * En modo mock se usan datos simulados.
  *
  * @param leagueId - ID de la liga para filtrar las estadísticas
@@ -272,18 +276,15 @@ export async function fetchAdminDashboardStats(leagueId: number): Promise<AdminD
 
   try {
     // Obtener datos de endpoints existentes en paralelo, filtrados por liga
-    const [equipos, partidos] = await Promise.all([
+    const [equipos, partidos, usuariosEnLiga] = await Promise.all([
       apiGet<Array<unknown>>('/equipos/', { liga_id: leagueId }),
       apiGet<PartidoApi[]>('/partidos/', { liga_id: leagueId }),
+      apiGet<Array<unknown>>(`/usuarios/ligas/${leagueId}/usuarios`),
     ]);
-
-    // Para usuarios, usamos el endpoint global ya que no hay filtrado por liga
-    // En el futuro se podría añadir un endpoint /ligas/{liga_id}/usuarios
-    const usuarios = await apiGet<Array<unknown>>('/usuarios/');
 
     return {
       equiposRegistrados: equipos.length,
-      usuariosTotales: usuarios.length,
+      usuariosTotales: usuariosEnLiga.length,
       partidosProgramados: partidos.filter((p) => p.estado === 'programado').length,
     };
   } catch (error) {

@@ -4,7 +4,7 @@
  * Soporta modo mock cuando VITE_USE_MOCKS=true
  */
 
-import { apiGet, apiPost, apiPut, getErrorMessage } from '../../../services/api';
+import { apiGet, apiPost, apiPut, apiDelete, getErrorMessage } from '../../../services/api';
 import type { ApiError } from '../../../services/api';
 import { isMockEnabled } from '../../../mocks/env';
 import * as mockApi from '../../../mocks/api';
@@ -60,6 +60,37 @@ export interface CalendarCreatePayload {
   fecha_inicio: string;
   dias_partido: number[];
   hora: string;
+}
+
+export interface FinishMatchPayload {
+  goles_local: number;
+  goles_visitante: number;
+  id_mvp: number;
+  puntuacion_mvp: number;
+  incidencias?: string;
+}
+
+export interface MatchEvent {
+  id_evento: number;
+  id_partido: number;
+  id_jugador: number;
+  tipo_evento: 'gol' | 'tarjeta_amarilla' | 'tarjeta_roja' | 'cambio' | 'mvp';
+  minuto: number;
+  puntuacion_mvp: number | null;
+  incidencias: string | null;
+  created_at: string;
+  updated_at: string;
+  // Campos adicionales para mostrar en UI
+  nombre_jugador?: string;
+  nombre_equipo?: string;
+}
+
+export interface MatchEventCreate {
+  id_jugador: number;
+  tipo_evento: 'gol' | 'tarjeta_amarilla' | 'tarjeta_roja' | 'cambio';
+  minuto: number;
+  id_jugador_sale?: number; // Solo para sustituciones
+  incidencias?: string; // Motivo opcional para tarjetas
 }
 
 // ============================================
@@ -215,6 +246,152 @@ export async function createCalendar(
       `/partidos/ligas/${ligaId}/crear-calendario`,
       config
     );
+  } catch (error) {
+    throw new Error(getErrorMessage(error as ApiError));
+  }
+}
+
+/**
+ * Obtener configuración del calendario automático
+ * GET /partidos/ligas/{ligaId}/config-calendario
+ */
+export async function fetchCalendarConfig(
+  ligaId: number
+): Promise<CalendarCreatePayload> {
+  if (isMockEnabled()) {
+    return await mockApi.mockFetchCalendarConfig(ligaId);
+  }
+
+  try {
+    return await apiGet<CalendarCreatePayload>(
+      `/partidos/ligas/${ligaId}/config-calendario`
+    );
+  } catch (error) {
+    throw new Error(getErrorMessage(error as ApiError));
+  }
+}
+
+/**
+ * Eliminar calendario automático completo
+ * DELETE /partidos/ligas/{ligaId}/calendario
+ */
+export async function deleteCalendar(
+  ligaId: number
+): Promise<{ mensaje: string; partidos_eliminados: number; jornadas_eliminadas: number }> {
+  if (isMockEnabled()) {
+    return await mockApi.mockDeleteCalendar(ligaId);
+  }
+
+  try {
+    return await apiDelete<{ mensaje: string; partidos_eliminados: number; jornadas_eliminadas: number }>(
+      `/partidos/ligas/${ligaId}/calendario`
+    );
+  } catch (error) {
+    throw new Error(getErrorMessage(error as ApiError));
+  }
+}
+
+/**
+ * Actualizar calendario automático (regenerar)
+ * PUT /partidos/ligas/{ligaId}/calendario
+ */
+export async function updateCalendar(
+  ligaId: number,
+  config: CalendarCreatePayload
+): Promise<{ mensaje: string; partidos_creados: number; partidos_eliminados: number }> {
+  if (isMockEnabled()) {
+    return await mockApi.mockUpdateCalendar(ligaId, config);
+  }
+
+  try {
+    return await apiPut<{ mensaje: string; partidos_creados: number; partidos_eliminados: number }>(
+      `/partidos/ligas/${ligaId}/calendario`,
+      config
+    );
+  } catch (error) {
+    throw new Error(getErrorMessage(error as ApiError));
+  }
+}
+
+/**
+ * Iniciar un partido (cambiar estado a 'En Juego')
+ * PUT /partidos/{partidoId}/iniciar
+ */
+export async function startMatch(partidoId: number): Promise<MatchResponse> {
+  if (isMockEnabled()) {
+    return await mockApi.mockStartMatch(partidoId);
+  }
+
+  try {
+    return await apiPut<MatchResponse>(`/partidos/${partidoId}/iniciar`, {});
+  } catch (error) {
+    throw new Error(getErrorMessage(error as ApiError));
+  }
+}
+
+/**
+ * Finalizar un partido registrando resultado y MVP
+ * PUT /partidos/{partidoId}/finalizar
+ */
+export async function finishMatch(
+  partidoId: number,
+  payload: FinishMatchPayload
+): Promise<MatchResponse> {
+  if (isMockEnabled()) {
+    return await mockApi.mockFinishMatch(partidoId, payload);
+  }
+
+  try {
+    return await apiPut<MatchResponse>(`/partidos/${partidoId}/finalizar`, payload);
+  } catch (error) {
+    throw new Error(getErrorMessage(error as ApiError));
+  }
+}
+
+/**
+ * Obtener eventos de un partido
+ * GET /eventos/partido/{partidoId}
+ */
+export async function fetchMatchEvents(partidoId: number): Promise<MatchEvent[]> {
+  if (isMockEnabled()) {
+    const mockEvents = await mockApi.mockFetchMatchEvents(partidoId);
+    // Convertir formato mock al formato de la API
+    return mockEvents.map(e => ({
+      id_evento: e.id_evento,
+      id_partido: e.id_partido,
+      id_jugador: e.id_jugador,
+      tipo_evento: e.tipo as 'gol' | 'tarjeta_amarilla' | 'tarjeta_roja' | 'cambio' | 'mvp',
+      minuto: e.minuto,
+      puntuacion_mvp: null,
+      incidencias: null,
+      created_at: '',
+      updated_at: '',
+      nombre_jugador: e.nombre_jugador,
+      nombre_equipo: e.nombre_equipo,
+    }));
+  }
+
+  try {
+    return await apiGet<MatchEvent[]>(`/eventos/partido/${partidoId}`);
+  } catch (error) {
+    throw new Error(getErrorMessage(error as ApiError));
+  }
+}
+
+/**
+ * Crear un nuevo evento en un partido
+ * POST /eventos/
+ */
+export async function createMatchEvent(
+  partidoId: number,
+  event: MatchEventCreate
+): Promise<MatchEvent> {
+  if (isMockEnabled()) {
+    return await mockApi.mockCreateMatchEvent(partidoId, event);
+  }
+
+  try {
+    return await apiPost<MatchEvent>('/eventos/', { id_partido: partidoId, ...event });
   } catch (error) {
     throw new Error(getErrorMessage(error as ApiError));
   }

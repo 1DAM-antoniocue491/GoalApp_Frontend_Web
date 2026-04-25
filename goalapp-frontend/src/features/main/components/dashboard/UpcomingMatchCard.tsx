@@ -3,11 +3,11 @@ import Badge from "../../../../components/ui/Badge";
 
 interface UpcomingMatchCardProps {
     teams: string;
-    league: string;
+    league?: string;
     time: string;
 }
 
-export default function UpcomingMatchCard({ teams, league, time }: UpcomingMatchCardProps) {
+export default function UpcomingMatchCard({ teams, time }: UpcomingMatchCardProps) {
     return (
         <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 bg-zinc-900 px-3 py-2 rounded-xl">
             <div className="flex flex-row gap-2 items-center">

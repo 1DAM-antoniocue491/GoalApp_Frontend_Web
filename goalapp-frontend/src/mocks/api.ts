@@ -11,7 +11,6 @@ import type {
   MockJugador,
   MockPartido,
   MockEventoPartido,
-  MockFormacion,
   MockNotificacion,
   MockLoginResponse,
   MockLigaConRol,
@@ -28,7 +27,6 @@ import equiposData from './data/equipos.json';
 import jugadoresData from './data/jugadores.json';
 import partidosData from './data/partidos.json';
 import eventosData from './data/eventos_partido.json';
-import formacionesData from './data/formaciones.json';
 import notificacionesData from './data/notificaciones.json';
 
 // ============================================
@@ -73,7 +71,6 @@ const equipos: MockEquipo[] = [...equiposData] as MockEquipo[];
 const jugadores: MockJugador[] = [...jugadoresData] as MockJugador[];
 const partidos: MockPartido[] = [...partidosData] as MockPartido[];
 const eventos: MockEventoPartido[] = [...eventosData] as MockEventoPartido[];
-const formaciones: MockFormacion[] = [...formacionesData] as MockFormacion[];
 const notificaciones: MockNotificacion[] = [...notificacionesData] as MockNotificacion[];
 
 // Ligas seguidas por el usuario mock (ids)
@@ -386,13 +383,20 @@ export async function mockDeleteLeague(id: number): Promise<{ success: boolean; 
 export async function mockFetchUserLeaguesWithRole(): Promise<MockLigaConRol[]> {
   await simulateDelay();
 
-  // El usuario mock es admin y esta en las primeras 4 ligas con distintos roles
+  // El usuario mock esta en las primeras 4 ligas con distintos roles
+  // Se incluye rol 'observador' para probar el caso sin badge
   const roles: Record<number, string> = {
     1: 'admin',
     2: 'entrenador',
     3: 'delegado',
-    4: 'jugador',
+    4: 'observador', // Cambiado a observador para probar el caso sin badge
   };
+
+  // Contar equipos por liga
+  const equiposPorLiga = new Map<number, number>();
+  equipos.forEach((eq) => {
+    equiposPorLiga.set(eq.id_liga, (equiposPorLiga.get(eq.id_liga) || 0) + 1);
+  });
 
   return ligas
     .filter((liga) => liga.id_liga <= 4)
@@ -402,6 +406,7 @@ export async function mockFetchUserLeaguesWithRole(): Promise<MockLigaConRol[]> 
       temporada: liga.temporada,
       activa: liga.activa,
       rol: roles[liga.id_liga] || 'jugador',
+      equipos_total: equiposPorLiga.get(liga.id_liga) || 0,
     }));
 }
 
@@ -894,10 +899,11 @@ export async function mockFetchMatchesWithTeams(ligaId: number): Promise<{
 
   return matches.map((p) => ({
     ...p,
-    nombre_equipo_local: equipos.find((e) => e.id_equipo === p.id_equipo_local)?.nombre ?? 'Unknown',
-    nombre_equipo_visitante: equipos.find((e) => e.id_equipo === p.id_equipo_visitante)?.nombre ?? 'Unknown',
-    escudo_equipo_local: equipos.find((e) => e.id_equipo === p.id_equipo_local)?.escudo ?? null,
-    escudo_equipo_visitante: equipos.find((e) => e.id_equipo === p.id_equipo_visitante)?.escudo ?? null,
+    // Usar nombre directo si existe, sino buscar en equipos
+    nombre_equipo_local: p.nombre_equipo_local || (equipos.find((e) => e.id_equipo === p.id_equipo_local)?.nombre ?? 'Unknown'),
+    nombre_equipo_visitante: p.nombre_equipo_visitante || (equipos.find((e) => e.id_equipo === p.id_equipo_visitante)?.nombre ?? 'Unknown'),
+    escudo_equipo_local: p.escudo_equipo_local ?? (equipos.find((e) => e.id_equipo === p.id_equipo_local)?.escudo ?? null),
+    escudo_equipo_visitante: p.escudo_equipo_visitante ?? (equipos.find((e) => e.id_equipo === p.id_equipo_visitante)?.escudo ?? null),
   }));
 }
 
@@ -923,16 +929,16 @@ export async function mockFetchUpcomingMatches(limit?: number): Promise<{
 }[]> {
   await simulateDelay();
   const matches = partidos
-    .filter((p) => p.estado === 'programado')
+    .filter((p) => p.estado.toLowerCase() === 'programado')
     .sort((a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime())
     .slice(0, limit || 10);
 
   return matches.map((p) => ({
     ...p,
-    nombre_equipo_local: equipos.find((e) => e.id_equipo === p.id_equipo_local)?.nombre ?? 'Unknown',
-    nombre_equipo_visitante: equipos.find((e) => e.id_equipo === p.id_equipo_visitante)?.nombre ?? 'Unknown',
-    escudo_equipo_local: equipos.find((e) => e.id_equipo === p.id_equipo_local)?.escudo ?? null,
-    escudo_equipo_visitante: equipos.find((e) => e.id_equipo === p.id_equipo_visitante)?.escudo ?? null,
+    nombre_equipo_local: p.nombre_equipo_local || (equipos.find((e) => e.id_equipo === p.id_equipo_local)?.nombre ?? 'Unknown'),
+    nombre_equipo_visitante: p.nombre_equipo_visitante || (equipos.find((e) => e.id_equipo === p.id_equipo_visitante)?.nombre ?? 'Unknown'),
+    escudo_equipo_local: p.escudo_equipo_local ?? (equipos.find((e) => e.id_equipo === p.id_equipo_local)?.escudo ?? null),
+    escudo_equipo_visitante: p.escudo_equipo_visitante ?? (equipos.find((e) => e.id_equipo === p.id_equipo_visitante)?.escudo ?? null),
   }));
 }
 
@@ -957,14 +963,49 @@ export async function mockFetchLiveMatches(): Promise<{
   escudo_equipo_visitante: string | null;
 }[]> {
   await simulateDelay();
-  const matches = partidos.filter((p) => p.estado === 'en_vivo');
+  const matches = partidos.filter((p) => p.estado.toLowerCase() === 'en juego');
 
   return matches.map((p) => ({
     ...p,
-    nombre_equipo_local: equipos.find((e) => e.id_equipo === p.id_equipo_local)?.nombre ?? 'Unknown',
-    nombre_equipo_visitante: equipos.find((e) => e.id_equipo === p.id_equipo_visitante)?.nombre ?? 'Unknown',
-    escudo_equipo_local: equipos.find((e) => e.id_equipo === p.id_equipo_local)?.escudo ?? null,
-    escudo_equipo_visitante: equipos.find((e) => e.id_equipo === p.id_equipo_visitante)?.escudo ?? null,
+    nombre_equipo_local: p.nombre_equipo_local || (equipos.find((e) => e.id_equipo === p.id_equipo_local)?.nombre ?? 'Unknown'),
+    nombre_equipo_visitante: p.nombre_equipo_visitante || (equipos.find((e) => e.id_equipo === p.id_equipo_visitante)?.nombre ?? 'Unknown'),
+    escudo_equipo_local: p.escudo_equipo_local ?? (equipos.find((e) => e.id_equipo === p.id_equipo_local)?.escudo ?? null),
+    escudo_equipo_visitante: p.escudo_equipo_visitante ?? (equipos.find((e) => e.id_equipo === p.id_equipo_visitante)?.escudo ?? null),
+  }));
+}
+
+/**
+ * Obtener resultados recientes (partidos finalizados)
+ */
+export async function mockFetchRecentMatches(limit?: number): Promise<{
+  id_partido: number;
+  id_liga: number;
+  id_jornada: number;
+  id_equipo_local: number;
+  id_equipo_visitante: number;
+  goles_local: number | null;
+  goles_visitante: number | null;
+  fecha: string;
+  estado: string;
+  created_at: string;
+  updated_at: string;
+  nombre_equipo_local: string;
+  nombre_equipo_visitante: string;
+  escudo_equipo_local: string | null;
+  escudo_equipo_visitante: string | null;
+}[]> {
+  await simulateDelay();
+  const matches = partidos
+    .filter((p) => p.estado.toLowerCase() === 'finalizado')
+    .sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime())
+    .slice(0, limit || 5);
+
+  return matches.map((p) => ({
+    ...p,
+    nombre_equipo_local: p.nombre_equipo_local || (equipos.find((e) => e.id_equipo === p.id_equipo_local)?.nombre ?? 'Unknown'),
+    nombre_equipo_visitante: p.nombre_equipo_visitante || (equipos.find((e) => e.id_equipo === p.id_equipo_visitante)?.nombre ?? 'Unknown'),
+    escudo_equipo_local: p.escudo_equipo_local ?? (equipos.find((e) => e.id_equipo === p.id_equipo_local)?.escudo ?? null),
+    escudo_equipo_visitante: p.escudo_equipo_visitante ?? (equipos.find((e) => e.id_equipo === p.id_equipo_visitante)?.escudo ?? null),
   }));
 }
 
@@ -1060,6 +1101,71 @@ export async function mockUpdateMatch(
     ...(data.fecha !== undefined && { fecha: data.fecha }),
     updated_at: new Date().toISOString(),
   };
+
+  return { ...partidos[index] };
+}
+
+/**
+ * Iniciar un partido (cambiar estado a 'En Juego')
+ */
+export async function mockStartMatch(id: number): Promise<MockPartido> {
+  await simulateDelay(MOCK_WRITE_DELAY_MS);
+
+  const index = partidos.findIndex((p) => p.id_partido === id);
+  if (index === -1) {
+    throw new Error(`Partido con id ${id} no encontrado`);
+  }
+
+  partidos[index] = {
+    ...partidos[index],
+    estado: 'En Juego',
+    updated_at: new Date().toISOString(),
+  };
+
+  return { ...partidos[index] };
+}
+
+/**
+ * Finalizar un partido registrando resultado y MVP
+ */
+export async function mockFinishMatch(
+  id: number,
+  data: {
+    goles_local: number;
+    goles_visitante: number;
+    id_mvp: number;
+    puntuacion_mvp: number;
+    incidencias?: string;
+  }
+): Promise<MockPartido> {
+  await simulateDelay(MOCK_WRITE_DELAY_MS);
+
+  const index = partidos.findIndex((p) => p.id_partido === id);
+  if (index === -1) {
+    throw new Error(`Partido con id ${id} no encontrado`);
+  }
+
+  partidos[index] = {
+    ...partidos[index],
+    goles_local: data.goles_local,
+    goles_visitante: data.goles_visitante,
+    estado: 'Finalizado',
+    updated_at: new Date().toISOString(),
+  };
+
+  // Registrar evento MVP en la tabla de eventos
+  const mvpEvento = {
+    id_evento: generateId(),
+    id_partido: id,
+    id_jugador: data.id_mvp,
+    tipo_evento: 'mvp' as const,
+    minuto: 90,
+    puntuacion_mvp: data.puntuacion_mvp,
+    incidencias: data.incidencias || null,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+  eventos.push(mvpEvento);
 
   return { ...partidos[index] };
 }
@@ -1169,6 +1275,70 @@ export async function mockCreateCalendar(
   };
 }
 
+/**
+ * Obtener configuración del calendario automático
+ */
+export async function mockFetchCalendarConfig(
+  ligaId: number
+): Promise<{ tipo: string; fecha_inicio: string; dias_partido: number[]; hora: string }> {
+  await simulateDelay();
+
+  // Simular configuración guardada
+  return {
+    tipo: 'ida_vuelta',
+    fecha_inicio: '2026-05-01',
+    dias_partido: [1, 3, 5],
+    hora: '16:00',
+  };
+}
+
+/**
+ * Eliminar calendario automático completo
+ */
+export async function mockDeleteCalendar(ligaId: number): Promise<{
+  mensaje: string;
+  partidos_eliminados: number;
+  jornadas_eliminadas: number;
+}> {
+  await simulateDelay(MOCK_WRITE_DELAY_MS);
+
+  // Simular eliminación
+  const partidosLiga = partidos.filter((p) => p.id_liga === ligaId);
+
+  return {
+    mensaje: 'Calendario eliminado correctamente',
+    partidos_eliminados: partidosLiga.length,
+    jornadas_eliminadas: Math.ceil(partidosLiga.length / 4),
+  };
+}
+
+/**
+ * Actualizar calendario automático (regenerar)
+ */
+export async function mockUpdateCalendar(
+  ligaId: number,
+  config: { tipo: string; fecha_inicio: string; dias_partido: number[]; hora: string }
+): Promise<{ mensaje: string; partidos_creados: number; partidos_eliminados: number }> {
+  await simulateDelay(MOCK_WRITE_DELAY_MS);
+
+  // Simular actualización
+  const equiposLiga = equipos.filter((e) => e.id_liga === ligaId);
+  const numEquipos = equiposLiga.length;
+  const partidosLiga = partidos.filter((p) => p.id_liga === ligaId);
+
+  // Calcular número de partidos
+  let totalPartidos = numEquipos * (numEquipos - 1);
+  if (config.tipo === 'ida') {
+    totalPartidos = totalPartidos / 2;
+  }
+
+  return {
+    mensaje: 'Calendario actualizado correctamente',
+    partidos_creados: totalPartidos,
+    partidos_eliminados: partidosLiga.length,
+  };
+}
+
 // ============================================
 // JUGADORES
 // ============================================
@@ -1205,28 +1375,46 @@ export async function mockFetchMatchEvents(partidoId: number): Promise<MockEvent
   return eventos.filter((e) => e.id_partido === partidoId).map((e) => ({ ...e }));
 }
 
-// ============================================
-// FORMACIONES
-// ============================================
-
 /**
- * Obtener todas las formaciones disponibles
+ * Crear un nuevo evento en un partido
  */
-export async function mockFetchFormations(): Promise<MockFormacion[]> {
-  await simulateDelay();
-  return formaciones.map((f) => ({ ...f }));
-}
-
-/**
- * Obtener una formacion por ID
- */
-export async function mockFetchFormationById(id: number): Promise<MockFormacion> {
-  await simulateDelay();
-  const formacion = formaciones.find((f) => f.id_formacion === id);
-  if (!formacion) {
-    throw new Error(`Formacion con id ${id} no encontrada`);
+export async function mockCreateMatchEvent(
+  partidoId: number,
+  event: {
+    id_jugador: number;
+    tipo_evento: 'gol' | 'tarjeta_amarilla' | 'tarjeta_roja' | 'cambio';
+    minuto: number;
+    id_jugador_sale?: number;
+    incidencias?: string;
   }
-  return { ...formacion };
+): Promise<MockEventoPartido> {
+  await simulateDelay(MOCK_WRITE_DELAY_MS);
+
+  // Buscar el jugador para obtener su nombre y equipo
+  const jugador = jugadores.find((j) => j.id_jugador === event.id_jugador);
+  if (!jugador) {
+    throw new Error(`Jugador con id ${event.id_jugador} no encontrado`);
+  }
+
+  const equipo = equipos.find((e) => e.id_equipo === jugador.id_equipo);
+  if (!equipo) {
+    throw new Error(`Equipo con id ${jugador.id_equipo} no encontrado`);
+  }
+
+  const nuevoEvento: MockEventoPartido = {
+    id_evento: generateId(),
+    id_partido: partidoId,
+    tipo: event.tipo_evento,
+    minuto: event.minuto,
+    id_jugador: event.id_jugador,
+    nombre_jugador: jugador.nombre,
+    id_equipo: jugador.id_equipo,
+    nombre_equipo: equipo.nombre,
+    detalle: event.incidencias || '',
+  };
+
+  eventos.push(nuevoEvento);
+  return { ...nuevoEvento };
 }
 
 // ============================================

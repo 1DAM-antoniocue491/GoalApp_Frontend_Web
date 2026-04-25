@@ -24,6 +24,7 @@ export interface LigaConRolApi {
   temporada: string;
   activa: boolean;
   rol: string;
+  equipos_total: number;
 }
 
 /**
@@ -163,7 +164,7 @@ function mapRol(rol: string): UserRole {
     entrenador: 'entrenador',
     jugador: 'jugador',
     delegado: 'delegado',
-    observador: 'jugador', // observador se mapea a jugador por defecto
+    observador: 'observador',
   };
   return rolMap[rol.toLowerCase()] || 'jugador';
 }
@@ -186,7 +187,7 @@ export function transformLeaguesForUI(
     rol: mapRol(liga.rol),
     estado: liga.activa ? 'activa' : 'finalizada',
     esFavorita: ligasSeguidasIds.includes(liga.id_liga),
-    equiposTotal: 0, // No disponible en este endpoint
+    equiposTotal: liga.equipos_total || 0,
   }));
 }
 

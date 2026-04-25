@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { FaCalendar, FaClock, FaTimes } from 'react-icons/fa';
 
 interface CreateCalendarModalProps {
@@ -6,6 +6,8 @@ interface CreateCalendarModalProps {
   onClose: () => void;
   onSave: (config: CalendarConfig) => void;
   ligaId?: number;
+  isEditMode?: boolean;
+  initialConfig?: CalendarConfig;
 }
 
 export interface CalendarConfig {
@@ -25,11 +27,21 @@ const DIAS_SEMANA = [
   { valor: 0, letra: 'D', nombre: 'Domingo' },
 ];
 
-export default function CreateCalendarModal({ isOpen, onClose, onSave }: CreateCalendarModalProps) {
+export default function CreateCalendarModal({ isOpen, onClose, onSave, isEditMode = false, initialConfig }: CreateCalendarModalProps) {
   const [tipo, setTipo] = useState<'ida' | 'ida_vuelta'>('ida_vuelta');
   const [fechaInicio, setFechaInicio] = useState('');
   const [diasPartido, setDiasPartido] = useState<number[]>([]);
   const [hora, setHora] = useState('16:00');
+
+  // Cargar configuración inicial en modo edición
+  useEffect(() => {
+    if (initialConfig && isOpen) {
+      setTipo(initialConfig.tipo);
+      setFechaInicio(initialConfig.fechaInicio);
+      setDiasPartido(initialConfig.diasPartido);
+      setHora(initialConfig.hora);
+    }
+  }, [initialConfig, isOpen]);
 
   const toggleDia = (valor: number) => {
     setDiasPartido(prev =>
@@ -73,9 +85,14 @@ export default function CreateCalendarModal({ isOpen, onClose, onSave }: CreateC
         {/* Header */}
         <div className="flex justify-between items-center p-6 border-b border-gray-800">
           <div>
-            <h2 className="text-white text-2xl font-bold">Crear calendario</h2>
+            <h2 className="text-white text-2xl font-bold">
+              {isEditMode ? 'Editar calendario' : 'Crear calendario'}
+            </h2>
             <p className="text-gray-400 text-sm mt-1">
-              Se generarán automáticamente todos los partidos entre los equipos de la liga
+              {isEditMode
+                ? 'Modifica la configuración del calendario existente'
+                : 'Se generarán automáticamente todos los partidos entre los equipos de la liga'
+              }
             </p>
           </div>
           <button

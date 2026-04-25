@@ -1,19 +1,32 @@
 import { useState, useEffect } from 'react';
-import { FaCalendar, FaFilter, FaPlus, FaSpinner, FaExclamationCircle } from 'react-icons/fa';
 import Nav from '../../../components/Nav';
 import { useSelectedLeague } from '../../../context/SelectedLeagueContext';
-import MatchCard from '../components/MatchCard';
-import StatsCard from '../components/StatsCard';
-import CardAdmin from '../components/CardAdmin';
-import CreateCalendarModal, { type CalendarConfig } from '../components/CreateCalendarModal';
+import AdminCalendar from '../roles/AdminCalendar';
+import CoachCalendar from '../roles/CoachCalendar';
+import DelegateCalendar from '../roles/DelegateCalendar';
+import PlayerCalendar from '../roles/PlayerCalendar';
+import ViewerCalendar from '../roles/ViewerCalendar';
 import {
   fetchMatchesByJornada,
   fetchUpcomingMatches,
   fetchLiveMatches,
   createCalendar,
+  fetchCalendarConfig,
+  deleteCalendar,
+  updateCalendar,
+  startMatch,
+  finishMatch,
   type MatchWithTeams,
   type Jornada,
+  type FinishMatchPayload,
 } from '../../match/services/matchApi';
+import type { CalendarConfig } from '../components/CreateCalendarModal';
+import InitMatchModal from '../../match/components/InitMatchModal';
+import FinishMatchModal, { type FinishData } from '../../match/components/FinishMatchModal';
+import EventRecorderModal from '../../match/components/EventRecorderModal';
+import ConvocatoriaModal from '../../match/components/ConvocatoriaModal';
+import { fetchTeamSquad, type PlayerWithStatsResponse } from '../../team/services/teamApi';
+import { apiGet } from '../../../services/api';
 
 export default function CalendarioPage() {
   const { selectedLeague } = useSelectedLeague();
@@ -25,12 +38,59 @@ export default function CalendarioPage() {
   const [partidosEnVivo, setPartidosEnVivo] = useState<MatchWithTeams[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filtroJornada, setFiltroJornada] = useState<number | 'all'>('all');
   const [showCreateCalendarModal, setShowCreateCalendarModal] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [initialConfig, setInitialConfig] = useState<CalendarConfig | null>(null);
 
+  // Estados para modales de inicio/fin de partido
+  const [showInitModal, setShowInitModal] = useState(false);
+  const [showFinishModal, setShowFinishModal] = useState(false);
+  const [showEventModal, setShowEventModal] = useState(false);
+  const [selectedMatchId, setSelectedMatchId] = useState<number | null>(null);
+  const [selectedMatchData, setSelectedMatchData] = useState<{
+    localTeam: { nombre: string; id: number; escudo?: string | null };
+    visitanteTeam: { nombre: string; id: number; escudo?: string | null };
+    fecha: string;
+  } | null>(null);
+
+  // Estados para jugadores de los equipos
+  const [localTeamPlayers, setLocalTeamPlayers] = useState<PlayerWithStatsResponse[]>([]);
+  const [visitanteTeamPlayers, setVisitanteTeamPlayers] = useState<PlayerWithStatsResponse[]>([]);
+  const [isLoadingPlayers, setIsLoadingPlayers] = useState(false);
+
+  // Estados para modal de convocatoria
+  const [showConvocatoriaModal, setShowConvocatoriaModal] = useState(false);
+  const [convocatoriaMatchData, setConvocatoriaMatchData] = useState<{
+    id_partido: number;
+    id_equipo: number;
+    nombre_equipo: string;
+    fecha: string;
+    estado: string;
+  } | null>(null);
+  const [miEquipoId, setMiEquipoId] = useState<number | null>(null);
+
+  // Calcular roles primero (necesario para el useEffect de carga de equipo)
   const isAdmin = userRole === 'admin';
   const isCoach = userRole === 'entrenador';
   const isDelegate = userRole === 'delegado';
+  const isPlayer = userRole === 'jugador';
+  const isViewer = userRole === 'observador' || !userRole;
+
+  // Cargar ID del equipo del usuario al montar
+  useEffect(() => {
+    const cargarMiEquipo = async () => {
+      if (!selectedLeague?.id || !isCoach) return;
+      try {
+        const data = await apiGet<{ id_equipo: number }>('/equipos/usuario/mi-equipo', {
+          liga_id: selectedLeague.id,
+        });
+        setMiEquipoId(data.id_equipo);
+      } catch (error) {
+        console.error('Error al cargar mi equipo:', error);
+      }
+    };
+    cargarMiEquipo();
+  }, [selectedLeague?.id, isCoach]);
 
   const loadData = async () => {
     if (!selectedLeague) {
@@ -61,18 +121,70 @@ export default function CalendarioPage() {
 
   useEffect(() => {
     loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedLeague]);
 
   const handleCreateCalendar = async (config: CalendarConfig) => {
     if (!selectedLeague?.id) return;
 
     try {
-      await createCalendar(selectedLeague.id, config);
+      // Convertir de camelCase (frontend) a snake_case (backend)
+      const configBackend = {
+        tipo: config.tipo,
+        fecha_inicio: config.fechaInicio,
+        dias_partido: config.diasPartido,
+        hora: config.hora,
+      };
+
+      if (isEditMode) {
+        // Modo edición: actualizar calendario existente
+        await updateCalendar(selectedLeague.id, configBackend);
+        alert('Calendario actualizado exitosamente');
+      } else {
+        // Modo creación: crear nuevo calendario
+        await createCalendar(selectedLeague.id, configBackend);
+        alert('Calendario creado exitosamente');
+      }
       setShowCreateCalendarModal(false);
+      setIsEditMode(false);
       await loadData(); // Recargar datos
-      alert('Calendario creado exitosamente');
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Error al crear el calendario';
+      const message = err instanceof Error ? err.message : 'Error al guardar el calendario';
+      alert(message);
+    }
+  };
+
+  const handleDeleteCalendar = async () => {
+    if (!selectedLeague?.id) return;
+
+    try {
+      const resultado = await deleteCalendar(selectedLeague.id);
+      alert(`Calendario eliminado: ${resultado.partidos_eliminados} partidos, ${resultado.jornadas_eliminadas} jornadas`);
+      await loadData();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Error al eliminar el calendario';
+      alert(message);
+    }
+  };
+
+  const handleEditCalendar = async () => {
+    if (!selectedLeague?.id) return;
+
+    try {
+      const configBackend = await fetchCalendarConfig(selectedLeague.id);
+      // Convertir de snake_case (backend) a camelCase (frontend)
+      const config: CalendarConfig = {
+        tipo: configBackend.tipo,
+        fechaInicio: configBackend.fecha_inicio,
+        diasPartido: configBackend.dias_partido,
+        hora: configBackend.hora,
+      };
+      // Cargar config en el modal y abrirlo en modo edición
+      setInitialConfig(config);
+      setIsEditMode(true);
+      setShowCreateCalendarModal(true);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Error al cargar la configuración del calendario';
       alert(message);
     }
   };
@@ -83,13 +195,113 @@ export default function CalendarioPage() {
   };
 
   const handleInitMatch = async (idPartido: number) => {
-    // TODO: Implementar inicio de partido
-    console.log('Iniciar partido:', idPartido);
+    // Buscar el partido en los datos cargados
+    const partido = partidosFiltrados.find(p => p.id_partido === idPartido);
+    if (!partido || !selectedLeague) return;
+
+    // Guardar datos del partido para el modal
+    setSelectedMatchId(idPartido);
+    setSelectedMatchData({
+      localTeam: {
+        nombre: partido.nombre_equipo_local,
+        id: partido.id_equipo_local,
+        escudo: partido.escudo_equipo_local,
+      },
+      visitanteTeam: {
+        nombre: partido.nombre_equipo_visitante,
+        id: partido.id_equipo_visitante,
+        escudo: partido.escudo_equipo_visitante,
+      },
+      fecha: partido.fecha,
+    });
+    setShowInitModal(true);
+  };
+
+  const handleConfirmInitMatch = async () => {
+    if (!selectedMatchId) return;
+
+    try {
+      await startMatch(selectedMatchId);
+      alert('Partido iniciado correctamente');
+      setShowInitModal(false);
+      await loadData();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Error al iniciar el partido';
+      alert(message);
+    }
+  };
+
+  const handleFinishMatch = async (idPartido: number) => {
+    // Buscar el partido en los datos cargados
+    const partido = partidosFiltrados.find(p => p.id_partido === idPartido);
+    if (!partido || !selectedLeague) return;
+
+    // Guardar datos del partido para el modal
+    setSelectedMatchId(idPartido);
+    setSelectedMatchData({
+      localTeam: {
+        nombre: partido.nombre_equipo_local,
+        id: partido.id_equipo_local,
+        escudo: partido.escudo_equipo_local,
+      },
+      visitanteTeam: {
+        nombre: partido.nombre_equipo_visitante,
+        id: partido.id_equipo_visitante,
+        escudo: partido.escudo_equipo_visitante,
+      },
+      fecha: partido.fecha,
+    });
+    setShowFinishModal(true);
+  };
+
+  const handleConfirmFinishMatch = async (data: FinishData) => {
+    if (!selectedMatchId) return;
+
+    try {
+      const payload: FinishMatchPayload = {
+        goles_local: data.goles_local,
+        goles_visitante: data.goles_visitante,
+        id_mvp: data.id_mvp,
+        puntuacion_mvp: data.puntuacion_mvp,
+        incidencias: data.incidencias,
+      };
+      await finishMatch(selectedMatchId, payload);
+      alert('Partido finalizado correctamente');
+      setShowFinishModal(false);
+      await loadData();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Error al finalizar el partido';
+      alert(message);
+    }
   };
 
   const handleManageConvocatoria = async (idPartido: number) => {
-    // TODO: Implementar gestión de convocatoria
-    console.log('Gestionar convocatoria:', idPartido);
+    // Buscar el partido para obtener los datos
+    const partido = partidosFiltrados.find(p => p.id_partido === idPartido);
+    if (!partido) return;
+
+    // Determinar el equipo del coach
+    const equipoId = partido.id_equipo_local === miEquipoId
+      ? partido.id_equipo_local
+      : partido.id_equipo_visitante === miEquipoId
+      ? partido.id_equipo_visitante
+      : null;
+
+    if (!equipoId) {
+      alert('No tienes un equipo asignado en este partido');
+      return;
+    }
+
+    setConvocatoriaMatchData({
+      id_partido: idPartido,
+      id_equipo: equipoId,
+      nombre_equipo: equipoId === partido.id_equipo_local
+        ? partido.nombre_equipo_local
+        : partido.nombre_equipo_visitante,
+      fecha: partido.fecha,
+      estado: partido.estado,
+    });
+    setShowConvocatoriaModal(true);
   };
 
   const handleManageLineup = async (idPartido: number) => {
@@ -97,19 +309,76 @@ export default function CalendarioPage() {
     console.log('Gestionar plantilla:', idPartido);
   };
 
-  // Filtrar partidos por jornada
-  const partidosFiltrados =
-    filtroJornada === 'all'
-      ? jornadas.flatMap((j) => j.partidos)
-      : jornadas
-          .filter((j) => j.numero === filtroJornada)
-          .flatMap((j) => j.partidos);
+  const handleRegisterEvent = async (idPartido: number) => {
+    // Buscar el partido para obtener los equipos
+    const partido = partidosFiltrados.find(p => p.id_partido === idPartido);
+    if (!partido) return;
+
+    setIsLoadingPlayers(true);
+    setSelectedMatchId(idPartido);
+    setSelectedMatchData({
+      localTeam: {
+        nombre: partido.nombre_equipo_local,
+        id: partido.id_equipo_local,
+        escudo: partido.escudo_equipo_local,
+      },
+      visitanteTeam: {
+        nombre: partido.nombre_equipo_visitante,
+        id: partido.id_equipo_visitante,
+        escudo: partido.escudo_equipo_visitante,
+      },
+      fecha: partido.fecha,
+    });
+
+    // Cargar jugadores de ambos equipos
+    try {
+      const [localPlayers, visitantePlayers] = await Promise.all([
+        fetchTeamSquad(partido.id_equipo_local),
+        fetchTeamSquad(partido.id_equipo_visitante),
+      ]);
+      setLocalTeamPlayers(localPlayers);
+      setVisitanteTeamPlayers(visitantePlayers);
+    } catch (error) {
+      console.error('Error al cargar jugadores:', error);
+      // Continuar aunque no se puedan cargar los jugadores (se mostrarán vacíos)
+    } finally {
+      setIsLoadingPlayers(false);
+    }
+
+    setShowEventModal(true);
+  };
+
+  const handleEventRegistered = async () => {
+    // Recargar datos después de registrar evento
+    await loadData();
+  };
+
+  // Calcular minuto del partido en vivo
+  const getMatchMinute = (partidoId: number): number => {
+    const partido = partidosEnVivo.find(p => p.id_partido === partidoId);
+    if (!partido) return 0;
+
+    const inicio = new Date(partido.fecha);
+    const ahora = new Date();
+    const diffMs = ahora.getTime() - inicio.getTime();
+    const minutos = Math.floor(diffMs / 60000);
+    return Math.min(Math.max(minutos, 0), 120); // Limitar entre 0 y 120 minutos
+  };
+
+  // Filtrar partidos por jornada (se mantiene para futura implementación)
+  const partidosFiltrados = jornadas.flatMap((j) => j.partidos);
 
   // Calcular estadísticas
   const totalPartidos = jornadas.reduce((acc, j) => acc + j.partidos.length, 0);
   const totalJornadas = jornadas.length;
   const proximosCount = proximosPartidos.length;
   const enVivoCount = partidosEnVivo.length;
+
+  // Obtener jugadores de los equipos para el selector MVP
+  const jugadoresParaMvp = selectedMatchData ? [
+    // Se cargarán dinámicamente desde la API cuando se implemente
+    // Por ahora se pasa array vacío, el modal mostrará solo los equipos
+  ] : [];
 
   // Sin liga seleccionada
   if (!selectedLeague) {
@@ -118,13 +387,69 @@ export default function CalendarioPage() {
         <Nav />
         <div className="bg-zinc-950 min-h-[calc(100vh-48px)] flex items-center justify-center">
           <div className="text-center">
-            <FaCalendar className="text-zinc-600 text-5xl mx-auto mb-4" />
             <p className="text-zinc-400 text-sm">Selecciona una liga primero</p>
           </div>
         </div>
       </>
     );
   }
+
+  // Loading
+  if (isLoading) {
+    return (
+      <>
+        <Nav leagueName={leagueName} userRole={userRole} />
+        <div className="bg-zinc-950 min-h-[calc(100vh-48px)] flex items-center justify-center">
+          <div className="text-center">
+            <p className="text-zinc-400 text-sm">Cargando calendario...</p>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  // Error
+  if (error) {
+    return (
+      <>
+        <Nav leagueName={leagueName} userRole={userRole} />
+        <div className="bg-zinc-950 min-h-[calc(100vh-48px)] flex items-center justify-center">
+          <div className="text-center">
+            <p className="text-red-400 text-sm mb-4">{error}</p>
+            <button
+              onClick={loadData}
+              className="text-lime-300 text-sm font-semibold hover:text-lime-400 transition-colors"
+            >
+              Reintentar
+            </button>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  // Renderizar componente según rol
+  const commonProps = {
+    jornadas,
+    partidosEnVivo,
+    partidosFiltrados,
+    totalPartidos,
+    totalJornadas,
+    proximosCount,
+    enVivoCount,
+    onCreateCalendar: () => setShowCreateCalendarModal(true),
+    onCreateMatch: handleCreateMatch,
+    onInitMatch: handleInitMatch,
+    onFinishMatch: handleFinishMatch,
+    onManageConvocatoria: handleManageConvocatoria,
+    onEditCalendar: handleEditCalendar,
+    onDeleteCalendar: handleDeleteCalendar,
+    showCreateCalendarModal,
+    setShowCreateCalendarModal,
+    handleCreateCalendar,
+    ligaId: selectedLeague?.id,
+    partidos: partidosFiltrados,
+  };
 
   return (
     <>
@@ -136,134 +461,70 @@ export default function CalendarioPage() {
           <p className="text-zinc-400 text-sm">Gestiona todos los encuentros de la liga</p>
         </div>
 
-        {/* Stats Cards */}
-        <div className="flex gap-4 overflow-x-auto pb-2 mb-8">
-          <StatsCard number={totalPartidos} texto="Total partidos" />
-          <StatsCard number={totalJornadas} texto="Jornadas" />
-          <StatsCard number={proximosCount} texto="Próximos" color="text-blue-400" />
-          <StatsCard number={0} texto="Mañana" color="text-purple-400" />
-          <StatsCard number={enVivoCount} texto="Hoy" color="text-lime-400" />
-        </div>
-
-        {/* CardAdmin - Solo para admin */}
-        <CardAdmin
-          isadmin={isAdmin}
-          onCreateCalendar={() => setShowCreateCalendarModal(true)}
-          onCreateMatch={handleCreateMatch}
-        />
-
-        {/* Modal para crear calendario */}
-        <CreateCalendarModal
-          isOpen={showCreateCalendarModal}
-          onClose={() => setShowCreateCalendarModal(false)}
-          onSave={handleCreateCalendar}
-          ligaId={selectedLeague?.id}
-        />
-
-        {/* Loading */}
-        {isLoading && (
-          <div className="flex flex-col items-center justify-center py-20">
-            <FaSpinner className="animate-spin text-lime-400 text-3xl mb-4" />
-            <p className="text-zinc-400 text-sm">Cargando calendario...</p>
-          </div>
+        {isAdmin && (
+          <AdminCalendar
+            {...commonProps}
+            onManageLineup={handleManageLineup}
+            isEditMode={isEditMode}
+            initialConfig={initialConfig}
+          />
         )}
-
-        {/* Error */}
-        {error && !isLoading && (
-          <div className="flex flex-col items-center justify-center py-20">
-            <FaExclamationCircle className="text-red-400 text-4xl mb-4" />
-            <p className="text-red-400 text-sm mb-4">{error}</p>
-            <button
-              onClick={loadData}
-              className="text-lime-300 text-sm font-semibold hover:text-lime-400 transition-colors"
-            >
-              Reintentar
-            </button>
-          </div>
-        )}
-
-        {/* Sin partidos */}
-        {!isLoading && !error && totalPartidos === 0 && (
-          <div className="text-center py-20 border border-dashed border-zinc-700 rounded-xl">
-            <FaCalendar className="text-zinc-600 text-5xl mx-auto mb-4" />
-            <p className="text-zinc-400 text-sm mb-2">No hay partidos programados</p>
-            <p className="text-zinc-500 text-xs">
-              {isAdmin ? 'Crea partidos desde la gestión de la liga' : 'Los partidos aparecerán cuando el admin los cree'}
-            </p>
-          </div>
-        )}
-
-        {/* Partidos en vivo */}
-        {!isLoading && !error && partidosEnVivo.length > 0 && (
-          <div className="mb-8">
-            <h2 className="text-white text-lg font-semibold mb-4 flex items-center gap-2">
-              <span className="text-lime-400 animate-pulse">🔴</span>
-              En Vivo
-            </h2>
-            <div className="space-y-4">
-              {partidosEnVivo.map((partido) => (
-                <MatchCard
-                  key={partido.id_partido}
-                  id_partido={partido.id_partido}
-                  equipo_local={partido.nombre_equipo_local}
-                  equipo_visitante={partido.nombre_equipo_visitante}
-                  fecha={partido.fecha}
-                  isToday
-                  isAdmin={isAdmin}
-                  isCoach={isCoach}
-                  onInitMatch={handleInitMatch}
-                  onManageConvocatoria={handleManageConvocatoria}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Listado de partidos por jornada */}
-        {!isLoading && !error && partidosFiltrados.length > 0 && (
-          <div className="space-y-6">
-            {filtroJornada === 'all'
-              ? jornadas.map((jornada) => (
-                  <div key={jornada.numero}>
-                    <h2 className="text-white text-lg font-semibold mb-4 flex items-center gap-2">
-                      <span className="text-lime-400">{jornada.nombre}</span>
-                      <span className="text-zinc-500 text-sm">({jornada.partidos.length} partidos)</span>
-                    </h2>
-                    <div className="space-y-4">
-                      {jornada.partidos.map((partido) => (
-                        <MatchCard
-                          key={partido.id_partido}
-                          id_partido={partido.id_partido}
-                          equipo_local={partido.nombre_equipo_local}
-                          equipo_visitante={partido.nombre_equipo_visitante}
-                          fecha={partido.fecha}
-                          isToday={new Date(partido.fecha).toDateString() === new Date().toDateString()}
-                          isAdmin={isAdmin}
-                          isCoach={isCoach}
-                          onInitMatch={handleInitMatch}
-                          onManageConvocatoria={handleManageConvocatoria}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                ))
-              : partidosFiltrados.map((partido) => (
-                  <MatchCard
-                    key={partido.id_partido}
-                    id_partido={partido.id_partido}
-                    equipo_local={partido.nombre_equipo_local}
-                    equipo_visitante={partido.nombre_equipo_visitante}
-                    fecha={partido.fecha}
-                    isToday={new Date(partido.fecha).toDateString() === new Date().toDateString()}
-                    isAdmin={isAdmin}
-                    isCoach={isCoach}
-                    onInitMatch={handleInitMatch}
-                    onManageConvocatoria={handleManageConvocatoria}
-                  />
-                ))}
-          </div>
-        )}
+        {isCoach && <CoachCalendar {...commonProps} onManageLineup={handleManageLineup} equipoId={miEquipoId || undefined} />}
+        {isDelegate && <DelegateCalendar {...commonProps} onRegisterEvent={handleRegisterEvent} />}
+        {isPlayer && <PlayerCalendar {...commonProps} />}
+        {isViewer && <ViewerCalendar {...commonProps} />}
       </div>
+
+      {/* Modales de inicio y fin de partido */}
+      {selectedMatchData && (
+        <>
+          <InitMatchModal
+            isOpen={showInitModal}
+            onClose={() => setShowInitModal(false)}
+            onConfirm={handleConfirmInitMatch}
+            localTeam={selectedMatchData.localTeam}
+            visitanteTeam={selectedMatchData.visitanteTeam}
+            fecha={selectedMatchData.fecha}
+            competicion={leagueName || 'Competición'}
+            campo="Campo Principal"
+          />
+          <FinishMatchModal
+            isOpen={showFinishModal}
+            onClose={() => setShowFinishModal(false)}
+            onConfirm={handleConfirmFinishMatch}
+            localTeam={selectedMatchData.localTeam}
+            visitanteTeam={selectedMatchData.visitanteTeam}
+            jugadores={jugadoresParaMvp}
+          />
+          <EventRecorderModal
+            isOpen={showEventModal}
+            onClose={() => setShowEventModal(false)}
+            onEventRegistered={handleEventRegistered}
+            partidoId={selectedMatchId!}
+            localTeam={selectedMatchData.localTeam}
+            visitanteTeam={selectedMatchData.visitanteTeam}
+            localPlayers={localTeamPlayers}
+            visitantePlayers={visitanteTeamPlayers}
+            minuto={getMatchMinute(selectedMatchId!)}
+          />
+        </>
+      )}
+
+      {/* Modal de convocatoria */}
+      {convocatoriaMatchData && (
+        <ConvocatoriaModal
+          isOpen={showConvocatoriaModal}
+          onClose={() => setShowConvocatoriaModal(false)}
+          onSuccess={loadData}
+          partidoId={convocatoriaMatchData.id_partido}
+          equipoId={convocatoriaMatchData.id_equipo}
+          nombreEquipo={convocatoriaMatchData.nombre_equipo}
+          partidoFecha={convocatoriaMatchData.fecha}
+          competicion={leagueName || 'Competición'}
+          estadoPartido={convocatoriaMatchData.estado}
+          canEdit={isCoach || isAdmin}
+        />
+      )}
     </>
   );
 }

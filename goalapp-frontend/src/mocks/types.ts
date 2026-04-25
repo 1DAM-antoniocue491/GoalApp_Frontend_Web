@@ -63,14 +63,18 @@ export interface MockPartido {
   id_partido: number;
   id_liga: number;
   id_jornada: number;
-  equipo_local: string;
-  equipo_visitante: string;
   id_equipo_local: number;
   id_equipo_visitante: number;
+  nombre_equipo_local?: string;
+  nombre_equipo_visitante?: string;
+  escudo_equipo_local?: string | null;
+  escudo_equipo_visitante?: string | null;
+  equipo_local?: string;
+  equipo_visitante?: string;
   goles_local: number | null;
   goles_visitante: number | null;
   fecha: string;
-  estado: 'programado' | 'en_vivo' | 'finalizado' | 'suspendido';
+  estado: 'programado' | 'en_vivo' | 'finalizado' | 'suspendido' | 'Programado' | 'En Juego' | 'Finalizado' | 'Suspendido';
   created_at: string;
   updated_at: string;
   ubicacion?: string;
@@ -86,19 +90,6 @@ export interface MockEventoPartido {
   id_equipo: number;
   nombre_equipo: string;
   detalle: string;
-}
-
-export interface MockFormacionPosicion {
-  posicion: string;
-  x: number;
-  y: number;
-}
-
-export interface MockFormacion {
-  id_formacion: number;
-  nombre: string;
-  descripcion: string;
-  posiciones: MockFormacionPosicion[];
 }
 
 export interface MockNotificacion {
@@ -128,6 +119,7 @@ export interface MockLigaConRol {
   temporada: string;
   activa: boolean;
   rol: string;
+  equipos_total: number;
 }
 
 export interface MockLigaSeguida {

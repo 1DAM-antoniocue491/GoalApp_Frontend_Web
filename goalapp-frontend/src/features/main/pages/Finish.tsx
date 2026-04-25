@@ -1,93 +1,195 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import Card from '../components/Finish/Card'
 import CardPartidos from '../components/Finish/CardPartidos'
+import SectionHeader from '../components/dashboard/SectionHeader'
+import { useSelectedLeague } from '../../../context'
+import { fetchMatchesWithTeams, fetchMatchEvents, type MatchWithTeams, type MatchEvent } from '../../match/services/matchApi'
+import { FiLoader } from 'react-icons/fi'
+
+interface FinishedMatch {
+  fecha: string
+  resultado: string
+  equipo1: string
+  equipo2: string
+  goles1: string[]
+  goles2: string[]
+}
 
 export default function Finish() {
+  const { selectedLeague } = useSelectedLeague()
+  const [finishedMatches, setFinishedMatches] = useState<FinishedMatch[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  // Cargar partidos finalizados al montar
+  useEffect(() => {
+    async function loadFinishedMatches() {
+      if (!selectedLeague?.id) {
+        setError('No hay liga seleccionada')
+        setIsLoading(false)
+        return
+      }
+
+      try {
+        setIsLoading(true)
+        setError(null)
+
+        // Obtener partidos con información de equipos
+        const matches = await fetchMatchesWithTeams(selectedLeague.id)
+
+        // Filtrar solo los finalizados y ordenar por fecha descendente
+        const finished = matches
+          .filter(m => m.estado === 'Finalizado')
+          .sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime())
+
+        // Obtener eventos (goles) para cada partido
+        const matchesWithEvents = await Promise.all(
+          finished.map(async (match) => {
+            try {
+              const events = await fetchMatchEvents(match.id_partido)
+              // Filtrar solo los goles
+              const goles = events.filter(e => e.tipo_evento === 'gol')
+
+              // Separar goles por equipo usando id_equipo
+              const golesLocal: string[] = []
+              const golesVisitante: string[] = []
+
+              goles.forEach((gol) => {
+                // Formatear gol con nombre del jugador y minuto
+                const golText = gol.nombre_jugador
+                  ? `${gol.nombre_jugador} ${gol.minuto}'`
+                  : `Jugador ${gol.id_jugador} ${gol.minuto}'`
+
+                // Asignar gol al equipo correspondiente
+                if (gol.id_equipo === match.id_equipo_local) {
+                  golesLocal.push(golText)
+                } else if (gol.id_equipo === match.id_equipo_visitante) {
+                  golesVisitante.push(golText)
+                }
+              })
+
+              return {
+                fecha: formatDate(match.fecha),
+                resultado: `${match.goles_local ?? 0}-${match.goles_visitante ?? 0}`,
+                equipo1: match.nombre_equipo_local,
+                equipo2: match.nombre_equipo_visitante,
+                goles1: golesLocal,
+                goles2: golesVisitante,
+              }
+            } catch {
+              // Si falla obtener eventos, devolver sin goles
+              return {
+                fecha: formatDate(match.fecha),
+                resultado: `${match.goles_local ?? 0}-${match.goles_visitante ?? 0}`,
+                equipo1: match.nombre_equipo_local,
+                equipo2: match.nombre_equipo_visitante,
+                goles1: [],
+                goles2: [],
+              }
+            }
+          })
+        )
+
+        setFinishedMatches(matchesWithEvents)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Error al cargar resultados')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadFinishedMatches()
+  }, [selectedLeague?.id])
+
+  // Formatear fecha a formato legible
+  function formatDate(fechaStr: string): string {
+    const fecha = new Date(fechaStr)
+    const dias = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb']
+    const meses = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
+
+    const dayName = dias[fecha.getDay()]
+    const day = fecha.getDate()
+    const month = meses[fecha.getMonth()]
+    const year = fecha.getFullYear()
+
+    return `${dayName} ${day} ${month} ${year}`
+  }
+
+  // Calcular estadísticas
+  const totalMatches = finishedMatches.length
+  const totalGoals = finishedMatches.reduce((acc, m) => {
+    const [g1, g2] = m.resultado.split('-').map(n => parseInt(n.trim()))
+    return acc + (g1 || 0) + (g2 || 0)
+  }, 0)
+  const avgGoals = totalMatches > 0 ? (totalGoals / totalMatches).toFixed(1) : 0
+  const draws = finishedMatches.filter(m => {
+    const [g1, g2] = m.resultado.split('-').map(n => parseInt(n.trim()))
+    return g1 === g2
+  }).length
+
+  if (isLoading) {
+    return (
+      <div className="bg-zinc-950 min-h-screen w-full text-white p-5 px-10 py-6 md:px-20 lg:px-60 flex items-center justify-center">
+        <div className="text-center">
+          <FiLoader className="w-8 h-8 text-lime-400 animate-spin mx-auto mb-4" />
+          <p className="text-zinc-400 text-sm">Cargando resultados...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <div className="bg-black h-full w-full text-white"> 
-        <h1 className="text-4xl font-bold text-white mb-2">Todos los resultados</h1> 
-        <p className='text-gray-400 mb-8'>Resultados de los partidos finalizados esta semana</p>
-        <div className="flex gap-4 flex-1 justify-end ml-11 mr-8">
-              <Card number={12} texto={'Partidos'} color={'text-lime-600'} />
-              <Card number={3.3} texto={'Goles por Partidos'} color={'text-blue-600'}/>
-              <Card number={4} texto={'Empates'} />
-        </div>
-        <div className="flex gap-4 flex-1 ml-11 mr-8 py-3">
-            <button className='bg-lime-400 rounded-3xl'>
-                <span className='text-black text-xl p-1.5'>Todos</span>
-            </button>
-            <button className='bg-gray-800 rounded-3xl'>
-                <span className='text-gray-700 text-xl p-1.5'>LaLiga</span>
-            </button>
-            <button className='bg-gray-800 rounded-3xl'>
-                <span className='text-gray-700 text-xl p-1.5'>Premier League</span>
-            </button>
-            <button className='bg-gray-800 rounded-3xl'>
-                <span className='text-gray-700 text-xl p-1.5'>Bundesliga</span>
-            </button>
-            <button className='bg-gray-800 rounded-3xl'>
-                <span className='text-gray-700 text-xl p-1.5'>Seria A</span>
-            </button>
-            <button className='bg-gray-800 rounded-3xl'>
-                <span className='text-gray-700 text-xl p-1.5'>Ligue 1</span>
-            </button>
-        </div>
-        <div className="grid grid-cols-2 gap-6 w-full px-11 mt-6">
-            <CardPartidos 
-                Competicion={'Ligue 1'} fecha={'18 abr 2026'} resultado={'3-0'} equipo1={'PSG'} equipo2={'Lyon'}
-                goles1={['Mbappé 12\'', 'Dembélé 45\'', 'Barcola 78\'']} goles2={[]} 
-            />
+    <div className="bg-zinc-950 min-h-screen w-full text-white p-5 px-10 py-6 md:px-20 lg:px-60">
+      {/* Header con título */}
+      <div className="flex flex-col gap-2 mb-6">
+        <h1 className="text-white text-2xl font-semibold">
+          Resultados
+        </h1>
+        <p className="text-zinc-400 text-sm">
+          Resultados de los partidos finalizados esta semana
+        </p>
+      </div>
 
-            <CardPartidos 
-                Competicion={'Bundesliga'} fecha={'18 abr 2026'} resultado={'2-2'} equipo1={'Bayern Munich'} equipo2={'Dortmund'}
-                goles1={['Harry Kane 34\'', 'Musiala 60\'']} goles2={['Fullkrug 15\'', 'Reus 90+2\'']} 
-            />
+      {/* Estadísticas superiores */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+        <Card number={totalMatches} texto={'Partidos'} color={'text-lime-600'} />
+        <Card number={avgGoals} texto={'Goles por partido'} color={'text-blue-600'}/>
+        <Card number={draws} texto={'Empates'} />
+      </div>
 
-            <CardPartidos 
-                Competicion={'Serie A'} fecha={'18 abr 2026'} resultado={'3-1'} equipo1={'AC Milan'} equipo2={'Inter'}
-                goles1={['Leao 21\'', 'Giroud 44\'', 'Pulisic 82\'']} goles2={['Lautaro 55\'']} 
-            />
+      {/* Grid de Resultados */}
+      <div className="flex flex-col gap-3">
+        <SectionHeader
+          title="Todos los resultados"
+          badge={totalMatches}
+        />
 
-            <CardPartidos 
-                Competicion={'LaLiga'} fecha={'21 abr 2026'} resultado={'0-1'} equipo1={'Atlético de Madrid'} equipo2={'Valencia'}
-                goles1={[]} goles2={['Hugo Duro 72\'']} 
-            />
+        {error && (
+          <div className="bg-red-900/20 border border-red-800 rounded-lg p-4 text-center">
+            <p className="text-red-400 text-sm">{error}</p>
+          </div>
+        )}
 
-            <CardPartidos 
-                Competicion={'Premier League'} 
-                fecha={'18 abr 2026'} 
-                resultado={'4-2'} 
-                equipo1={'Liverpool'} 
-                equipo2={'Man. United'}
-                goles1={['Salah 10\'', 'Luis Díaz 32\'', 'Darwin Nuñez 65\'', 'Cody Gakpo 81\'']} 
-                goles2={['B. Fernandes 45\' (P)', 'Marcus Rashford 70\'']} 
-            />
-
-            <CardPartidos 
-                Competicion={'Serie A'} fecha={'19 abr 2026'} resultado={'2-1'} equipo1={'Juventus'} equipo2={'Roma'}
-                goles1={['Vlahovic 38\'', 'Chiesa 70\'']} goles2={['Dybala 12\' (P)']} 
-            />
-
-            <CardPartidos 
-                Competicion={'LaLiga'} fecha={'21 abr 2026'} resultado={'2-2'} equipo1={'Sevilla'} equipo2={'Betis'}
-                goles1={['En-Nesyri 45\'', 'Ocampos 88\'']} goles2={['Isco 20\'', 'Ayoze 63\'']} 
-            />
-
-            <CardPartidos 
-                Competicion={'Serie A'} fecha={'18 abr 2026'} resultado={'1-1'} equipo1={'Napoli'} equipo2={'Lazio'}
-                goles1={['Osimhen 50\'']} goles2={['Immobile 85\'']} 
-            />
-
-            <CardPartidos 
-                Competicion={'Premier League'} fecha={'18 abr 2026'} resultado={'2-0'} equipo1={'Chelsea'} equipo2={'Tottenham'}
-                goles1={['Cole Palmer 18\'', 'Jackson 55\'']} goles2={[]} 
-            />
-
-            <CardPartidos 
-                Competicion={'Ligue 1'} fecha={'18 abr 2026'} resultado={'3-2'} equipo1={'Marsella'} equipo2={'Nice'}
-                goles1={['Aubameyang 5\'', 'Harit 42\'', 'Vitinha 90\'']} goles2={['Moffi 15\'', 'Laborde 60\'']} 
-            />
-        </div>
+        {finishedMatches.length === 0 && !error ? (
+          <div className="text-center py-8">
+            <p className="text-zinc-500 text-sm">No hay resultados disponibles</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+            {finishedMatches.map((match, i) => (
+              <CardPartidos
+                key={i}
+                fecha={match.fecha}
+                resultado={match.resultado}
+                equipo1={match.equipo1}
+                equipo2={match.equipo2}
+                goles1={match.goles1}
+                goles2={match.goles2}
+              />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   )
 }

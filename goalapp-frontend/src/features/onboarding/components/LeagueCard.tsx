@@ -19,6 +19,7 @@ const roleColors: Record<string, string> = {
   entrenador: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
   jugador: 'bg-green-500/20 text-green-400 border-green-500/30',
   delegado: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
+  observador: '', // Observador no muestra badge
 };
 
 const roleLabels: Record<string, string> = {
@@ -26,6 +27,7 @@ const roleLabels: Record<string, string> = {
   entrenador: 'Entrenador',
   jugador: 'Jugador',
   delegado: 'Delegado',
+  observador: '', // Observador no muestra badge
 };
 
 export function LeagueCard({ league, onEnter, onReactivate, onToggleFavorite, isTogglingFavorite }: LeagueCardProps) {
@@ -40,10 +42,12 @@ export function LeagueCard({ league, onEnter, onReactivate, onToggleFavorite, is
             <div className="flex items-center gap-2 flex-wrap">
               <h4 className="text-white font-semibold">{league.nombre}</h4>
 
-              {/* Rol badge */}
-              <span className={`px-2 py-0.5 text-xs font-medium rounded border ${roleColors[league.rol]}`}>
-                {roleLabels[league.rol]}
-              </span>
+              {/* Rol badge - no mostrar para observador */}
+              {league.rol !== 'observador' && (
+                <span className={`px-2 py-0.5 text-xs font-medium rounded border ${roleColors[league.rol]}`}>
+                  {roleLabels[league.rol]}
+                </span>
+              )}
 
               {/* Estado badge */}
               {isFinished && (
@@ -82,7 +86,7 @@ export function LeagueCard({ league, onEnter, onReactivate, onToggleFavorite, is
             </p>
           )}
           <p className="text-zinc-400 text-sm">
-            <span className="text-zinc-500">Equipos en la liga:</span> {league.equiposTotal}
+            <span className="text-zinc-500">Equipos:</span> {league.equiposTotal}
           </p>
         </div>
       </div>

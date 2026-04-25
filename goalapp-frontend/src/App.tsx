@@ -15,7 +15,6 @@ import CalendarioPage from './features/calendario/pages/CalendarioPage'
 import UsersPage from './features/users/pages/UsersPage'
 import PrivateRoute from './features/auth/components/PrivateRoute'
 import { OnboardingPage } from './features/onboarding'
-import Caledario from './features/calendario/pages/Caledario'
 import Finish from './features/main/pages/Finish'
 import Live from './features/main/pages/Live'
 
@@ -31,8 +30,6 @@ function App() {
         <Route path='/forgot-password' element={<SendEmailForgottenPasswd />} />
         <Route path='/email-sent' element={<EmailSentPage />} />
         <Route path='/reset-password' element={<ResetPasswordPage />} />
-        <Route path='/finish' element={<Finish/>}/>
-        <Route path="/live" element={<Live/>}/>
 
         {/* Rutas protegidas */}
         <Route element={<PrivateRoute />}>
@@ -44,6 +41,8 @@ function App() {
           <Route path='/statistics' element={<StatisticPage />} />
           <Route path='/calendar' element={<CalendarioPage />} />
           <Route path='/users' element={<UsersPage />} />
+          <Route path='/finish' element={<Finish/>}/>
+          <Route path="/live" element={<Live/>}/>
         </Route>
       </Routes>
     </>

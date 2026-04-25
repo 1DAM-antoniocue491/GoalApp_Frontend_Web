@@ -15,8 +15,12 @@ import {
 } from 'react-icons/fa';
 import Nav from '../../../components/Nav';
 import { useSelectedLeague } from '../../../context/SelectedLeagueContext';
-import { fetchUsersByLeague, type UserWithRole, type UserStats } from '../services/usersApi';
+import { fetchUsersByLeague, fetchRoles, type UserWithRole, type UserStats, type Rol } from '../services/usersApi';
 import InviteUserModal from '../components/InviteUserModal';
+import UserActionsModal from '../../league/components/UserActionsModal';
+import TeamMemberActionsModal from '../../team/components/TeamMemberActionsModal';
+import { fetchMiembrosEquipo, type MiembroEquipo } from '../../team/services/teamMembersApi';
+import { apiGet } from '../../../services/api';
 
 export default function UsersPage() {
   const { selectedLeague } = useSelectedLeague();
@@ -30,6 +34,64 @@ export default function UsersPage() {
   const [filtroRol, setFiltroRol] = useState<string>('todos');
   const [filtroEstado, setFiltroEstado] = useState<string>('todos');
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const [isUserActionsModalOpen, setIsUserActionsModalOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<UserWithRole | null>(null);
+  const [roles, setRoles] = useState<Rol[]>([]);
+
+  // Estados para vista de entrenador
+  const [isCoachView, setIsCoachView] = useState(false);
+  const [miEquipoId, setMiEquipoId] = useState<number | null>(null);
+  const [miembrosEquipo, setMiembrosEquipo] = useState<MiembroEquipo[]>([]);
+  const [usuariosParaDelegado, setUsuariosParaDelegado] = useState<UserWithRole[]>([]);
+  const [isTeamMemberModalOpen, setIsTeamMemberModalOpen] = useState(false);
+  const [selectedMiembro, setSelectedMiembro] = useState<MiembroEquipo | null>(null);
+
+  const loadRoles = async () => {
+    try {
+      const data = await fetchRoles();
+      setRoles(data);
+    } catch (error) {
+      console.error('Error al cargar roles:', error);
+    }
+  };
+
+  useEffect(() => {
+    loadRoles();
+  }, []);
+
+  // Cargar equipo del entrenador si es coach
+  useEffect(() => {
+    if (userRole === 'entrenador' && selectedLeague?.id) {
+      setIsCoachView(true);
+      cargarEquipoEntrenador();
+    } else {
+      setIsCoachView(false);
+    }
+  }, [userRole, selectedLeague]);
+
+  const cargarEquipoEntrenador = async () => {
+    try {
+      const data = await apiGet<{ id_equipo: number }>('/equipos/usuario/mi-equipo', {
+        liga_id: selectedLeague!.id,
+      });
+      setMiEquipoId(data.id_equipo);
+      await cargarMiembrosEquipo(data.id_equipo);
+      // Cargar usuarios disponibles para asignar delegado
+      const usuarios = await fetchUsersByLeague(selectedLeague!.id);
+      setUsuariosParaDelegado(usuarios);
+    } catch (error) {
+      console.error('Error al cargar equipo:', error);
+    }
+  };
+
+  const cargarMiembrosEquipo = async (equipoId: number) => {
+    try {
+      const miembros = await fetchMiembrosEquipo(equipoId);
+      setMiembrosEquipo(miembros);
+    } catch (error) {
+      console.error('Error al cargar miembros:', error);
+    }
+  };
 
   const loadUsers = async () => {
     if (!selectedLeague) {
@@ -54,7 +116,7 @@ export default function UsersPage() {
     loadUsers();
   }, [selectedLeague]);
 
-  // Calcular estadísticas
+  // Calcular estadísticas para vista de admin
   const stats: UserStats = useMemo(() => {
     const total = users.length;
     const activos = users.filter((u) => u.activo).length;
@@ -63,7 +125,16 @@ export default function UsersPage() {
     return { total, activos, pendientes, admin_activos };
   }, [users]);
 
-  // Filtrar usuarios
+  // Calcular estadísticas para vista de entrenador
+  const coachStats = useMemo(() => {
+    const total = miembrosEquipo.length;
+    const activos = miembrosEquipo.filter((m) => m.activo).length;
+    const inactivos = total - activos;
+    const delegados = miembrosEquipo.filter((m) => m.tipo === 'delegado').length;
+    return { total, activos, inactivos, delegados };
+  }, [miembrosEquipo]);
+
+  // Filtrar usuarios (vista admin)
   const usuariosFiltrados = useMemo(() => {
     return users.filter((user) => {
       // Filtro por búsqueda
@@ -82,6 +153,25 @@ export default function UsersPage() {
       return matchBusqueda && matchRol && matchEstado;
     });
   }, [users, busqueda, filtroRol, filtroEstado]);
+
+  // Filtrar miembros del equipo (vista entrenador)
+  const miembrosFiltrados = useMemo(() => {
+    return miembrosEquipo.filter((miembro) => {
+      const matchBusqueda =
+        miembro.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
+        miembro.email.toLowerCase().includes(busqueda.toLowerCase());
+
+      const matchEstado = filtroEstado === 'todos' ||
+        (filtroEstado === 'activo' && miembro.activo) ||
+        (filtroEstado === 'inactivo' && !miembro.activo);
+
+      const matchTipo = filtroRol === 'todos' ||
+        (filtroRol === 'jugador' && miembro.tipo === 'jugador') ||
+        (filtroRol === 'delegado' && miembro.tipo === 'delegado');
+
+      return matchBusqueda && matchEstado && matchTipo;
+    });
+  }, [miembrosEquipo, busqueda, filtroEstado, filtroRol]);
 
   // Obtener icono según el rol
   const getRoleIcon = (rol: UserRole) => {
@@ -149,60 +239,118 @@ export default function UsersPage() {
 
         {/* Sección de Colaboración - Estadísticas */}
         <div className="mb-8">
-          <h2 className="text-white text-lg font-semibold mb-4">Colaboración</h2>
+          <h2 className="text-white text-lg font-semibold mb-4">
+            {isCoachView ? 'Mi Equipo' : 'Colaboración'}
+          </h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {/* Total Usuarios */}
-            <div className="bg-zinc-800 rounded-xl p-4 border border-zinc-700">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 bg-lime-500/10 rounded-lg flex items-center justify-center">
-                  <FaUsers className="text-lime-400" />
+            {isCoachView ? (
+              // Estadísticas para entrenador
+              <>
+                {/* Total Miembros */}
+                <div className="bg-zinc-800 rounded-xl p-4 border border-zinc-700">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-8 h-8 bg-lime-500/10 rounded-lg flex items-center justify-center">
+                      <FaUsers className="text-lime-400" />
+                    </div>
+                    <span className="text-zinc-400 text-xs">Miembros</span>
+                  </div>
+                  <p className="text-white text-2xl font-bold">{coachStats.total}</p>
                 </div>
-                <span className="text-zinc-400 text-xs">Usuarios</span>
-              </div>
-              <p className="text-white text-2xl font-bold">{stats.total}</p>
-            </div>
 
-            {/* Activos */}
-            <div className="bg-zinc-800 rounded-xl p-4 border border-zinc-700">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 bg-green-500/10 rounded-lg flex items-center justify-center">
-                  <FaCheck className="text-green-400" />
+                {/* Activos */}
+                <div className="bg-zinc-800 rounded-xl p-4 border border-zinc-700">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-8 h-8 bg-green-500/10 rounded-lg flex items-center justify-center">
+                      <FaCheck className="text-green-400" />
+                    </div>
+                    <span className="text-zinc-400 text-xs">Activos</span>
+                  </div>
+                  <p className="text-white text-2xl font-bold">{coachStats.activos}</p>
                 </div>
-                <span className="text-zinc-400 text-xs">Activos</span>
-              </div>
-              <p className="text-white text-2xl font-bold">{stats.activos}</p>
-            </div>
 
-            {/* Pendientes */}
-            <div className="bg-zinc-800 rounded-xl p-4 border border-zinc-700">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 bg-yellow-500/10 rounded-lg flex items-center justify-center">
-                  <FaClock className="text-yellow-400" />
+                {/* Inactivos */}
+                <div className="bg-zinc-800 rounded-xl p-4 border border-zinc-700">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-8 h-8 bg-gray-500/10 rounded-lg flex items-center justify-center">
+                      <FaUser className="text-gray-400" />
+                    </div>
+                    <span className="text-zinc-400 text-xs">Inactivos</span>
+                  </div>
+                  <p className="text-white text-2xl font-bold">{coachStats.inactivos}</p>
                 </div>
-                <span className="text-zinc-400 text-xs">Pendientes</span>
-              </div>
-              <p className="text-white text-2xl font-bold">{stats.pendientes}</p>
-            </div>
 
-            {/* Admin Activos */}
-            <div className="bg-zinc-800 rounded-xl p-4 border border-zinc-700">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 bg-purple-500/10 rounded-lg flex items-center justify-center">
-                  <FaCrown className="text-purple-400" />
+                {/* Delegados */}
+                <div className="bg-zinc-800 rounded-xl p-4 border border-zinc-700">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-8 h-8 bg-purple-500/10 rounded-lg flex items-center justify-center">
+                      <FaUserTie className="text-purple-400" />
+                    </div>
+                    <span className="text-zinc-400 text-xs">Delegado</span>
+                  </div>
+                  <p className="text-white text-2xl font-bold">{coachStats.delegados}</p>
                 </div>
-                <span className="text-zinc-400 text-xs">Admin activos</span>
-              </div>
-              <p className="text-white text-2xl font-bold">{stats.admin_activos}</p>
-            </div>
+              </>
+            ) : (
+              // Estadísticas para admin
+              <>
+                {/* Total Usuarios */}
+                <div className="bg-zinc-800 rounded-xl p-4 border border-zinc-700">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-8 h-8 bg-lime-500/10 rounded-lg flex items-center justify-center">
+                      <FaUsers className="text-lime-400" />
+                    </div>
+                    <span className="text-zinc-400 text-xs">Usuarios</span>
+                  </div>
+                  <p className="text-white text-2xl font-bold">{stats.total}</p>
+                </div>
+
+                {/* Activos */}
+                <div className="bg-zinc-800 rounded-xl p-4 border border-zinc-700">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-8 h-8 bg-green-500/10 rounded-lg flex items-center justify-center">
+                      <FaCheck className="text-green-400" />
+                    </div>
+                    <span className="text-zinc-400 text-xs">Activos</span>
+                  </div>
+                  <p className="text-white text-2xl font-bold">{stats.activos}</p>
+                </div>
+
+                {/* Pendientes */}
+                <div className="bg-zinc-800 rounded-xl p-4 border border-zinc-700">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-8 h-8 bg-yellow-500/10 rounded-lg flex items-center justify-center">
+                      <FaClock className="text-yellow-400" />
+                    </div>
+                    <span className="text-zinc-400 text-xs">Pendientes</span>
+                  </div>
+                  <p className="text-white text-2xl font-bold">{stats.pendientes}</p>
+                </div>
+
+                {/* Admin Activos */}
+                <div className="bg-zinc-800 rounded-xl p-4 border border-zinc-700">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-8 h-8 bg-purple-500/10 rounded-lg flex items-center justify-center">
+                      <FaCrown className="text-purple-400" />
+                    </div>
+                    <span className="text-zinc-400 text-xs">Admin activos</span>
+                  </div>
+                  <p className="text-white text-2xl font-bold">{stats.admin_activos}</p>
+                </div>
+              </>
+            )}
           </div>
         </div>
 
-        {/* Miembros de la liga */}
+        {/* Miembros */}
         <div>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
             <div>
-              <h2 className="text-white text-lg font-semibold">Miembros de la liga</h2>
-              <p className="text-zinc-400 text-sm">{usuariosFiltrados.length} miembros</p>
+              <h2 className="text-white text-lg font-semibold">
+                {isCoachView ? 'Miembros del equipo' : 'Miembros de la liga'}
+              </h2>
+              <p className="text-zinc-400 text-sm">
+                {isCoachView ? miembrosFiltrados.length : usuariosFiltrados.length} miembros
+              </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-3">
               {/* Filtros */}
@@ -211,12 +359,22 @@ export default function UsersPage() {
                 onChange={(e) => setFiltroRol(e.target.value)}
                 className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-lime-400"
               >
-                <option value="todos">Todos los roles</option>
-                <option value="admin">Admin</option>
-                <option value="entrenador">Entrenador</option>
-                <option value="delegado">Delegado</option>
-                <option value="jugador">Jugador</option>
-                <option value="observador">Observador</option>
+                {isCoachView ? (
+                  <>
+                    <option value="todos">Todos los tipos</option>
+                    <option value="jugador">Jugadores</option>
+                    <option value="delegado">Delegado</option>
+                  </>
+                ) : (
+                  <>
+                    <option value="todos">Todos los roles</option>
+                    <option value="admin">Admin</option>
+                    <option value="entrenador">Entrenador</option>
+                    <option value="delegado">Delegado</option>
+                    <option value="jugador">Jugador</option>
+                    <option value="observador">Observador</option>
+                  </>
+                )}
               </select>
 
               <select
@@ -224,9 +382,19 @@ export default function UsersPage() {
                 onChange={(e) => setFiltroEstado(e.target.value)}
                 className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-lime-400"
               >
-                <option value="todos">Todos los estados</option>
-                <option value="activo">Activos</option>
-                <option value="pendiente">Pendientes</option>
+                {isCoachView ? (
+                  <>
+                    <option value="todos">Todos los estados</option>
+                    <option value="activo">Activos</option>
+                    <option value="inactivo">Inactivos</option>
+                  </>
+                ) : (
+                  <>
+                    <option value="todos">Todos los estados</option>
+                    <option value="activo">Activos</option>
+                    <option value="pendiente">Pendientes</option>
+                  </>
+                )}
               </select>
 
               {/* Barra de búsqueda */}
@@ -234,7 +402,7 @@ export default function UsersPage() {
                 <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
                 <input
                   type="text"
-                  placeholder="Buscar usuario..."
+                  placeholder={isCoachView ? "Buscar miembro..." : "Buscar usuario..."}
                   value={busqueda}
                   onChange={(e) => setBusqueda(e.target.value)}
                   className="w-full sm:w-48 bg-zinc-800 border border-zinc-700 rounded-lg pl-10 pr-4 py-2 text-white text-sm focus:outline-none focus:border-lime-400 transition-colors"
@@ -279,9 +447,9 @@ export default function UsersPage() {
           {/* Lista de miembros */}
           {!isLoading && !error && usuariosFiltrados.length > 0 && (
             <div className="space-y-3">
-              {usuariosFiltrados.map((user) => (
+              {usuariosFiltrados.map((user, index) => (
                 <div
-                  key={user.id_usuario}
+                  key={`${user.id_usuario}-${index}`}
                   className="bg-zinc-800 rounded-xl p-4 border border-zinc-700 hover:border-zinc-600 transition-colors"
                 >
                   <div className="flex items-center justify-between">
@@ -332,7 +500,13 @@ export default function UsersPage() {
 
                       {/* Botón de acciones */}
                       {userRole === 'admin' && (
-                        <button className="p-2 text-zinc-400 hover:text-white transition-colors">
+                        <button
+                          onClick={() => {
+                            setSelectedUser(user);
+                            setIsUserActionsModalOpen(true);
+                          }}
+                          className="p-2 text-zinc-400 hover:text-white transition-colors"
+                        >
                           <FaEllipsisV />
                         </button>
                       )}
@@ -343,8 +517,102 @@ export default function UsersPage() {
             </div>
           )}
 
-          {/* Sin resultados */}
-          {!isLoading && !error && usuariosFiltrados.length === 0 && (
+          {/* Lista de miembros del equipo (vista entrenador) */}
+          {!isLoading && !error && isCoachView && miembrosFiltrados.length > 0 && (
+            <div className="space-y-3">
+              {miembrosFiltrados.map((miembro, index) => (
+                <div
+                  key={`${miembro.id_miembro}-${index}`}
+                  className="bg-zinc-800 rounded-xl p-4 border border-zinc-700 hover:border-zinc-600 transition-colors"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4 flex-1">
+                      {/* Avatar con iniciales */}
+                      <div className="w-12 h-12 bg-gradient-to-br from-lime-400 to-emerald-500 rounded-full flex items-center justify-center flex-shrink-0">
+                        <span className="text-zinc-900 font-bold text-sm">
+                          {getInitials(miembro.nombre)}
+                        </span>
+                      </div>
+
+                      {/* Información del miembro */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="text-white font-semibold truncate">{miembro.nombre}</h3>
+                          {/* Badge de tipo */}
+                          {miembro.tipo === 'delegado' ? (
+                            <span className="flex items-center gap-1 px-2 py-0.5 bg-purple-500/10 border border-purple-500/20 rounded text-purple-400 text-xs font-semibold whitespace-nowrap">
+                              <FaUserTie />
+                              Delegado
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-1 px-2 py-0.5 bg-blue-500/10 border border-blue-500/20 rounded text-blue-400 text-xs font-semibold whitespace-nowrap">
+                              <FaUser />
+                              {miembro.posicion}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-zinc-400 text-sm truncate">{miembro.email}</p>
+                        {miembro.tipo === 'jugador' && (
+                          <p className="text-zinc-500 text-xs mt-0.5">
+                            Dorsal {miembro.dorsal}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Estado y acciones */}
+                    <div className="flex items-center gap-4">
+                      {/* Estado */}
+                      <span
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium ${
+                          miembro.activo
+                            ? 'bg-green-500/10 text-green-400 border border-green-500/20'
+                            : 'bg-gray-500/10 text-gray-400 border border-gray-500/20'
+                        }`}
+                      >
+                        {miembro.activo ? (
+                          <>
+                            <FaCheck className="text-xs" />
+                            Activo
+                          </>
+                        ) : (
+                          <>
+                            <FaClock className="text-xs" />
+                            Inactivo
+                          </>
+                        )}
+                      </span>
+
+                      {/* Botón de acciones */}
+                      <button
+                        onClick={() => {
+                          setSelectedMiembro(miembro);
+                          setIsTeamMemberModalOpen(true);
+                        }}
+                        className="p-2 text-zinc-400 hover:text-white transition-colors"
+                      >
+                        <FaEllipsisV />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Sin resultados (vista entrenador) */}
+          {!isLoading && !error && isCoachView && miembrosFiltrados.length === 0 && (
+            <div className="text-center py-12">
+              <FaUsers className="text-zinc-600 text-4xl mx-auto mb-4" />
+              <p className="text-zinc-400 text-sm">No se encontraron miembros en tu equipo</p>
+              <p className="text-zinc-500 text-xs mt-1">
+                Prueba ajustando los filtros o búsqueda
+              </p>
+            </div>
+          )}
+
+          {/* Sin resultados (vista admin) */}
+          {!isLoading && !error && !isCoachView && usuariosFiltrados.length === 0 && (
             <div className="text-center py-12">
               <FaUsers className="text-zinc-600 text-4xl mx-auto mb-4" />
               <p className="text-zinc-400 text-sm">No se encontraron usuarios</p>
@@ -366,6 +634,57 @@ export default function UsersPage() {
             setIsInviteModalOpen(false);
           }}
           ligaId={selectedLeague.id}
+        />
+      )}
+
+      {/* Modal para acciones de usuario (admin) */}
+      {selectedLeague && selectedUser && (
+        <UserActionsModal
+          isOpen={isUserActionsModalOpen}
+          onClose={() => {
+            setIsUserActionsModalOpen(false);
+            setSelectedUser(null);
+          }}
+          onSuccess={() => {
+            loadUsers();
+            setIsUserActionsModalOpen(false);
+            setSelectedUser(null);
+          }}
+          usuario={{
+            id_usuario_rol: 0,
+            id_usuario: selectedUser.id_usuario,
+            nombre_usuario: selectedUser.nombre,
+            email: selectedUser.email,
+            id_rol: selectedUser.id_rol,
+            nombre_rol: selectedUser.rol,
+            activo: selectedUser.activo,
+          }}
+          ligaId={selectedLeague.id}
+          rolesDisponibles={roles}
+        />
+      )}
+
+      {/* Modal para acciones de miembro del equipo (entrenador) */}
+      {selectedLeague && selectedMiembro && miEquipoId && (
+        <TeamMemberActionsModal
+          isOpen={isTeamMemberModalOpen}
+          onClose={() => {
+            setIsTeamMemberModalOpen(false);
+            setSelectedMiembro(null);
+          }}
+          onSuccess={() => {
+            cargarMiembrosEquipo(miEquipoId);
+            setIsTeamMemberModalOpen(false);
+            setSelectedMiembro(null);
+          }}
+          miembro={selectedMiembro}
+          equipoId={miEquipoId}
+          usuariosDisponibles={usuariosParaDelegado.map(u => ({
+            id_usuario: u.id_usuario,
+            nombre: u.nombre,
+            email: u.email,
+          }))}
+          esEntrenador={true}
         />
       )}
     </>

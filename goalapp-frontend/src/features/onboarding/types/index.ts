@@ -2,7 +2,7 @@
  * Tipos para el módulo de Onboarding
  */
 
-export type UserRole = 'admin' | 'entrenador' | 'jugador' | 'delegado';
+export type UserRole = 'admin' | 'entrenador' | 'jugador' | 'delegado' | 'observador';
 
 export type LeagueStatus = 'activa' | 'finalizada' | 'pendiente';
 

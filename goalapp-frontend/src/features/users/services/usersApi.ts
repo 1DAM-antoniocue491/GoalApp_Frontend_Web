@@ -27,6 +27,7 @@ export interface InviteUserPayload {
   email: string;
   liga_id: number;
   id_rol: number;
+  nombre?: string;
   id_equipo?: number;
   dorsal?: number;
   posicion?: string;
@@ -40,9 +41,51 @@ export interface UserStats {
   admin_activos: number;
 }
 
+export interface TeamResponse {
+  id_equipo: number;
+  nombre: string;
+  escudo: string | null;
+  colores: string | null;
+  id_liga: number;
+  id_entrenador: number;
+  id_delegado: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Rol {
+  id_rol: number;
+  nombre: string;
+}
+
+/**
+ * Obtener todos los roles disponibles
+ * GET /roles/
+ */
+export async function fetchRoles(): Promise<Rol[]> {
+  try {
+    return await apiGet<Rol[]>('/roles/');
+  } catch (error) {
+    throw new Error(getErrorMessage(error as ApiError));
+  }
+}
+
 // ============================================
 // FUNCIONES DE API
 // ============================================
+
+/**
+ * Obtener equipos de una liga
+ * GET /equipos/?liga_id={ligaId}
+ */
+export async function fetchTeamsByLeague(ligaId: number): Promise<TeamResponse[]> {
+  try {
+    const { apiGet } = await import('../../../services/api');
+    return await apiGet<TeamResponse[]>('/equipos/', { liga_id: ligaId });
+  } catch (error) {
+    throw new Error(getErrorMessage(error as ApiError));
+  }
+}
 
 /**
  * Obtener usuarios con rol en una liga
@@ -65,7 +108,8 @@ export async function inviteUser(payload: InviteUserPayload): Promise<void> {
     const { apiPost } = await import('../../../services/api');
     await apiPost(`/invitaciones/ligas/${payload.liga_id}/invitar`, {
       email: payload.email,
-      id_rol: getRolId(payload.rol),
+      id_rol: payload.id_rol,
+      nombre: payload.nombre,
       id_equipo: payload.id_equipo,
       dorsal: payload.dorsal,
       posicion: payload.posicion,
@@ -74,18 +118,4 @@ export async function inviteUser(payload: InviteUserPayload): Promise<void> {
   } catch (error) {
     throw new Error(getErrorMessage(error as ApiError));
   }
-}
-
-/**
- * Obtener ID de rol según el nombre
- */
-function getRolId(rol: UserRole): number {
-  const roles: Record<UserRole, number> = {
-    admin: 1,
-    entrenador: 2,
-    delegado: 3,
-    jugador: 4,
-    observador: 5,
-  };
-  return roles[rol] || 4; // Default: jugador
 }

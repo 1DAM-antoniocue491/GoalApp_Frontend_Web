@@ -107,6 +107,8 @@ export default function PlayerDashboard({ league, userName, userRole }: PlayerDa
       <div className="flex flex-col gap-3">
         <SectionHeader
           title="Partidos en vivo"
+          linkText="Ver todos"
+          linkHref="/live"
           badge={liveMatches.length}
           badgeVariant="danger"
         />
@@ -156,7 +158,7 @@ export default function PlayerDashboard({ league, userName, userRole }: PlayerDa
         <SectionHeader
           title="Resultados recientes"
           linkText="Ver todos"
-          linkHref="/results"
+          linkHref="/finish"
         />
         <div className="flex flex-col gap-2">
           {recentResults.map((match, i) => (

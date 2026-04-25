@@ -20,7 +20,7 @@ import { OnboardingTabs, type TabFilter } from '../components/OnboardingTabs';
 import { loadUserLeagues, toggleLigaFavorita, reactivarLiga } from '../services/onboardingApi';
 import type { OnboardingUser, UserLeague } from '../types';
 import { ReactivateLeagueModal } from '../components/ReactivateLeagueModal';
-import { NotificationsDropdown } from '../components/NotificationsDropdown';
+import { NotificationsDropdown } from '../../notifications/components/NotificationsDropdown';
 
 // ============================================
 // UTILIDADES
@@ -166,6 +166,7 @@ export function OnboardingPage() {
     entrenador: 'Entrenador',
     delegado: 'Delegado',
     jugador: 'Jugador',
+    observador: 'Observador',
     viewer: 'Espectador',
   };
   const getRoleLabel = (role: string) => roleLabels[role.toLowerCase()] || role;

@@ -20,6 +20,7 @@ interface EditLeagueModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  onLeagueDeleted?: () => void;
   league: LeagueResponse | null;
 }
 
@@ -224,7 +225,12 @@ export function EditLeagueModal({ isOpen, onClose, onSuccess, league }: EditLeag
 
     if (result.success) {
       onClose();
-      onSuccess();
+      // Callback específico para cuando se elimina la liga
+      if (onLeagueDeleted) {
+        onLeagueDeleted();
+      } else {
+        onSuccess();
+      }
     } else {
       setSubmitError(result.error || 'Error al eliminar la liga');
       setShowDeleteConfirm(false);

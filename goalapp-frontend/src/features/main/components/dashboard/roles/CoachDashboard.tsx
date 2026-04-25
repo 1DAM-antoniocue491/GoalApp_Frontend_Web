@@ -114,6 +114,8 @@ export default function CoachDashboard({ league, userName, userRole }: CoachDash
       <div className="flex flex-col gap-3">
         <SectionHeader
           title="Partidos en vivo"
+          linkText="Ver todos"
+          linkHref="/live"
           badge={liveMatches.length}
           badgeVariant="danger"
         />
@@ -154,7 +156,7 @@ export default function CoachDashboard({ league, userName, userRole }: CoachDash
         <SectionHeader
           title="Resultados recientes"
           linkText="Ver todos"
-          linkHref="/results"
+          linkHref="/finish"
         />
         {recentResults.length === 0 ? (
           <p className="text-zinc-500 text-sm py-4">No hay resultados recientes</p>

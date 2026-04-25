@@ -5,13 +5,15 @@
  */
 
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router';
 import { FiAward, FiSettings, FiLoader } from 'react-icons/fi';
 import SummaryCard from '../SummaryCard';
 import ResultCard from '../ResultCard';
 import SectionHeader from '../SectionHeader';
+import MatchCardDashboard, { type MatchAction } from '../MatchCardDashboard';
 import Badge from '../../../../../components/ui/Badge';
 import { EditLeagueModal } from '../../../../league/components/EditLeagueModal';
-import type { SelectedLeague } from '../../../../../context';
+import { useSelectedLeague, type SelectedLeague } from '../../../../../context';
 import type { LeagueResponse } from '../../../../league/services/leagueApi';
 import {
   fetchAdminDashboardStats,
@@ -31,6 +33,8 @@ interface AdminDashboardProps {
 }
 
 export default function AdminDashboard({ league, userName, userRole }: AdminDashboardProps) {
+  const navigate = useNavigate();
+  const { clearSelectedLeague } = useSelectedLeague();
   const [showEditModal, setShowEditModal] = useState(false);
   const [stats, setStats] = useState<AdminDashboardStats | null>(null);
   const [liveMatches, setLiveMatches] = useState<DashboardLiveMatch[]>([]);
@@ -47,6 +51,57 @@ export default function AdminDashboard({ league, userName, userRole }: AdminDash
     activa: true,
     created_at: '',
     updated_at: '',
+  };
+
+  // Callback para cuando se elimina la liga - limpiar y redirigir al onboarding
+  const handleLeagueDeleted = () => {
+    clearSelectedLeague();
+    navigate('/onboarding', { replace: true });
+  };
+
+  // Función para finalizar un partido
+  const handleFinalizarPartido = async (matchId: number) => {
+    if (!confirm('¿Seguro que quieres finalizar este partido?')) return;
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/v1/partidos/${matchId}/finalizar`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ goles_local: 0, goles_visitante: 0, mvp_id: null }),
+      });
+      if (!response.ok) throw new Error('Error al finalizar el partido');
+      // Recargar datos del dashboard
+      const upcomingData = await fetchUpcomingMatches(league.id, 3);
+      setUpcomingMatches(upcomingData);
+    } catch (error) {
+      console.error('Error al finalizar partido:', error);
+      alert('No se pudo finalizar el partido');
+    }
+  };
+
+  // Función para iniciar un partido desde próximos partidos
+  const handleIniciarPartidoFromUpcoming = async (match: DashboardUpcomingMatch) => {
+    if (!confirm(`¿Seguro que quieres iniciar el partido ${match.home} vs ${match.away}?`)) return;
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/v1/partidos/${match.id_partido}/iniciar`, {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (!response.ok) throw new Error('Error al iniciar el partido');
+      // Recargar datos del dashboard
+      const upcomingData = await fetchUpcomingMatches(league.id, 3);
+      setUpcomingMatches(upcomingData);
+      // Si el partido ahora está en vivo, recargar live matches también
+      const liveData = await fetchLiveMatches(league.id);
+      setLiveMatches(liveData);
+    } catch (error) {
+      console.error('Error al iniciar partido:', error);
+      alert('No se pudo iniciar el partido');
+    }
   };
 
   // Cargar datos del dashboard
@@ -128,6 +183,8 @@ export default function AdminDashboard({ league, userName, userRole }: AdminDash
       <div className="flex flex-col gap-3">
         <SectionHeader
           title="Partidos en vivo"
+          linkText="Ver todos"
+          linkHref="/live"
           badge={liveMatches.length}
           badgeVariant="danger"
         />
@@ -135,30 +192,37 @@ export default function AdminDashboard({ league, userName, userRole }: AdminDash
           <p className="text-zinc-500 text-sm py-4">No hay partidos en vivo ahora</p>
         ) : (
           <div className="flex flex-col gap-3">
-            {liveMatches.map((match, i) => (
-              <div
-                key={i}
-                className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4"
-              >
-                <div className="flex items-center justify-end gap-1">
-                  <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
-                  <span className="text-red-400 text-sm font-medium">{match.minute}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <p className="text-white font-medium">{match.home}</p>
-                  </div>
-                  <div className="px-4 bg-zinc-800 rounded-lg">
-                    <span className="text-white text-xl font-bold">{match.homeScore}</span>
-                    <span className="text-zinc-500 mx-2">-</span>
-                    <span className="text-white text-xl font-bold">{match.awayScore}</span>
-                  </div>
-                  <div className="flex-1 text-right">
-                    <p className="text-white font-medium">{match.away}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
+            {liveMatches.map((match, i) => {
+              const actions: MatchAction[] = [
+                {
+                  label: 'Eventos',
+                  variant: 'eventos',
+                  icon: '📋',
+                  onClick: () => navigate(`/live`),
+                },
+                {
+                  label: 'Plantillas',
+                  variant: 'plantillas',
+                  icon: '👥',
+                  onClick: () => navigate(`/live`),
+                },
+                {
+                  label: 'Finalizar',
+                  variant: 'finalizar',
+                  icon: '🔒',
+                  onClick: () => handleFinalizarPartido(match.id_partido),
+                },
+              ];
+              return (
+                <MatchCardDashboard
+                  key={i}
+                  home={match.home}
+                  away={match.away}
+                  time={match.minute}
+                  actions={actions}
+                />
+              );
+            })}
           </div>
         )}
       </div>
@@ -168,7 +232,7 @@ export default function AdminDashboard({ league, userName, userRole }: AdminDash
         <SectionHeader
           title="Resultados recientes"
           linkText="Ver todos"
-          linkHref="/results"
+          linkHref="/finish"
         />
         <div className="flex flex-col gap-2">
           {recentResults.map((match, i) => (
@@ -195,19 +259,25 @@ export default function AdminDashboard({ league, userName, userRole }: AdminDash
           <p className="text-zinc-500 text-sm py-4">No hay partidos programados</p>
         ) : (
           <div className="flex flex-col gap-3">
-            {upcomingMatches.map((match, i) => (
-              <div
-                key={i}
-                className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4"
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-white font-medium">{match.home} vs {match.away}</span>
-                  <div className="flex items-center gap-2 text-blue-500 bg-blue-500/30 px-2 rounded-full text-sm">
-                    <span>{match.date}, {match.time}</span>
-                  </div>
-                </div>
-              </div>
-            ))}
+            {upcomingMatches.map((match, i) => {
+              const actions: MatchAction[] = [
+                {
+                  label: 'Iniciar Partido',
+                  variant: 'iniciar',
+                  icon: '⚽',
+                  onClick: () => handleIniciarPartidoFromUpcoming(match),
+                },
+              ];
+              return (
+                <MatchCardDashboard
+                  key={i}
+                  home={match.home}
+                  away={match.away}
+                  time={`${match.date}, ${match.time}`}
+                  actions={actions}
+                />
+              );
+            })}
           </div>
         )}
       </div>
@@ -225,6 +295,7 @@ export default function AdminDashboard({ league, userName, userRole }: AdminDash
         isOpen={showEditModal}
         onClose={() => setShowEditModal(false)}
         onSuccess={() => setShowEditModal(false)}
+        onLeagueDeleted={handleLeagueDeleted}
         league={leagueForEdit}
       />
     </div>

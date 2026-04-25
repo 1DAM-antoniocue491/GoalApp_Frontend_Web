@@ -1,27 +1,29 @@
 import { FaClock } from 'react-icons/fa';
 
+export interface MatchCardAction {
+  label: string;
+  icon?: string;
+  variant: 'primary' | 'secondary' | 'success' | 'warning' | 'danger';
+  onClick: () => void;
+  disabled?: boolean;
+}
+
 interface MatchCardProps {
-  id_partido: number;
   equipo_local: string;
   equipo_visitante: string;
   fecha: string;
   isToday?: boolean;
-  isAdmin?: boolean;
-  isCoach?: boolean;
-  onInitMatch?: (id: number) => void;
-  onManageConvocatoria?: (id: number) => void;
+  actions?: MatchCardAction[];
+  message?: string;
 }
 
 export default function MatchCard({
-  id_partido,
   equipo_local,
   equipo_visitante,
   fecha,
   isToday = false,
-  isAdmin = false,
-  isCoach = false,
-  onInitMatch,
-  onManageConvocatoria,
+  actions = [],
+  message,
 }: MatchCardProps) {
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
@@ -40,6 +42,19 @@ export default function MatchCard({
       hour: '2-digit',
       minute: '2-digit',
     });
+  };
+
+  const getVariantClasses = (variant: MatchCardAction['variant'], isTodayMatch: boolean) => {
+    const variants = {
+      primary: 'bg-lime-900/20 border border-lime-500/30 text-lime-400 hover:bg-lime-500/20',
+      secondary: 'bg-gray-800/50 border border-gray-700 text-gray-400 hover:bg-gray-700/50',
+      success: isTodayMatch
+        ? 'bg-gradient-to-r from-[#c5f52a] via-[#c5f52a] to-[#2a5a55] text-black shadow-[0_10px_20px_rgba(197,245,42,0.3)]'
+        : 'bg-gradient-to-r from-[#4a5d23] to-[#2a3a1a] text-black/70 opacity-80',
+      warning: 'bg-yellow-800/30 border border-yellow-700 text-yellow-700 hover:bg-yellow-800/50',
+      danger: 'bg-red-800/30 border border-red-700 text-red-700 hover:bg-red-800/50',
+    };
+    return variants[variant];
   };
 
   return (
@@ -62,43 +77,29 @@ export default function MatchCard({
       </div>
 
       {/* Botones de acción */}
-      <div className="flex gap-3 mt-4">
-        {/* Botón Convocatoria - para Admin o Entrenador */}
-        {(isAdmin || isCoach) && (
-          <button
-            onClick={() => onManageConvocatoria?.(id_partido)}
-            className="flex-1 bg-lime-900/20 border border-lime-500/30 text-lime-400 py-3 rounded-xl flex items-center justify-center gap-2 text-sm font-semibold hover:bg-lime-500/20 transition-all"
-          >
-            <span>👥</span>
-            <span>Convocatoria</span>
-          </button>
-        )}
+      {actions.length > 0 && (
+        <div className="flex gap-3 mt-4">
+          {actions.map((action, index) => (
+            <button
+              key={index}
+              onClick={action.onClick}
+              disabled={action.disabled}
+              className={`flex-1 font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-all text-sm
+                ${getVariantClasses(action.variant, isToday)}
+                ${action.disabled ? 'opacity-40 cursor-not-allowed' : ''}
+              `}
+            >
+              {action.icon && <span className="text-xs">{action.icon}</span>}
+              <span>{action.label}</span>
+            </button>
+          ))}
+        </div>
+      )}
 
-        {/* Botón Iniciar - para Admin */}
-        {isAdmin && (
-          <button
-            onClick={() => onInitMatch?.(id_partido)}
-            className={`
-              flex-1 font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-all
-              ${
-                isToday
-                  ? 'bg-gradient-to-r from-[#c5f52a] via-[#c5f52a] to-[#2a5a55] text-black shadow-[0_10px_20px_rgba(197,245,42,0.3)]'
-                  : 'bg-gradient-to-r from-[#4a5d23] to-[#2a3a1a] text-black/70 opacity-80'
-              }
-            `}
-          >
-            <span className="text-xs">▶️</span>
-            <span>Iniciar</span>
-          </button>
-        )}
-      </div>
-
-      {/* Mensaje para usuario no autorizado */}
-      {!isAdmin && !isCoach && (
+      {/* Mensaje opcional */}
+      {message && (
         <div className="border border-dashed border-gray-800 p-3 rounded-xl text-center mt-4">
-          <p className="text-gray-500 text-xs">
-            Información del encuentro disponible para el equipo técnico.
-          </p>
+          <p className="text-gray-500 text-xs">{message}</p>
         </div>
       )}
     </div>

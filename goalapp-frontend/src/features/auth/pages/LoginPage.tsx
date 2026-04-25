@@ -86,6 +86,7 @@ export default function LoginPage() {
         />
         <div className="absolute inset-0 bg-gradient-to-r from-transparent to-zinc-950 from-30%" />
         <div className="absolute inset-0 bg-gradient-to-b from-transparent to-zinc-950 from-30%" />
+        <div className="absolute inset-0 bg-gradient-to-t from-transparent to-zinc-950 from-30%" />
       </div>
 
       {/* Formulario de login */}
