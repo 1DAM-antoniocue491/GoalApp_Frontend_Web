@@ -14,6 +14,8 @@ import {
   FaCheck,
   FaMinus,
   FaTimes,
+  FaEdit,
+  FaTrash,
 } from 'react-icons/fa';
 import Nav from '../../../components/Nav';
 import { useSelectedLeague } from '../../../context/SelectedLeagueContext';
@@ -28,12 +30,19 @@ import {
   type MatchResult,
   type PlayerWithStatsResponse,
   type TeamStaffResponse,
+  updateTeam,
+  deleteTeam,
 } from '../services/teamApi';
+import { useAuth } from '../../auth/hooks/useAuth';
+import EditTeamModal from '../components/EditTeamModal';
+import DeleteTeamConfirmModal from '../components/DeleteTeamConfirmModal';
 
 export default function TeamDetailPage() {
   const { equipoId } = useParams<{ equipoId: string }>();
   const navigate = useNavigate();
   const { selectedLeague } = useSelectedLeague();
+  const { user } = useAuth();
+  const isAdmin = selectedLeague?.rol === 'admin';
 
   const [equipo, setEquipo] = useState<TeamDetailResponse | null>(null);
   const [proximosPartidos, setProximosPartidos] = useState<MatchResult[]>([]);
@@ -44,6 +53,8 @@ export default function TeamDetailPage() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const loadData = async () => {
     if (!equipoId) return;
@@ -85,6 +96,27 @@ export default function TeamDetailPage() {
   useEffect(() => {
     loadData();
   }, [equipoId]);
+
+  const handleEditEquipo = async (equipoIdParam: number, datos: any) => {
+    try {
+      await updateTeam(equipoIdParam, datos);
+      alert('Equipo actualizado exitosamente');
+      setShowEditModal(false);
+      loadData();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Error al actualizar el equipo');
+    }
+  };
+
+  const handleDeleteEquipo = async () => {
+    try {
+      await deleteTeam(parseInt(equipoId!));
+      alert('Equipo eliminado exitosamente');
+      navigate('/teams');
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Error al eliminar el equipo');
+    }
+  };
 
   // Agrupar plantilla por posición
   const plantillaPorPosicion = {
@@ -158,7 +190,8 @@ export default function TeamDetailPage() {
     <>
       <Nav />
       <div className="bg-zinc-950 min-h-[calc(100vh-48px)] p-6">
-        {/* Header con botón volver */}
+        <div className="flex flex-row justify-between">
+          {/* Header con botón volver */}
         <button
           onClick={() => navigate('/teams')}
           className="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors mb-6"
@@ -167,7 +200,27 @@ export default function TeamDetailPage() {
           <span className="text-sm">Volver a equipos</span>
         </button>
 
-        {/* Card principal del equipo */}
+        {isAdmin && (
+          <div className="flex gap-3 mb-6">
+            <button
+              onClick={() => setShowEditModal(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-lime-900/30 border border-lime-700/50 text-lime-400 hover:bg-lime-900/50 rounded-lg transition-colors text-sm font-semibold"
+            >
+              <FaEdit className="w-4 h-4" />
+              Editar equipo
+            </button>
+            <button
+              onClick={() => setShowDeleteModal(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-red-900/30 border border-red-700/50 text-red-400 hover:bg-red-900/50 rounded-lg transition-colors text-sm font-semibold"
+            >
+              <FaTrash className="w-4 h-4" />
+              Eliminar equipo
+            </button>
+          </div>
+        )}
+
+
+        </div>        {/* Card principal del equipo */}
         <div className="bg-zinc-800 rounded-2xl p-6 border border-zinc-700 mb-6">
           <div className="flex flex-col lg:flex-row gap-6">
             {/* Información básica */}
@@ -575,6 +628,27 @@ export default function TeamDetailPage() {
           </div>
         </div>
       </div>
+
+      {showEditModal && equipo && (
+        <EditTeamModal
+          isOpen={showEditModal}
+          onClose={() => setShowEditModal(false)}
+          ligaId={selectedLeague?.id!}
+          equipoId={equipo.id_equipo}
+          initialData={equipo}
+          onSave={handleEditEquipo}
+        />
+      )}
+      {showDeleteModal && equipo && (
+        <DeleteTeamConfirmModal
+          isOpen={showDeleteModal}
+          onClose={() => setShowDeleteModal(false)}
+          equipoNombre={equipo.nombre}
+          ligaId={selectedLeague?.id!}
+          equipoId={equipo.id_equipo}
+          onConfirm={handleDeleteEquipo}
+        />
+      )}
     </>
   );
 }

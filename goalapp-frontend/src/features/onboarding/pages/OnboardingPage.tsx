@@ -20,7 +20,8 @@ import { OnboardingTabs, type TabFilter } from '../components/OnboardingTabs';
 import { loadUserLeagues, toggleLigaFavorita, reactivarLiga } from '../services/onboardingApi';
 import type { OnboardingUser, UserLeague } from '../types';
 import { ReactivateLeagueModal } from '../components/ReactivateLeagueModal';
-import { NotificationsDropdown } from '../../notifications/components/NotificationsDropdown';
+import { NotificationsDropdown } from '../components/NotificationsDropdown';
+import { useNotificationsBadge } from '../../notificaciones/services/unreadBadgeApi';
 
 // ============================================
 // UTILIDADES
@@ -125,6 +126,7 @@ export function OnboardingPage() {
 
   // Obtener usuario desde el contexto de autenticación
   const { user, logout, isInitializing, refreshUser } = useAuth();
+  const { unreadCount } = useNotificationsBadge();
 
   // Cargar datos completos al abrir el dropdown de perfil
   useEffect(() => {
@@ -426,7 +428,11 @@ export function OnboardingPage() {
                 className="p-2 text-zinc-400 hover:text-white transition-colors relative"
               >
                 <FiBell className="w-5 h-5" />
-                <span className="absolute top-1 right-1 w-2 h-2 bg-lime-400 rounded-full"></span>
+                <span 
+                  className={`absolute top-1 right-1 w-2 h-2 bg-lime-400 rounded-full transition-all duration-300 ${
+                    unreadCount > 0 ? 'opacity-100 scale-110 animate-pulse' : 'opacity-0 scale-75'
+                  }`}
+                />
               </button>
               <NotificationsDropdown
                 isOpen={isNotificationsOpen}

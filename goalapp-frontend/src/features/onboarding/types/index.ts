@@ -51,6 +51,6 @@ export interface Notification {
   tipo: NotificationType | string;
   titulo: string;
   mensaje: string;
-  leido: boolean;
+  leida: boolean;
   created_at: string;
 }

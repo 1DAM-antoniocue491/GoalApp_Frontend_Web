@@ -45,12 +45,9 @@ export default function Live() {
         setError(null)
 
         // Obtener partidos en vivo de la liga seleccionada
-        const matches = await fetchLiveMatches()
-        const filteredMatches = matches.filter(
-          m => m.id_liga === selectedLeague.id && m.estado === 'En Juego'
-        )
+        const matches = await fetchLiveMatches(selectedLeague.id)
 
-        setLiveMatches(filteredMatches)
+        setLiveMatches(matches)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Error al cargar partidos')
       } finally {

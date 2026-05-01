@@ -60,12 +60,14 @@ const ROLES: RoleOption[] = [
   },
 ];
 
+// IDs de rol según la base de datos actual:
+// 9=admin, 10=coach, 11=delegate, 12=player, 13=viewer
 const rolIdMap: Record<RolType, number> = {
-  admin: 1,
-  entrenador: 2,
-  delegado: 3,
-  jugador: 4,
-  observador: 5,
+  admin: 9,
+  entrenador: 10,   // coach en BD
+  delegado: 11,     // delegate en BD
+  jugador: 12,      // player en BD
+  observador: 13,   // viewer en BD
 };
 
 export default function InviteUserModal({ isOpen, onClose, onSuccess, ligaId }: InviteUserModalProps) {

@@ -4,11 +4,6 @@ services:
     env: static
     buildCommand: npm install && npm run build
     staticPublishPath: ./dist
-    envVars:
-      - key: VITE_API_URL
-        value: https://goalapp-backend-j2cx.onrender.com/api/v1
-      - key: VITE_USE_MOCKS
-        value: false
     headers:
       - path: /*
         name: Cache-Control

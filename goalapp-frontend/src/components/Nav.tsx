@@ -3,6 +3,7 @@
  * Muestra el nombre de la liga seleccionada y permite cambiar de liga
  */
 
+import { NotificationsDropdown } from '../features/notificaciones/components/NotificationsDropdown.tsx';
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { NavLink } from 'react-router-dom';
@@ -10,14 +11,12 @@ import { FaChevronDown, FaSignOutAlt, FaUser, FaEnvelope, FaPhone, FaBirthdayCak
 import { IoIosNotificationsOutline, IoMdMenu } from 'react-icons/io';
 import { TfiCup } from 'react-icons/tfi';
 import { RxCross2 } from "react-icons/rx";
-import { FiLoader, FiAlertCircle, FiX } from 'react-icons/fi';
+import { FiBell, FiLoader, FiAlertCircle, FiX } from 'react-icons/fi';
 import { useAuth } from '../features/auth/hooks/useAuth';
 import { updateProfile } from '../features/auth/services/authApi';
 import { getErrorMessage } from '../services/api';
 import type { ApiError } from '../services/api';
-import { NotificationsDropdown } from '../features/notifications/components/NotificationsDropdown';
-import { loadNotifications } from '../features/notifications/services/notificationService';
-import type { Notification } from '../features/notifications/services/types';
+import { useNotificationsBadge } from '../features/notificaciones/services/unreadBadgeApi';
 
 interface NavProps {
   /** Nombre de la liga seleccionada para mostrar en el header */
@@ -28,81 +27,19 @@ interface NavProps {
 
 export default function Nav({ leagueName, userRole }: NavProps) {
   const navigate = useNavigate();
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [showMenu, setShowMenu] = useState<boolean>(false);
   const [showLeagueMenu, setShowLeagueMenu] = useState<boolean>(false);
   const [showUserMenu, setShowUserMenu] = useState<boolean>(false);
   const [showEditProfile, setShowEditProfile] = useState<boolean>(false);
-  const [showNotifications, setShowNotifications] = useState<boolean>(false);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [unreadCount, setUnreadCount] = useState<number>(0);
   const [profileSubmitting, setProfileSubmitting] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
   const [profileForm, setProfileForm] = useState({ nombre: '', telefono: '', fecha_nacimiento: '' });
   const userMenuRef = useRef<HTMLDivElement>(null);
-  const notificationsRef = useRef<HTMLDivElement>(null);
-  const isDropdownOpenRef = useRef<boolean>(false);
+  const notificationsMenuRef = useRef<HTMLDivElement>(null);
 
   const { user, logout, refreshUser } = useAuth();
-
-  // Handlers para notificaciones
-  const toggleNotifications = () => {
-    console.log('[Nav] toggleNotifications llamado, estado actual:', showNotifications);
-    setShowNotifications(prev => !prev);
-  };
-
-  const closeNotifications = () => {
-    console.log('[Nav] closeNotifications llamado');
-    setShowNotifications(false);
-  };
-
-  // Handlers para usuario
-  const toggleUserMenu = () => {
-    setShowUserMenu(prev => !prev);
-  };
-
-  const closeUserMenu = () => {
-    setShowUserMenu(false);
-  };
-
-  // Debug: log cuando cambia showNotifications
-  useEffect(() => {
-    console.log('[Nav] showNotifications:', showNotifications);
-  }, [showNotifications]);
-
-  useEffect(() => {
-    console.log('[Nav] showUserMenu:', showUserMenu);
-  }, [showUserMenu]);
-
-  // Cargar notificaciones y contador
-  useEffect(() => {
-    loadNotifications().then(data => {
-      setNotifications(data);
-      setUnreadCount(data.filter(n => !n.leido).length);
-    }).catch(console.error);
-  }, []);
-
-  // Cerrar notificaciones al hacer click fuera (TEMPORALMENTE DESACTIVADO PARA DEBUG)
-  // useEffect(() => {
-  //   function handleClickOutside(e: MouseEvent) {
-  //     if (isDropdownOpenRef.current && notificationsRef.current &&
-  //         !notificationsRef.current.contains(e.target as Node)) {
-  //       console.log('[Nav] Click fuera detectado, cerrando dropdown');
-  //       setShowNotifications(false);
-  //     }
-  //   }
-  //
-  //   const timeoutId = setTimeout(() => {
-  //     if (showNotifications) {
-  //       document.addEventListener('mousedown', handleClickOutside);
-  //       isDropdownOpenRef.current = true;
-  //     }
-  //   }, 0);
-  //
-  //   return () => {
-  //     clearTimeout(timeoutId);
-  //     document.removeEventListener('mousedown', handleClickOutside);
-  //   };
-  // }, [showNotifications]);
+  const { unreadCount } = useNotificationsBadge();
 
   // Obtener iniciales del usuario
   const userInitials = user?.nombre
@@ -186,32 +123,26 @@ export default function Nav({ leagueName, userRole }: NavProps) {
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
-        closeUserMenu();
+        setShowUserMenu(false);
       }
     }
     if (showUserMenu) {
-      // Usar setTimeout para evitar que el click de apertura se registre como click fuera
-      const timeoutId = setTimeout(() => {
-        document.addEventListener('mousedown', handleClickOutside);
-      }, 100);
-      return () => {
-        clearTimeout(timeoutId);
-        document.removeEventListener('mousedown', handleClickOutside);
-      };
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
     }
   }, [showUserMenu]);
 
   return (
-    <div className="bg-zinc-800 flex flex-col w-full">
-      <div className="bg-zinc-800 flex flex-row justify-between items-center h-12 px-2 md:px-4 overflow-hidden">
+    <div className="bg-zinc-800 flex flex-col">
+      <div className="bg-zinc-800 flex flex-row justify-between items-center h-12 px-2">
         {/* Logo y liga */}
-        <div className="flex flex-row items-center justify-center gap-2 w-1/3 min-w-0">
+        <div className="flex flex-row items-center justify-center gap-2 md:w-1/3">
           <div
-            className="bg-lime-300 p-2 rounded-md cursor-pointer lg:pointer-events-none"
+            className="bg-lime-300 p-2 rounded-md cursor-pointer md:pointer-events-none"
             onClick={() => setShowMenu(!showMenu)}
           >
-            <IoMdMenu className="lg:hidden w-5 h-5" />
-            <TfiCup className="hidden lg:block w-5 h-5" />
+            <IoMdMenu className="md:hidden w-5 h-5" />
+            <TfiCup className="hidden md:block w-5 h-5" />
           </div>
 
           {/* League Selector */}
@@ -220,7 +151,7 @@ export default function Nav({ leagueName, userRole }: NavProps) {
               onClick={() => setShowLeagueMenu(!showLeagueMenu)}
               className="flex items-center gap-1.5 px-2 py-1 rounded-lg hover:bg-zinc-700 transition-colors"
             >
-              <span className="text-white font-bold text-xs sm:text-sm md:text-base truncate max-w-[80px] sm:max-w-[120px] md:max-w-[200px]">
+              <span className="text-white font-bold text-sm md:text-base truncate max-w-[120px] md:max-w-[200px]">
                 {leagueName}
               </span>
               {userRole && (
@@ -236,7 +167,7 @@ export default function Nav({ leagueName, userRole }: NavProps) {
 
           {/* League Dropdown */}
           {showLeagueMenu && leagueName && (
-            <div className="absolute top-12 left-0 bg-zinc-800 border border-zinc-700 rounded-lg shadow-lg z-50 min-w-[180px] max-w-[90vw]">
+            <div className="absolute top-12 left-2 bg-zinc-800 border border-zinc-700 rounded-lg shadow-lg z-50 min-w-[180px]">
               <div className="p-3 border-b border-zinc-700">
                 <p className="text-zinc-400 text-xs">Liga actual</p>
                 <p className="text-white font-semibold">{leagueName}</p>
@@ -256,21 +187,29 @@ export default function Nav({ leagueName, userRole }: NavProps) {
         </div>
 
         {/* Navigation Items */}
-        <div className="hidden lg:flex flex-row items-center justify-center gap-1 xl:gap-2 w-1/3 min-w-0">
+        <div className="flex flex-row items-center justify-center gap-2 sm:w-1/3 hidden md:flex">
           {navItems.map((item) => (
             item.implemented ? (
               <NavLink
                 key={item.path}
                 to={item.path}
                 className={({ isActive }) =>
-                  `rounded-lg px-2 py-1.5 lg:px-3 lg:py-1.5 transition-colors pointer-events-auto whitespace-nowrap ${
-                    isActive
-                      ? 'text-lime-300 bg-lime-300/15 border-b-2 border-lime-300'
-                      : 'text-zinc-500 hover:text-zinc-300'
-                  }`
+                  `transition-colors ${isActive ? 'bg-lime-300/15 rounded-lg' : ''}`
                 }
               >
-                <span className="text-xs sm:text-sm">{item.label}</span>
+                {({ isActive }) => (
+                  <div className="rounded-lg px-3">
+                    <p
+                      className={`py-1 font-semibold text-sm ${
+                        isActive
+                          ? 'text-lime-300 border-b-2'
+                          : 'text-zinc-500 hover:text-zinc-300'
+                      }`}
+                    >
+                      {item.label}
+                    </p>
+                  </div>
+                )}
               </NavLink>
             ) : (
               <div key={item.path} className="rounded-lg px-3 cursor-not-allowed">
@@ -283,46 +222,51 @@ export default function Nav({ leagueName, userRole }: NavProps) {
         </div>
 
         {/* User Section */}
-        <div className="flex flex-row justify-end items-center gap-2 w-1/3 min-w-0">
+        <div className="flex flex-row justify-end md:pr-10 items-center gap-2 sm:w-1/3">
           {/* Notifications */}
-          <div ref={notificationsRef} className="relative shrink-0">
-            <button
-              onClick={toggleNotifications}
-              className="p-2 text-zinc-400 hover:text-white transition-colors relative shrink-0"
-            >
-              <IoIosNotificationsOutline className="w-4 h-4 sm:w-5 sm:h-5" />
-              {unreadCount > 0 && (
-                <div className="absolute top-0 right-0 w-2.5 h-2.5 bg-lime-300 rounded-full border-2 border-zinc-800"></div>
-              )}
-            </button>
+        <div className="relative">
+          <button
+            ref={notificationsMenuRef}
+            onClick={() => {
+              setIsNotificationsOpen(!isNotificationsOpen);
+              setShowUserMenu(false);
+            }}
+            className="p-2 text-zinc-400 hover:text-white transition-colors relative"
+          >
+            <FiBell className="w-5 h-5"></FiBell>
+            <span 
+              className={`absolute top-1 right-1 w-2 h-2 bg-lime-400 rounded-full transition-all duration-300 ${
+                unreadCount > 0 ? 'opacity-100 scale-110 animate-pulse' : 'opacity-0 scale-75'
+              }`}
+            />
+          </button>
 
-            {/* Notifications Dropdown */}
-            {showNotifications && (
-              <NotificationsDropdown
-                isOpen={showNotifications}
-                onClose={closeNotifications}
-              />
-            )}
-          </div>
+          {/* Notifications Dropdown */}
+          <NotificationsDropdown 
+            isOpen={isNotificationsOpen}
+            triggerRef={notificationsMenuRef}
+            onClose={() => setIsNotificationsOpen(false)} 
+          />
+        </div>
 
           {/* User Avatar */}
-          <div ref={userMenuRef} className="relative shrink-0">
+          <div ref={userMenuRef} className="relative">
             <button
-              onClick={toggleUserMenu}
-              className="flex flex-row items-center bg-zinc-700 rounded-full p-0.5 gap-1 hover:bg-zinc-600 transition-colors min-w-0"
+              onClick={() => setShowUserMenu(!showUserMenu)}
+              className="flex flex-row items-center bg-zinc-700 rounded-full p-0.5 gap-1 hover:bg-zinc-600 transition-colors"
             >
-              <div className="bg-gradient-to-br from-lime-300 to-blue-300 rounded-full p-0.5 px-1.5 shrink-0">
-                <p className="font-bold text-xs sm:text-sm">{userInitials}</p>
+              <div className="bg-gradient-to-br from-lime-300 to-blue-300 rounded-full p-0.5 px-1.5">
+                <p className="font-bold text-sm">{userInitials}</p>
               </div>
-              <p className="text-xs sm:text-sm text-zinc-400 font-semibold hidden md:block truncate max-w-[80px]">
+              <p className="text-sm text-zinc-400 font-semibold hidden md:block">
                 {userFirstName}
               </p>
-              <FaChevronDown className={`w-3 h-3 sm:w-4 sm:h-4 text-zinc-400 p-1 md:mr-2 shrink-0 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} />
+              <FaChevronDown className={`w-4 h-4 text-zinc-400 p-1 md:mr-2 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} />
             </button>
 
             {/* User Dropdown */}
             {showUserMenu && (
-              <div className="absolute right-0 top-12 bg-gradient-to-b from-zinc-800 to-70% to-zinc-950 border border-zinc-700 rounded-lg shadow-lg z-50 w-[calc(100vw-1rem)] md:w-96 max-h-[80vh] overflow-y-auto">
+              <div className="absolute right-0 top-12 bg-gradient-to-b from-zinc-800 to-70% to-zinc-950 border border-zinc-700 rounded-lg shadow-lg z-50 md:w-96">
                 <div className="p-3">
                   <div className="flex flex-col items-center  gap-2 mb-2">
                     <div className='flex flex-row items-center justify-between gap-2 text-zinc-400 w-full'>
@@ -416,26 +360,33 @@ export default function Nav({ leagueName, userRole }: NavProps) {
       </div>
 
       {/* Mobile Navigation */}
-      <div className={`flex flex-col items-center gap-2 w-full pb-3 px-4 ${showMenu ? '' : 'hidden'}`}>
+      <div className={`flex flex-col items-center gap-2 md:w-1/3 pb-2 px-5 ${showMenu ? '' : 'hidden'}`}>
         {navItems.map((item) => (
           item.implemented ? (
             <NavLink
               key={item.path}
               to={item.path}
-              onClick={() => setShowMenu(false)}
               className={({ isActive }) =>
-                `rounded-lg px-4 py-3 w-full text-center transition-colors touch-manipulation ${
-                  isActive
-                    ? 'text-lime-300 bg-lime-300/15 border-2 border-lime-300'
-                    : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-700/50'
-                }`
+                `transition-colors w-full ${isActive ? 'bg-lime-300/15 rounded-lg' : ''}`
               }
             >
-              <span className="text-base font-semibold">{item.label}</span>
+              {({ isActive }) => (
+                <div className="rounded-lg text-center px-3">
+                  <p
+                    className={`py-1 font-semibold text-sm ${
+                      isActive
+                        ? 'text-lime-300 border-b-2'
+                        : 'text-zinc-500'
+                    }`}
+                  >
+                    {item.label}
+                  </p>
+                </div>
+              )}
             </NavLink>
           ) : (
-            <div key={item.path} className="rounded-lg text-center px-4 py-3 w-full cursor-not-allowed opacity-50">
-              <p className="text-sm font-semibold text-zinc-600">
+            <div key={item.path} className="rounded-lg text-center px-3 w-full cursor-not-allowed">
+              <p className="py-1 font-semibold text-sm text-zinc-600">
                 {item.label}
               </p>
             </div>

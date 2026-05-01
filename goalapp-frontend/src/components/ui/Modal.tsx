@@ -38,9 +38,9 @@ export default function Modal({ isOpen, onClose, title, children, size = "md" }:
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-            {/* Overlay */}
+            {/* Overlay con backdrop-blur */}
             <div
-                className="absolute inset-0 bg-black/70"
+                className="absolute inset-0 bg-black/70 backdrop-blur-sm"
                 onClick={onClose}
             />
 

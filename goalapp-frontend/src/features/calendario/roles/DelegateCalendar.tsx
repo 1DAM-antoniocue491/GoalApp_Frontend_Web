@@ -127,7 +127,7 @@ export default function DelegateCalendar({
               <div className="space-y-4">
                 {jornada.partidos.map((partido) => {
                   const isTodayMatch = new Date(partido.fecha).toDateString() === new Date().toDateString();
-                  const isEnJuego = partido.estado === 'En Juego';
+                  const isEnJuego = partido.estado === 'en_juego';
                   const actions: MatchAction[] = [
                     ...(isEnJuego
                       ? [

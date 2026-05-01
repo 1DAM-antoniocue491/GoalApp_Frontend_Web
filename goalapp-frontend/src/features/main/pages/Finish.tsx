@@ -39,7 +39,7 @@ export default function Finish() {
 
         // Filtrar solo los finalizados y ordenar por fecha descendente
         const finished = matches
-          .filter(m => m.estado === 'Finalizado')
+          .filter(m => m.estado === 'finalizado')
           .sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime())
 
         // Obtener eventos (goles) para cada partido

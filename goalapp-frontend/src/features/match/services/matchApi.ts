@@ -22,7 +22,7 @@ export interface MatchResponse {
   goles_local: number | null;
   goles_visitante: number | null;
   fecha: string;
-  estado: 'Programado' | 'En Juego' | 'Finalizado' | 'Suspendido';
+  estado: 'programado' | 'en_juego' | 'finalizado' | 'cancelado' | 'suspendido';
   created_at: string;
   updated_at: string;
 }
@@ -38,7 +38,7 @@ export interface MatchCreatePayload {
 export interface MatchUpdatePayload {
   goles_local?: number;
   goles_visitante?: number;
-  estado?: 'Programado' | 'En Juego' | 'Finalizado' | 'Suspendido';
+  estado?: 'programado' | 'en_juego' | 'finalizado' | 'cancelado' | 'suspendido';
   fecha?: string;
 }
 
@@ -131,15 +131,22 @@ export async function fetchMatchesWithTeams(ligaId: number): Promise<MatchWithTe
 
 /**
  * Obtener próximos partidos (todos)
- * GET /partidos/proximos
+ * GET /partidos/proximos?limit={limit}&liga_id={ligaId}
  */
-export async function fetchUpcomingMatches(limit?: number): Promise<MatchWithTeams[]> {
+export async function fetchUpcomingMatches(limit?: number, ligaId?: number): Promise<MatchWithTeams[]> {
   if (isMockEnabled()) {
     return await mockApi.mockFetchUpcomingMatches(limit);
   }
 
   try {
-    const url = limit ? `/partidos/proximos?limit=${limit}` : '/partidos/proximos';
+    const params: Record<string, string> = {};
+    if (limit) params.limit = limit.toString();
+    if (ligaId) params.liga_id = ligaId.toString();
+
+    const url = Object.keys(params).length > 0
+      ? `/partidos/proximos?${new URLSearchParams(params).toString()}`
+      : '/partidos/proximos';
+
     return await apiGet<MatchWithTeams[]>(url);
   } catch (error) {
     throw new Error(getErrorMessage(error as ApiError));
@@ -148,15 +155,16 @@ export async function fetchUpcomingMatches(limit?: number): Promise<MatchWithTea
 
 /**
  * Obtener partidos en vivo
- * GET /partidos/en-vivo
+ * GET /partidos/en-vivo?liga_id={ligaId}
  */
-export async function fetchLiveMatches(): Promise<MatchWithTeams[]> {
+export async function fetchLiveMatches(ligaId?: number): Promise<MatchWithTeams[]> {
   if (isMockEnabled()) {
     return await mockApi.mockFetchLiveMatches();
   }
 
   try {
-    return await apiGet<MatchWithTeams[]>('/partidos/en-vivo');
+    const params = ligaId ? { liga_id: ligaId.toString() } : undefined;
+    return await apiGet<MatchWithTeams[]>('/partidos/en-vivo', params);
   } catch (error) {
     throw new Error(getErrorMessage(error as ApiError));
   }
@@ -314,7 +322,7 @@ export async function updateCalendar(
 }
 
 /**
- * Iniciar un partido (cambiar estado a 'En Juego')
+ * Iniciar un partido (cambiar estado a 'en_juego')
  * PUT /partidos/{partidoId}/iniciar
  */
 export async function startMatch(partidoId: number): Promise<MatchResponse> {
@@ -362,10 +370,10 @@ export async function fetchMatchEvents(partidoId: number): Promise<MatchEvent[]>
       id_jugador: e.id_jugador,
       tipo_evento: e.tipo as 'gol' | 'tarjeta_amarilla' | 'tarjeta_roja' | 'cambio' | 'mvp',
       minuto: e.minuto,
-      puntuacion_mvp: null,
-      incidencias: null,
-      created_at: '',
-      updated_at: '',
+      puntuacion_mvp: e.puntuacion_mvp ?? null,
+      incidencias: e.incidencias ?? null,
+      created_at: e.created_at ?? new Date().toISOString(),
+      updated_at: e.updated_at ?? new Date().toISOString(),
       nombre_jugador: e.nombre_jugador,
       nombre_equipo: e.nombre_equipo,
     }));

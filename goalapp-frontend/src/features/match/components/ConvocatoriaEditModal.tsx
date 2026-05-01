@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { FaTimes, FaSearch, FaUsers, FaStar, FaBolt } from 'react-icons/fa';
 import type { Jugador, EstadoConvocatoria, ConvocatoriaResumen } from '../types/convocatoria';
 import { fetchConvocatoria, fetchJugadoresPorEquipo, createConvocatoria } from '../services/convocatoriaApi';
@@ -28,47 +28,50 @@ export default function ConvocatoriaEditModal({
   partidoFecha,
   competicion,
 }: ConvocatoriaEditModalProps) {
-  const [jugadores, setJugadores] = useState<JugadorUI[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [busqueda, setBusqueda] = useState('');
+   const [jugadores, setJugadores] = useState<JugadorUI[]>([]);
+   const [isLoading, setIsLoading] = useState(false);
+   const [isSaving, setIsSaving] = useState(false);
+   const [busqueda, setBusqueda] = useState('');
+   const [error, setError] = useState<string | null>(null);
+
+   const cargarDatos = useCallback(async () => {
+     setIsLoading(true);
+     setError(null);
+     try {
+       const [jugadoresData, convocatoriaData] = await Promise.all([
+         fetchJugadoresPorEquipo(equipoId),
+         fetchConvocatoria(partidoId, equipoId).catch(() => null),
+       ]);
+
+       // Mapear jugadores con su estado de convocatoria
+       const convocadosTitulares = new Set(convocatoriaData?.titulares.map(j => j.id_jugador) || []);
+       const convocadosSuplentes = new Set(convocatoriaData?.suplentes.map(j => j.id_jugador) || []);
+
+       const jugadoresConEstado: JugadorUI[] = jugadoresData.map(j => ({
+         ...j,
+         estado: convocadosTitulares.has(j.id_jugador)
+           ? 'titular'
+           : convocadosSuplentes.has(j.id_jugador)
+           ? 'suplente'
+           : 'no_convocado',
+       }));
+
+       setJugadores(jugadoresConEstado);
+     } catch (error) {
+       console.error('Error al cargar datos:', error);
+       const errorMessage = error instanceof Error ? error.message : 'Error al cargar los datos del equipo';
+       setError(errorMessage);
+     } finally {
+       setIsLoading(false);
+     }
+   }, [equipoId, partidoId]);
 
   // Cargar datos al abrir el modal
   useEffect(() => {
     if (isOpen) {
       cargarDatos();
     }
-  }, [isOpen, partidoId, equipoId]);
-
-  const cargarDatos = async () => {
-    setIsLoading(true);
-    try {
-      const [jugadoresData, convocatoriaData] = await Promise.all([
-        fetchJugadoresPorEquipo(equipoId),
-        fetchConvocatoria(partidoId, equipoId).catch(() => null),
-      ]);
-
-      // Mapear jugadores con su estado de convocatoria
-      const convocadosTitulares = new Set(convocatoriaData?.titulares.map(j => j.id_jugador) || []);
-      const convocadosSuplentes = new Set(convocatoriaData?.suplentes.map(j => j.id_jugador) || []);
-
-      const jugadoresConEstado: JugadorUI[] = jugadoresData.map(j => ({
-        ...j,
-        estado: convocadosTitulares.has(j.id_jugador)
-          ? 'titular'
-          : convocadosSuplentes.has(j.id_jugador)
-          ? 'suplente'
-          : 'no_convocado',
-      }));
-
-      setJugadores(jugadoresConEstado);
-    } catch (error) {
-      console.error('Error al cargar datos:', error);
-      alert('Error al cargar los datos del equipo');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  }, [isOpen, cargarDatos]);
 
   // Agrupar jugadores por posición
   const jugadoresPorPosicion = useMemo(() => {
@@ -113,43 +116,44 @@ export default function ConvocatoriaEditModal({
     );
   };
 
-  const handleGuardar = async () => {
-    // Validaciones
-    if (resumen.totalTitulares > 11) {
-      alert('Solo puede haber 11 jugadores titulares');
-      return;
-    }
+   const handleGuardar = useCallback(async () => {
+     // Validaciones
+     if (resumen.totalTitulares > 11) {
+       setError('Solo puede haber 11 jugadores titulares');
+       return;
+     }
 
-    if (resumen.totalConvocados < 7) {
-      const confirmar = window.confirm(
-        'Tienes menos de 7 jugadores convocados. ¿Estás seguro de guardar?'
-      );
-      if (!confirmar) return;
-    }
+     if (resumen.totalConvocados < 7) {
+       const confirmar = window.confirm(
+         'Tienes menos de 7 jugadores convocados. ¿Estás seguro de guardar?'
+       );
+       if (!confirmar) return;
+     }
 
-    // Construir payload
-    const payload = {
-      id_partido: partidoId,
-      jugadores: jugadores
-        .filter(j => j.estado !== 'no_convocado')
-        .map(j => ({
-          id_jugador: j.id_jugador,
-          es_titular: j.estado === 'titular',
-        })),
-    };
+     // Construir payload
+     const payload = {
+       id_partido: partidoId,
+       jugadores: jugadores
+         .filter(j => j.estado !== 'no_convocado')
+         .map(j => ({
+           id_jugador: j.id_jugador,
+           es_titular: j.estado === 'titular',
+         })),
+     };
 
-    setIsSaving(true);
-    try {
-      await createConvocatoria(payload);
-      onSuccess();
-      onClose();
-    } catch (error) {
-      const mensaje = error instanceof Error ? error.message : 'Error al guardar la convocatoria';
-      alert(mensaje);
-    } finally {
-      setIsSaving(false);
-    }
-  };
+     setIsSaving(true);
+     setError(null);
+     try {
+       await createConvocatoria(payload);
+       onSuccess();
+       onClose();
+     } catch (error) {
+       const errorMessage = error instanceof Error ? error.message : 'Error al guardar la convocatoria';
+       setError(errorMessage);
+     } finally {
+       setIsSaving(false);
+     }
+   }, [resumen.totalTitulares, resumen.totalConvocados, partidoId, jugadores, onSuccess, onClose]);
 
   const seleccionarTodos = () => {
     setJugadores(prev =>
@@ -235,9 +239,9 @@ export default function ConvocatoriaEditModal({
     </div>
   );
 
-  const renderSeccion = (titulo: string, jugadores: JugadorUI[], maxRecomendado: number) => {
-    const convocados = jugadores.filter(j => j.estado !== 'no_convocado').length;
-    const titulares = jugadores.filter(j => j.estado === 'titular').length;
+   const renderSeccion = (titulo: string, jugadores: JugadorUI[], maxRecomendado: number) => {
+     const convocados = jugadores.filter(j => j.estado !== 'no_convocado').length;
+     void jugadores.filter(j => j.estado === 'titular').length;
 
     return (
       <div className="mb-6">
@@ -320,13 +324,19 @@ export default function ConvocatoriaEditModal({
                 onChange={(e) => setBusqueda(e.target.value)}
                 className="w-full bg-gray-900/50 border border-gray-800 rounded-xl pl-10 pr-4 py-2.5 text-white placeholder-gray-600 focus:outline-none focus:border-lime-500/50 transition-colors"
               />
-            </div>
-          </div>
-        </div>
+             </div>
+           </div>
+         </div>
 
-        {/* Lista de jugadores */}
-        <div className="flex-1 overflow-y-auto p-6">
-          {isLoading ? (
+         {error && (
+           <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 mb-4 mx-6">
+             <p className="text-red-400 text-sm text-center">{error}</p>
+           </div>
+         )}
+
+         {/* Lista de jugadores */}
+         <div className="flex-1 overflow-y-auto p-6">
+           {isLoading ? (
             <div className="text-center py-8">
               <p className="text-gray-400">Cargando jugadores...</p>
             </div>

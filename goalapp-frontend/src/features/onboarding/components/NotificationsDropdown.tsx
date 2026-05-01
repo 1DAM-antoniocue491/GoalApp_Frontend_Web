@@ -12,6 +12,7 @@ import type { Notification } from '../types';
 interface NotificationsDropdownProps {
   isOpen: boolean;
   onClose: () => void;
+  triggerRef?: React.RefObject<HTMLElement>;
 }
 
 // Iconos por tipo de notificación
@@ -70,7 +71,7 @@ function formatRelativeTime(dateString: string): string {
   return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
 }
 
-export function NotificationsDropdown({ isOpen, onClose }: NotificationsDropdownProps) {
+export function NotificationsDropdown({ isOpen, onClose, triggerRef }: NotificationsDropdownProps) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -85,10 +86,16 @@ export function NotificationsDropdown({ isOpen, onClose }: NotificationsDropdown
     }
   }, [isOpen]);
 
-  // Cerrar al hacer click fuera
+  // Cerrar al hacer click fuera (pero no cuando se hace click en el trigger)
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+      const target = e.target as HTMLElement;
+      
+      // Cerrar si el click está fuera del dropdown Y fuera del trigger
+      const isInsideDropdown = dropdownRef.current?.contains(target);
+      const isInsideTrigger = triggerRef?.current?.contains(target);
+      
+      if (!isInsideDropdown && !isInsideTrigger) {
         onClose();
       }
     }
@@ -117,7 +124,7 @@ export function NotificationsDropdown({ isOpen, onClose }: NotificationsDropdown
       await markAsRead(notificationId);
       setNotifications(prev =>
         prev.map(n =>
-          n.id_notificacion === notificationId ? { ...n, leido: true } : n
+          n.id_notificacion === notificationId ? { ...n, leida: true } : n
         )
       );
     } catch (err) {
@@ -131,7 +138,7 @@ export function NotificationsDropdown({ isOpen, onClose }: NotificationsDropdown
     setMarkingAll(true);
     try {
       await markAllAsRead();
-      setNotifications(prev => prev.map(n => ({ ...n, leido: true })));
+      setNotifications(prev => prev.map(n => ({ ...n, leida: true })));
     } catch (err) {
       console.error('Error al marcar todas como leídas:', err);
     } finally {
@@ -139,7 +146,7 @@ export function NotificationsDropdown({ isOpen, onClose }: NotificationsDropdown
     }
   };
 
-  const unreadCount = notifications.filter(n => !n.leido).length;
+  const unreadCount = notifications.filter(n => !n.leida).length;
 
   if (!isOpen) return null;
 
@@ -202,7 +209,7 @@ export function NotificationsDropdown({ isOpen, onClose }: NotificationsDropdown
               <div
                 key={notification.id_notificacion}
                 className={`p-3 rounded-lg border transition-colors ${
-                  notification.leido
+                  notification.leida
                     ? 'bg-zinc-900/50 border-zinc-800'
                     : 'bg-zinc-800/50 border-lime-900/30'
                 }`}
@@ -218,7 +225,7 @@ export function NotificationsDropdown({ isOpen, onClose }: NotificationsDropdown
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
                         <p className={`text-sm font-medium truncate ${
-                          notification.leido ? 'text-zinc-400' : 'text-white'
+                          notification.leida ? 'text-zinc-400' : 'text-white'
                         }`}>
                           {notification.titulo}
                         </p>
@@ -226,7 +233,7 @@ export function NotificationsDropdown({ isOpen, onClose }: NotificationsDropdown
                       </div>
 
                       {/* Botón marcar como leída */}
-                      {!notification.leido && (
+                      {!notification.leida && (
                         <button
                           onClick={() => handleMarkAsRead(notification.id_notificacion)}
                           disabled={markingId === notification.id_notificacion}
@@ -239,7 +246,7 @@ export function NotificationsDropdown({ isOpen, onClose }: NotificationsDropdown
                     </div>
 
                     <p className={`text-xs mt-2 ${
-                      notification.leido ? 'text-zinc-500' : 'text-zinc-300'
+                      notification.leida ? 'text-zinc-500' : 'text-zinc-300'
                     }`}>
                       {notification.mensaje}
                     </p>

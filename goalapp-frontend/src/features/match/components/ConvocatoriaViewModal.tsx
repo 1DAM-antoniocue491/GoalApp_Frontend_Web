@@ -177,9 +177,9 @@ export default function ConvocatoriaViewModal({
 
           {/* Estado del partido */}
           <div className={`mt-3 px-3 py-1.5 rounded-lg inline-flex items-center gap-2 text-xs font-semibold ${
-            estadoPartido === 'En Juego'
+            estadoPartido === 'en_juego'
               ? 'bg-red-500/20 text-red-400 border border-red-500/30'
-              : estadoPartido === 'Finalizado'
+              : estadoPartido === 'finalizado'
               ? 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
               : 'bg-lime-500/20 text-lime-400 border border-lime-500/30'
           }`}>
@@ -250,7 +250,7 @@ export default function ConvocatoriaViewModal({
         {/* Footer informativo */}
         <div className="px-6 py-4 border-t border-gray-800 bg-gray-900/30">
           <p className="text-gray-500 text-xs text-center">
-            {estadoPartido === 'Programado'
+            {estadoPartido === 'programado'
               ? 'La convocatoria puede modificarse hasta el inicio del partido'
               : 'Convocatoria cerrada - Partido iniciado'}
           </p>

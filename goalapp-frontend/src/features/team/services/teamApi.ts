@@ -330,3 +330,49 @@ export async function fetchTeamStaff(equipoId: number): Promise<TeamStaffRespons
     throw new Error(getErrorMessage(error as ApiError));
   }
 }
+
+// ============================================
+// ACTUALIZAR EQUIPO
+// ============================================
+
+export interface UpdateTeamPayload {
+  nombre?: string;
+  ciudad?: string;
+  estadio?: string;
+  escudo?: string;
+  colores?: string;
+}
+
+/**
+ * Actualizar un equipo existente
+ * PATCH /equipos/{equipoId}
+ */
+export async function updateTeam(equipoId: number, team: UpdateTeamPayload): Promise<TeamResponse> {
+  if (isMockEnabled()) {
+    return await mockApi.mockUpdateTeam(equipoId, team);
+  }
+
+  try {
+    const { apiPatch } = await import('../../../services/api');
+    return await apiPatch<TeamResponse>(`/equipos/${equipoId}`, team);
+  } catch (error) {
+    throw new Error(getErrorMessage(error as ApiError));
+  }
+}
+
+/**
+ * Eliminar un equipo
+ * DELETE /equipos/{equipoId}
+ */
+export async function deleteTeam(equipoId: number): Promise<void> {
+  if (isMockEnabled()) {
+    return await mockApi.mockDeleteTeam(equipoId);
+  }
+
+  try {
+    const { apiDelete } = await import('../../../services/api');
+    return await apiDelete(`/equipos/${equipoId}`);
+  } catch (error) {
+    throw new Error(getErrorMessage(error as ApiError));
+  }
+}

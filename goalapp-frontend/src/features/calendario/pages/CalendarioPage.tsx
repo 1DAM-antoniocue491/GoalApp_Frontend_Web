@@ -21,12 +21,14 @@ import {
   type FinishMatchPayload,
 } from '../../match/services/matchApi';
 import type { CalendarConfig } from '../components/CreateCalendarModal';
+import CreateMatchModal from '../components/CreateMatchModal';
 import InitMatchModal from '../../match/components/InitMatchModal';
 import FinishMatchModal, { type FinishData } from '../../match/components/FinishMatchModal';
 import EventRecorderModal from '../../match/components/EventRecorderModal';
 import ConvocatoriaModal from '../../match/components/ConvocatoriaModal';
 import { fetchTeamSquad, type PlayerWithStatsResponse } from '../../team/services/teamApi';
 import { apiGet } from '../../../services/api';
+import LineupEditModal from '../components/LineupEditModal';
 
 export default function CalendarioPage() {
   const { selectedLeague } = useSelectedLeague();
@@ -67,6 +69,20 @@ export default function CalendarioPage() {
     fecha: string;
     estado: string;
   } | null>(null);
+
+  // Estados para modal de gestión de plantilla
+  const [showLineupModal, setShowLineupModal] = useState(false);
+  const [lineupMatchData, setLineupMatchData] = useState<{
+    id_partido: number;
+    id_equipo: number;
+    nombre_equipo: string;
+    fecha: string;
+  } | null>(null);
+
+  // Estados para modal de crear partido
+  const [showCreateMatchModal, setShowCreateMatchModal] = useState(false);
+
+  // Estado para el ID del equipo del entrenador
   const [miEquipoId, setMiEquipoId] = useState<number | null>(null);
 
   // Calcular roles primero (necesario para el useEffect de carga de equipo)
@@ -104,16 +120,34 @@ export default function CalendarioPage() {
     try {
       const [jornadasData, proximosData, enVivoData] = await Promise.all([
         fetchMatchesByJornada(selectedLeague.id),
-        fetchUpcomingMatches(5),
-        fetchLiveMatches(),
+        fetchUpcomingMatches(5, selectedLeague.id),
+        fetchLiveMatches(selectedLeague.id),
       ]);
 
       setJornadas(jornadasData);
       setProximosPartidos(proximosData);
       setPartidosEnVivo(enVivoData);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Error al cargar el calendario';
-      setError(message);
+      // Manejo específico de errores según el tipo
+      if (typeof err === 'object' && err !== null && 'statusCode' in err) {
+        const apiError = err as { statusCode: number; message: string; isNetworkError: boolean };
+
+        if (apiError.isNetworkError || apiError.statusCode === 0) {
+          setError('No se puede conectar con el servidor. Verifica tu conexión a internet.');
+        } else if (apiError.statusCode === 404) {
+          setError('No se encontró el calendario. Es posible que la liga no tenga partidos creados.');
+        } else if (apiError.statusCode >= 500) {
+          setError('Error del servidor. Por favor, intenta más tarde.');
+        } else if (apiError.statusCode === 401) {
+          setError('Sesión expirada. Por favor, inicia sesión nuevamente.');
+        } else if (apiError.statusCode === 403) {
+          setError('No tienes permisos para acceder a esta liga.');
+        } else {
+          setError(apiError.message || 'Error al cargar el calendario');
+        }
+      } else {
+        setError(err instanceof Error ? err.message : 'Error al cargar el calendario');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -190,8 +224,23 @@ export default function CalendarioPage() {
   };
 
   const handleCreateMatch = () => {
-    // TODO: Implementar creación de nuevo partido
-    console.log('Crear nuevo encuentro para liga:', selectedLeague?.id);
+    if (!selectedLeague?.id) return;
+    setShowCreateMatchModal(true);
+  };
+
+  const handleOpenCreateCalendar = () => {
+    setIsEditMode(false);
+    setShowCreateCalendarModal(true);
+  };
+
+  const handleOpenEditCalendar = () => {
+    setIsEditMode(true);
+    setShowCreateCalendarModal(true);
+  };
+
+  const handleConfirmCreateMatch = () => {
+    setShowCreateMatchModal(false);
+    loadData();
   };
 
   const handleInitMatch = async (idPartido: number) => {
@@ -305,8 +354,30 @@ export default function CalendarioPage() {
   };
 
   const handleManageLineup = async (idPartido: number) => {
-    // TODO: Implementar gestión de plantilla
-    console.log('Gestionar plantilla:', idPartido);
+    const partido = partidosFiltrados.find(p => p.id_partido === idPartido);
+    if (!partido) return;
+
+    const equipoId = partido.id_equipo_local === miEquipoId
+      ? partido.id_equipo_local
+      : partido.id_equipo_visitante === miEquipoId
+      ? partido.id_equipo_visitante
+      : null;
+
+    if (!equipoId) {
+      setError('No tienes un equipo asignado en este partido');
+      return;
+    }
+
+    setLineupMatchData({
+      id_partido: idPartido,
+      id_equipo: equipoId,
+      nombre_equipo: equipoId === partido.id_equipo_local
+        ? partido.nombre_equipo_local
+        : partido.nombre_equipo_visitante,
+      fecha: partido.fecha,
+    });
+
+    setShowLineupModal(true);
   };
 
   const handleRegisterEvent = async (idPartido: number) => {
@@ -438,6 +509,8 @@ export default function CalendarioPage() {
     proximosCount,
     enVivoCount,
     onCreateCalendar: () => setShowCreateCalendarModal(true),
+    onOpenCreateCalendar: handleOpenCreateCalendar,
+    onOpenEditCalendar: handleOpenEditCalendar,
     onCreateMatch: handleCreateMatch,
     onInitMatch: handleInitMatch,
     onFinishMatch: handleFinishMatch,
@@ -467,6 +540,8 @@ export default function CalendarioPage() {
             onManageLineup={handleManageLineup}
             isEditMode={isEditMode}
             initialConfig={initialConfig}
+            onOpenCreateCalendar={handleOpenCreateCalendar}
+            onOpenEditCalendar={handleOpenEditCalendar}
           />
         )}
         {isCoach && <CoachCalendar {...commonProps} onManageLineup={handleManageLineup} equipoId={miEquipoId || undefined} />}
@@ -523,6 +598,30 @@ export default function CalendarioPage() {
           competicion={leagueName || 'Competición'}
           estadoPartido={convocatoriaMatchData.estado}
           canEdit={isCoach || isAdmin}
+        />
+      )}
+
+      {/* Modal de crear partido */}
+      {selectedLeague?.id && showCreateMatchModal && (
+        <CreateMatchModal
+          isOpen={showCreateMatchModal}
+          onClose={() => setShowCreateMatchModal(false)}
+          ligaId={selectedLeague.id}
+          onSuccess={handleConfirmCreateMatch}
+        />
+      )}
+
+      {/* Modal de gestión de plantilla */}
+      {lineupMatchData && (
+        <LineupEditModal
+          isOpen={showLineupModal}
+          onClose={() => setShowLineupModal(false)}
+          onSuccess={loadData}
+          partidoId={lineupMatchData.id_partido}
+          equipoId={lineupMatchData.id_equipo}
+          nombreEquipo={lineupMatchData.nombre_equipo}
+          partidoFecha={lineupMatchData.fecha}
+          competicion={leagueName || 'Competición'}
         />
       )}
     </>

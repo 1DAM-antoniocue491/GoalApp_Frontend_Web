@@ -59,12 +59,23 @@ export default function EventSubstitutionModal({
   const handleConfirm = async () => {
     if (!playerIn || !playerOut) return;
 
+    const minuteValue = parseInt(minute, 10);
+    if (isNaN(minuteValue) || minuteValue < 0 || minuteValue > 120) {
+      alert('El minuto debe estar entre 0 y 120');
+      return;
+    }
+
+    if (playerIn === playerOut) {
+      alert('El jugador que entra no puede ser el mismo que sale');
+      return;
+    }
+
     setIsLoading(true);
     try {
       await onConfirm({
         id_jugador: playerIn,
         id_jugador_sale: playerOut,
-        minuto: parseInt(minute, 10) || minuto,
+        minuto: minuteValue,
       });
     } finally {
       setIsLoading(false);
