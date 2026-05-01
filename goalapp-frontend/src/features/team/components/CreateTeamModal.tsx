@@ -61,7 +61,11 @@ export default function CreateTeamModal({ isOpen, onClose, onSuccess, ligaId }: 
           formDataImagen.append('file', escudoFile);
 
           const { apiPostRaw } = await import('../../../services/api');
-          await apiPostRaw(`/imagenes/equipos/${createdTeamId.current}`, formDataImagen);
+          if (apiPostRaw) {
+            await apiPostRaw(`/imagenes/equipos/${createdTeamId.current}`, formDataImagen);
+          } else {
+            console.warn('apiPostRaw no disponible en modo mock');
+          }
         } catch (imgError) {
           console.warn('Error al subir la imagen:', imgError);
           // No fallamos el proceso si solo falla la imagen

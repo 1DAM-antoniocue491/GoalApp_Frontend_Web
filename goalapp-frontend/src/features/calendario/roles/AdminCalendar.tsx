@@ -28,6 +28,9 @@ interface AdminCalendarProps {
   onManageConvocatoria: (id: number) => void;
   onManageLineup: (id: number) => void;
   onEditCalendar: () => void;
+  onOpenCreateCalendar: () => void;
+  onOpenEditCalendar: () => void;
+  onCreateMatch: () => void;
   onDeleteCalendar: () => void;
   showCreateCalendarModal: boolean;
   setShowCreateCalendarModal: (open: boolean) => void;
@@ -51,7 +54,10 @@ export default function AdminCalendar({
   onManageConvocatoria,
   onManageLineup,
   onEditCalendar,
+  onOpenCreateCalendar,
+  onOpenEditCalendar,
   onDeleteCalendar,
+  onCreateMatch,
   showCreateCalendarModal,
   setShowCreateCalendarModal,
   handleCreateCalendar,
@@ -107,7 +113,7 @@ export default function AdminCalendar({
       {/* CardAdmin */}
       <div className="w-full mt-8 mb-8 grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* TARJETA 1: CALENDARIO AUTOMÁTICO - 3 estados */}
-        <div className="bg-[#1a1a1e] border border-gray-800 p-8 rounded-3xl flex flex-col justify-between shadow-xl relative overflow-hidden">
+        <div className="bg-zinc-900 border border-gray-800 p-8 rounded-3xl flex flex-col justify-between shadow-xl relative overflow-hidden">
           <div>
             <div className="flex justify-between items-start mb-6">
               <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
@@ -159,10 +165,7 @@ export default function AdminCalendar({
           {/* Botones según estado */}
           {calendarState === 'crear' && (
             <button
-              onClick={() => {
-                setIsEditMode(false);
-                setShowCreateCalendarModal(true);
-              }}
+              onClick={onOpenCreateCalendar}
               className="w-full bg-gradient-to-r from-[#c5f52a] via-[#c5f52a] to-[#2a5a55] text-black font-bold py-4 rounded-2xl flex justify-between px-6 items-center group transition-all hover:scale-[1.02]"
             >
               <span>Crear calendario</span>
@@ -172,10 +175,7 @@ export default function AdminCalendar({
           {calendarState === 'edicion' && (
             <div className="flex gap-3">
               <button
-                onClick={() => {
-                  setIsEditMode(true);
-                  setShowCreateCalendarModal(true);
-                }}
+                onClick={onOpenEditCalendar}
                 className="flex-1 bg-lime-800/30 border border-lime-700/50 text-lime-400 font-bold py-4 rounded-2xl flex justify-center items-center gap-2 hover:bg-lime-800/50 transition-all"
               >
                 <FaEdit className="text-lg" />
@@ -201,8 +201,8 @@ export default function AdminCalendar({
           )}
         </div>
 
-        {/* TARJETA 2: NUEVO ENCUENTRO - Próximamente */}
-        <div className="bg-[#1a1a1e] border border-gray-800 p-8 rounded-3xl flex flex-col justify-between shadow-xl opacity-50">
+        {/* TARJETA 2: NUEVO ENCUENTRO */}
+        <div className="bg-zinc-900 border border-gray-800 p-8 rounded-3xl flex flex-col justify-between shadow-xl">
           <div>
             <div className="bg-gray-800/50 w-12 h-12 rounded-xl flex items-center justify-center mb-6">
               <FaPlus className="text-[#c5f52a] text-2xl" />
@@ -214,11 +214,11 @@ export default function AdminCalendar({
           </div>
 
           <button
-            disabled
-            className="w-full bg-gray-800 text-gray-500 font-bold py-4 rounded-2xl flex justify-between px-6 items-center cursor-not-allowed"
+            onClick={onCreateMatch}
+            className="w-full bg-gradient-to-r from-[#c5f52a] via-[#c5f52a] to-[#2a5a55] text-black font-bold py-4 rounded-2xl flex justify-between px-6 items-center group transition-all hover:scale-[1.02]"
           >
-            <span>Próximamente</span>
-            <span>→</span>
+            <span>Crear encuentro</span>
+            <span className="group-hover:translate-x-1 transition-transform">→</span>
           </button>
         </div>
       </div>

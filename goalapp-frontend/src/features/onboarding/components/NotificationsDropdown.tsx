@@ -12,6 +12,7 @@ import type { Notification } from '../types';
 interface NotificationsDropdownProps {
   isOpen: boolean;
   onClose: () => void;
+  triggerRef?: React.RefObject<HTMLElement>;
 }
 
 // Iconos por tipo de notificación
@@ -70,7 +71,7 @@ function formatRelativeTime(dateString: string): string {
   return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
 }
 
-export function NotificationsDropdown({ isOpen, onClose }: NotificationsDropdownProps) {
+export function NotificationsDropdown({ isOpen, onClose, triggerRef }: NotificationsDropdownProps) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -85,10 +86,16 @@ export function NotificationsDropdown({ isOpen, onClose }: NotificationsDropdown
     }
   }, [isOpen]);
 
-  // Cerrar al hacer click fuera
+  // Cerrar al hacer click fuera (pero no cuando se hace click en el trigger)
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+      const target = e.target as HTMLElement;
+      
+      // Cerrar si el click está fuera del dropdown Y fuera del trigger
+      const isInsideDropdown = dropdownRef.current?.contains(target);
+      const isInsideTrigger = triggerRef?.current?.contains(target);
+      
+      if (!isInsideDropdown && !isInsideTrigger) {
         onClose();
       }
     }

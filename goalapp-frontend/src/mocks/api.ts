@@ -18,6 +18,19 @@ import type {
   MockCreateLeagueResult,
   MockSeguimientoResponse,
   MockDejarSeguirResponse,
+  MockTopScorer,
+  MockMatchdayMVP,
+  MockTeamGoals,
+  MockPlayerStats,
+  MockRol,
+  MockUserWithRole,
+  MockInviteUserPayload,
+  MockTeamResponse,
+  MockMiembroEquipo,
+  MockDelegado,
+  MockMiembroEstado,
+  MockConvocatoria,
+  MockJugadorConvocatoria,
 } from './types';
 
 // Importar datos mock desde JSON
@@ -522,11 +535,30 @@ export async function mockJoinLeagueByCode(codigo: string): Promise<MockSeguimie
 // ============================================
 
 /**
- * Obtener equipos de una liga
+ * Obtener equipos de una liga (devuelve MockEquipo[])
  */
 export async function mockFetchTeamsByLeague(ligaId: number): Promise<MockEquipo[]> {
   await simulateDelay();
   return equipos.filter((e) => e.id_liga === ligaId).map((e) => ({ ...e }));
+}
+
+/**
+ * Obtener equipos de una liga (devuelve MockTeamResponse[])
+ * Función específica para usersApi que necesita formato diferente
+ */
+export async function mockFetchTeamsByLeagueForUsers(ligaId: number): Promise<MockTeamResponse[]> {
+  await simulateDelay();
+  return equipos.filter((e) => e.id_liga === ligaId).map((e) => ({
+    id_equipo: e.id_equipo,
+    nombre: e.nombre,
+    escudo: e.escudo ?? null,
+    colores: null,
+    id_liga: e.id_liga,
+    id_entrenador: 1,
+    id_delegado: 1,
+    created_at: e.created_at,
+    updated_at: e.updated_at,
+  }));
 }
 
 /**
@@ -539,6 +571,47 @@ export async function mockFetchTeamById(id: number): Promise<MockEquipo> {
     throw new Error(`Equipo con id ${id} no encontrado`);
   }
   return { ...equipo };
+}
+
+/**
+ * Actualizar un equipo existente
+ */
+export async function mockUpdateTeam(
+  id: number,
+  data: { nombre?: string; ciudad?: string; estadio?: string; escudo?: string; colores?: string }
+): Promise<MockEquipo> {
+  await simulateDelay(MOCK_WRITE_DELAY_MS);
+
+  const index = equipos.findIndex((e) => e.id_equipo === id);
+  if (index === -1) {
+    throw new Error(`Equipo con id ${id} no encontrado`);
+  }
+
+  equipos[index] = {
+    ...equipos[index],
+    ...(data.nombre !== undefined && { nombre: data.nombre }),
+    ...(data.ciudad !== undefined && { ciudad: data.ciudad }),
+    ...(data.estadio !== undefined && { estadio: data.estadio }),
+    ...(data.escudo !== undefined && { escudo: data.escudo }),
+    ...(data.colores !== undefined && { colores: data.colores }),
+    updated_at: new Date().toISOString(),
+  };
+
+  return { ...equipos[index] };
+}
+
+/**
+ * Eliminar un equipo
+ */
+export async function mockDeleteTeam(id: number): Promise<void> {
+  await simulateDelay(MOCK_WRITE_DELAY_MS);
+
+  const index = equipos.findIndex((e) => e.id_equipo === id);
+  if (index === -1) {
+    throw new Error(`Equipo con id ${id} no encontrado`);
+  }
+
+  equipos.splice(index, 1);
 }
 
 /**
@@ -1533,4 +1606,507 @@ export function mockGetCoachDashboardStats() {
     victorias: 10,
     goles: 28,
   };
+}
+
+// ============================================
+// ESTADÍSTICAS
+// ============================================
+
+/**
+ * Obtener estadísticas generales de la temporada
+ */
+export async function mockFetchSeasonStats(ligaId: number): Promise<{
+  total_partidos: number;
+  total_goles: number;
+  promedio_goles_por_partido: number;
+  total_amarillas: number;
+  total_rojas: number;
+  total_asistencias: number;
+  equipos_participantes: number;
+  jugadores_registrados: number;
+}> {
+  await simulateDelay();
+
+  const partidosLiga = partidos.filter((p) => p.id_liga === ligaId);
+  const eventosGol = eventos.filter((e) => e.tipo_evento === 'gol');
+  const eventosAmarilla = eventos.filter((e) => e.tipo_evento === 'tarjeta_amarilla');
+  const eventosRojas = eventos.filter((e) => e.tipo_evento === 'tarjeta_roja');
+  const eventosAsistencia = eventos.filter((e) => e.tipo_evento === 'asistencia');
+  const equiposLiga = equipos.filter((e) => e.id_liga === ligaId);
+  const jugadoresLiga = jugadores.filter((j) => equipos.find((eq) => eq.id_equipo === j.id_equipo)?.id_liga === ligaId);
+
+  let totalGoles = 0;
+  eventosGol.forEach((e) => {
+    if (e.id_partido !== null) {
+      const partido = partidos.find((p) => p.id_partido === e.id_partido);
+      if (partido && partido.id_liga === ligaId) {
+        totalGoles++;
+      }
+    }
+  });
+
+  return {
+    total_partidos: partidosLiga.length,
+    total_goles: totalGoles,
+    promedio_goles_por_partido: partidosLiga.length > 0 ? (totalGoles / partidosLiga.length).toFixed(1) : 0,
+    total_amarillas: eventosAmarilla.length,
+    total_rojas: eventosRojas.length,
+    total_asistencias: eventosAsistencia.length,
+    equipos_participantes: equiposLiga.length,
+    jugadores_registrados: jugadoresLiga.length,
+  };
+}
+
+/**
+ * Obtener top goleadores de la liga
+ */
+export async function mockFetchTopScorers(
+  ligaId: number,
+  limit: number = 5
+): Promise<MockTopScorer[]> {
+  await simulateDelay();
+
+  const eventosGol = eventos.filter((e) => e.tipo_evento === 'gol');
+  const golesPorJugador = new Map<number, number>();
+
+  eventosGol.forEach((e) => {
+    if (e.id_jugador !== null) {
+      const existencia = golesPorJugador.get(e.id_jugador);
+      golesPorJugador.set(e.id_jugador, existencia ? existencia + 1 : 1);
+    }
+  });
+
+  const jugadoresLiga = jugadores.filter((j) =>
+    equipos.find((eq) => eq.id_equipo === j.id_equipo)?.id_liga === ligaId
+  );
+
+  return jugadoresLiga
+    .map((j) => ({
+      id_jugador: j.id_jugador,
+      id_usuario: j.id_usuario,
+      id_equipo: j.id_equipo,
+      nombre: usuarios.find((u) => u.id_usuario === j.id_usuario)?.nombre ?? `Jugador ${j.id_jugador}`,
+      nombre_equipo: equipos.find((e) => e.id_equipo === j.id_equipo)?.nombre ?? 'Unknown',
+      escudo_equipo: equipos.find((e) => e.id_equipo === j.id_equipo)?.escudo ?? null,
+      goles: golesPorJugador.get(j.id_jugador) || 0,
+      partidos_jugados: Math.floor(Math.random() * 10) + 1,
+      promedio_goles: (golesPorJugador.get(j.id_jugador) || 0) > 0 ? (golesPorJugador.get(j.id_jugador)! / (Math.floor(Math.random() * 10) + 1)).toFixed(2) : '0.00',
+    }))
+    .sort((a, b) => b.goles - a.goles)
+    .slice(0, limit);
+}
+
+/**
+ * Obtener MVP de la jornada
+ */
+export async function mockFetchMatchdayMVP(ligaId: number): Promise<MockMatchdayMVP | null> {
+  await simulateDelay();
+
+  const eventosMVP = eventos.filter((e) => e.tipo_evento === 'mvp');
+  const mvpEvento = eventosMVP.find((e) => {
+    const partido = partidos.find((p) => p.id_partido === e.id_partido);
+    return partido?.id_liga === ligaId;
+  });
+
+  if (!mvpEvento || mvpEvento.id_jugador === null) {
+    return null;
+  }
+
+  const jugador = jugadores.find((j) => j.id_jugador === mvpEvento.id_jugador);
+  if (!jugador) return null;
+
+  const equipo = equipos.find((e) => e.id_equipo === jugador.id_equipo);
+  if (!equipo) return null;
+
+  return {
+    id_jugador: mvpEvento.id_jugador,
+    id_usuario: jugador.id_usuario,
+    nombre: usuarios.find((u) => u.id_usuario === jugador.id_usuario)?.nombre ?? `Jugador ${jugador.id_jugador}`,
+    nombre_equipo: equipo.nombre,
+    escudo_equipo: equipo.escudo ?? null,
+    rating: mvpEvento.puntuacion_mvp ?? 8.5,
+    goles: 0,
+    asistencias: 0,
+    jornada: 1,
+  };
+}
+
+/**
+ * Obtener estadísticas de goles por equipo
+ */
+export async function mockFetchTeamGoalsStats(ligaId: number): Promise<MockTeamGoals[]> {
+  await simulateDelay();
+
+  const equiposLiga = equipos.filter((e) => e.id_liga === ligaId);
+  const partidosLiga = partidos.filter((p) => p.id_liga === ligaId);
+
+  const resultados = equiposLiga.map((equipo) => {
+    let golesFavor = 0, golesContra = 0, partidosJugados = 0;
+
+    partidosLiga.forEach((p) => {
+      if (p.id_equipo_local === equipo.id_equipo || p.id_equipo_visitante === equipo.id_equipo) {
+        partidosJugados++;
+        if (p.id_equipo_local === equipo.id_equipo && p.goles_local !== null) {
+          golesFavor += p.goles_local;
+        } else if (p.id_equipo_visitante === equipo.id_equipo && p.goles_visitante !== null) {
+          golesFavor += p.goles_visitante;
+        }
+
+        if (p.id_equipo_local === equipo.id_equipo && p.goles_visitante !== null) {
+          golesContra += p.goles_visitante;
+        } else if (p.id_equipo_visitante === equipo.id_equipo && p.goles_local !== null) {
+          golesContra += p.goles_local;
+        }
+      }
+    });
+
+    return {
+      id_equipo: equipo.id_equipo,
+      nombre: equipo.nombre,
+      escudo: equipo.escudo ?? null,
+      goles_favor: golesFavor,
+      goles_contra: golesContra,
+      diferencia_goles: golesFavor - golesContra,
+      promedio_goles_favor: partidosJugados > 0 ? (golesFavor / partidosJugados).toFixed(2) : '0.00',
+      partidos_jugados: partidosJugados,
+    };
+  });
+
+  return resultados.sort((a, b) => b.diferencia_goles - a.diferencia_goles);
+}
+
+/**
+ * Obtener estadísticas personales de un jugador
+ */
+export async function mockFetchPlayerPersonalStats(
+  ligaId: number,
+  usuarioId: number
+): Promise<MockPlayerStats | null> {
+  await simulateDelay();
+
+  const jugador = jugadores.find((j) => j.id_usuario === usuarioId);
+  if (!jugador) return null;
+
+  const equipo = equipos.find((e) => e.id_equipo === jugador.id_equipo);
+  if (!equipo || equipo.id_liga !== ligaId) return null;
+
+  const eventosGol = eventos.filter((e) => e.tipo_evento === 'gol' && e.id_jugador === jugador.id_jugador);
+  const eventosAmarilla = eventos.filter((e) => e.tipo_evento === 'tarjeta_amarilla' && e.id_jugador === jugador.id_jugador);
+  const eventosRojas = eventos.filter((e) => e.tipo_evento === 'tarjeta_roja' && e.id_jugador === jugador.id_jugador);
+
+  return {
+    id_jugador: jugador.id_jugador,
+    id_usuario: usuarioId,
+    nombre: usuarios.find((u) => u.id_usuario === usuarioId)?.nombre ?? `Usuario ${usuarioId}`,
+    nombre_equipo: equipo.nombre,
+    escudo_equipo: equipo.escudo ?? null,
+    goles: eventosGol.length,
+    asistencias: 0,
+    tarjetas_amarillas: eventosAmarilla.length,
+    tarjetas_rojas: eventosRojas.length,
+    partidos_jugados: Math.floor(Math.random() * 10) + 1,
+    veces_mvp: eventos.filter((e) => e.tipo_evento === 'mvp' && e.id_jugador === jugador.id_jugador).length,
+  };
+}
+
+// ============================================
+// USUARIOS
+// ============================================
+
+/**
+ * Obtener todos los roles disponibles
+ */
+export async function mockFetchRoles(): Promise<MockRol[]> {
+  await simulateDelay();
+  return [
+    { id_rol: 1, nombre: 'admin', descripcion: 'Administrador del sistema' },
+    { id_rol: 2, nombre: 'entrenador', descripcion: 'Entrenador de equipo' },
+    { id_rol: 3, nombre: 'delegado', descripcion: 'Delegado de partido' },
+    { id_rol: 4, nombre: 'jugador', descripcion: 'Jugador de equipo' },
+    { id_rol: 5, nombre: 'observador', descripcion: 'Observador' },
+  ];
+}
+
+/**
+ * Obtener equipos de una liga (devuelve MockTeamResponse[])
+ * Función específica para usersApi que necesita formato diferente
+ * Ya definida en la línea 549, solo necesitamos exportarla aquí
+ */
+
+/**
+ * Obtener usuarios con rol en una liga
+ */
+export async function mockFetchUsersByLeague(ligaId: number): Promise<MockUserWithRole[]> {
+  await simulateDelay();
+
+  const usuariosLiga = usuarios.filter(() => true);
+  const roles: Record<number, string> = {
+    1: 'admin',
+    2: 'entrenador',
+    3: 'delegado',
+    4: 'jugador',
+    5: 'observador',
+  };
+
+  return usuariosLiga
+    .filter((u) => u.activo)
+    .map((u) => ({
+      id_usuario: u.id_usuario,
+      nombre: u.nombre,
+      email: u.email,
+      id_rol: u.roles[0]?.id_rol || 5,
+      rol: roles[u.roles[0]?.id_rol || 5] as UserRole,
+      activo: u.activo,
+      created_at: u.created_at || new Date().toISOString(),
+    }))
+    .slice(0, 10);
+}
+
+/**
+ * Invitar usuario a una liga (mock vacío - no modifica datos)
+ */
+export async function mockInviteUser(_payload: { email: string; liga_id: number; id_rol: number; nombre?: string; id_equipo?: number; dorsal?: number; posicion?: string; tipo_jugador?: string }): Promise<void> {
+  await simulateDelay(MOCK_WRITE_DELAY_MS);
+}
+
+// ============================================
+// MIEMBROS DE LIGA
+// ============================================
+
+/**
+ * Obtener todos los usuarios de una liga (memberApi)
+ */
+export async function mockFetchUsuariosLiga(ligaId: number): Promise<MockUsuarioLiga[]> {
+  await simulateDelay();
+
+  const usuariosLiga = usuarios.filter(() => true);
+  const roles: Record<number, string> = {
+    1: 'admin',
+    2: 'entrenador',
+    3: 'delegado',
+    4: 'jugador',
+    5: 'observador',
+  };
+
+  return usuariosLiga
+    .slice(0, 10)
+    .map((u) => ({
+      id_usuario_rol: u.id_usuario,
+      id_usuario: u.id_usuario,
+      nombre_usuario: u.nombre,
+      email: u.email,
+      id_rol: u.roles[0]?.id_rol || 5,
+      nombre_rol: roles[u.roles[0]?.id_rol || 5],
+      activo: u.activo,
+    }));
+}
+
+/**
+ * Actualizar el rol de un usuario en una liga
+ */
+export async function mockUpdateUsuarioRol(
+  _ligaId: number,
+  _usuarioId: number,
+  _payload: { id_rol: number }
+): Promise<MockUsuarioLiga> {
+  await simulateDelay();
+  return {
+    id_usuario_rol: 1,
+    id_usuario: 1,
+    nombre_usuario: 'Usuario Mock',
+    email: 'mock@email.com',
+    id_rol: 1,
+    nombre_rol: 'admin',
+    activo: true,
+  };
+}
+
+/**
+ * Actualizar el estado (activo/pendiente) de un usuario
+ */
+export async function mockUpdateUsuarioEstado(
+  _ligaId: number,
+  _usuarioId: number,
+  _payload: { activo: boolean }
+): Promise<MockUsuarioLiga> {
+  await simulateDelay();
+  return {
+    id_usuario_rol: 1,
+    id_usuario: 1,
+    nombre_usuario: 'Usuario Mock',
+    email: 'mock@email.com',
+    id_rol: 1,
+    nombre_rol: 'admin',
+    activo: true,
+  };
+}
+
+/**
+ * Eliminar un usuario de una liga
+ */
+export async function mockDeleteUsuarioLiga(
+  _ligaId: number,
+  _usuarioId: number
+): Promise<{ mensaje: string }> {
+  await simulateDelay();
+  return { mensaje: 'Usuario eliminado correctamente' };
+}
+
+// ============================================
+// MIEMBROS DE EQUIPO
+// ============================================
+
+/**
+ * Obtener todos los miembros del equipo
+ */
+export async function mockFetchMiembrosEquipo(equipoId: number): Promise<MockMiembroEquipo[]> {
+  await simulateDelay();
+
+  const equipo = equipos.find((e) => e.id_equipo === equipoId);
+  if (!equipo) {
+    throw new Error(`Equipo con id ${equipoId} no encontrado`);
+  }
+
+  const jugadoresEquipo = jugadores.filter((j) => j.id_equipo === equipoId);
+  const usuariosMap = new Map(usuarios.map((u) => [u.id_usuario, u]));
+
+  return jugadoresEquipo.map((j) => ({
+    id_miembro: j.id_jugador,
+    id_usuario: j.id_usuario,
+    tipo: j.posicion ? 'jugador' : 'delegado',
+    nombre: usuariosMap.get(j.id_usuario)?.nombre ?? `Jugador ${j.id_jugador}`,
+    email: usuariosMap.get(j.id_usuario)?.email ?? `jugador${j.id_jugador}@email.com`,
+    activo: j.activo,
+    posicion: j.posicion ?? undefined,
+    dorsal: j.dorsal ?? undefined,
+  }));
+}
+
+/**
+ * Asignar delegado al equipo
+ */
+export async function mockAsignarDelegado(
+  _equipoId: number,
+  _idUsuario: number
+): Promise<MockDelegado> {
+  await simulateDelay();
+  return {
+    id_usuario: 1,
+    nombre: 'Carlos García',
+    email: 'carlos.garcia@email.com',
+  };
+}
+
+/**
+ * Actualizar estado de un miembro (activo/inactivo)
+ */
+export async function mockUpdateMiembroEstado(
+  _equipoId: number,
+  _usuarioId: number,
+  _activo: boolean
+): Promise<MockMiembroEstado> {
+  await simulateDelay();
+  return {
+    id_usuario: 1,
+    nombre: 'Carlos García',
+    activo: true,
+  };
+}
+
+/**
+ * Eliminar un miembro del equipo
+ */
+export async function mockDeleteMiembroEquipo(
+  _equipoId: number,
+  _usuarioId: number
+): Promise<{ mensaje: string }> {
+  await simulateDelay();
+  return { mensaje: 'Miembro eliminado correctamente' };
+}
+
+// ============================================
+// CONVOCATORIA
+// ============================================
+
+/**
+ * Obtiene la convocatoria de un equipo para un partido específico
+ */
+export async function mockFetchConvocatoria(
+  partidoId: number,
+  equipoId: number
+): Promise<MockConvocatoria> {
+  await simulateDelay();
+
+  const partidosConvocatoria = partidos.filter(
+    (p) => p.id_partido === partidoId && (p.id_equipo_local === equipoId || p.id_equipo_visitante === equipoId)
+  );
+
+  if (partidosConvocatoria.length === 0) {
+    throw new Error(`Partido con id ${partidoId} o equipo con id ${equipoId} no encontrado`);
+  }
+
+  const jugadoresEquipo = jugadores.filter((j) => j.id_equipo === equipoId);
+  const usuariosMap = new Map(usuarios.map((u) => [u.id_usuario, u]));
+
+  const convocatoria: MockConvocatoria = {
+    id_convocatoria: generateId(),
+    id_partido: partidoId,
+    id_equipo: equipoId,
+    fecha_convocatoria: new Date().toISOString(),
+    estado: 'cerrada',
+    jugadores: jugadoresEquipo
+      .filter((j) => j.activo)
+      .slice(0, 18)
+      .map((j): MockJugadorConvocatoria => ({
+        id_jugador: j.id_jugador,
+        id_usuario: j.id_usuario,
+        id_equipo: j.id_equipo,
+        nombre: usuariosMap.get(j.id_usuario)?.nombre ?? `Jugador ${j.id_jugador}`,
+        posicion: j.posicion || 'default',
+        dorsal: j.dorsal || 0,
+        estado: 'convocado',
+        email: usuariosMap.get(j.id_usuario)?.email ?? '',
+      })),
+  };
+
+  return convocatoria;
+}
+
+/**
+ * Obtiene todos los jugadores de un equipo
+ */
+export async function mockFetchJugadoresPorEquipo(equipoId: number): Promise<MockJugadorConvocatoria[]> {
+  await simulateDelay();
+
+  const jugadoresEquipo = jugadores.filter((j) => j.id_equipo === equipoId);
+  const usuariosMap = new Map(usuarios.map((u) => [u.id_usuario, u]));
+
+  return jugadoresEquipo.map((j) => ({
+    id_jugador: j.id_jugador,
+    id_usuario: j.id_usuario,
+    id_equipo: j.id_equipo,
+    nombre: usuariosMap.get(j.id_usuario)?.nombre ?? `Jugador ${j.id_jugador}`,
+    posicion: j.posicion || 'default',
+    dorsal: j.dorsal || 0,
+    estado: j.activo ? 'convocado' : 'baja',
+    email: usuariosMap.get(j.id_usuario)?.email ?? '',
+  }));
+}
+
+/**
+ * Crea o actualiza una convocatoria
+ */
+export async function mockCreateConvocatoria(_payload: {
+  id_partido: number;
+  id_equipo: number;
+  jugadores: { id_jugador: number; estado: string }[];
+}): Promise<void> {
+  await simulateDelay(MOCK_WRITE_DELAY_MS);
+}
+
+/**
+ * Elimina la convocatoria de un partido
+ */
+export async function mockDeleteConvocatoria(_partidoId: number): Promise<void> {
+  await simulateDelay();
 }

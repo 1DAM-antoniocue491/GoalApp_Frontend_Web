@@ -1,10 +1,13 @@
 /**
  * Servicio de API para el módulo de Usuarios
  * Maneja las llamadas relacionadas con la gestión de usuarios de una liga
+ * Soporta modo mock cuando VITE_USE_MOCKS=true
  */
 
 import { apiGet, apiPost, getErrorMessage } from '../../../services/api';
 import type { ApiError } from '../../../services/api';
+import { isMockEnabled } from '../../../mocks/env';
+import * as mockApi from '../../../mocks/api';
 
 // ============================================
 // TIPOS DE API
@@ -63,6 +66,10 @@ export interface Rol {
  * GET /roles/
  */
 export async function fetchRoles(): Promise<Rol[]> {
+  if (isMockEnabled()) {
+    return await mockApi.mockFetchRoles();
+  }
+
   try {
     return await apiGet<Rol[]>('/roles/');
   } catch (error) {
@@ -79,6 +86,10 @@ export async function fetchRoles(): Promise<Rol[]> {
  * GET /equipos/?liga_id={ligaId}
  */
 export async function fetchTeamsByLeague(ligaId: number): Promise<TeamResponse[]> {
+  if (isMockEnabled()) {
+    return await mockApi.mockFetchTeamsByLeagueForUsers(ligaId);
+  }
+
   try {
     const { apiGet } = await import('../../../services/api');
     return await apiGet<TeamResponse[]>('/equipos/', { liga_id: ligaId });
@@ -92,6 +103,10 @@ export async function fetchTeamsByLeague(ligaId: number): Promise<TeamResponse[]
  * GET /usuarios/ligas/{ligaId}/usuarios
  */
 export async function fetchUsersByLeague(ligaId: number): Promise<UserWithRole[]> {
+  if (isMockEnabled()) {
+    return await mockApi.mockFetchUsersByLeague(ligaId);
+  }
+
   try {
     return await apiGet<UserWithRole[]>(`/usuarios/ligas/${ligaId}/usuarios`);
   } catch (error) {
@@ -104,6 +119,11 @@ export async function fetchUsersByLeague(ligaId: number): Promise<UserWithRole[]
  * POST /invitaciones/ligas/{ligaId}/invitar
  */
 export async function inviteUser(payload: InviteUserPayload): Promise<void> {
+  if (isMockEnabled()) {
+    await mockApi.mockInviteUser(payload);
+    return;
+  }
+
   try {
     const { apiPost } = await import('../../../services/api');
     await apiPost(`/invitaciones/ligas/${payload.liga_id}/invitar`, {

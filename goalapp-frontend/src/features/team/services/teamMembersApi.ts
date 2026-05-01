@@ -1,4 +1,6 @@
 import { apiClient, apiGet, apiPut, apiDelete } from '../../../services/api';
+import { isMockEnabled } from '../../../mocks/env';
+import * as mockApi from '../../../mocks/api';
 
 export interface MiembroEquipo {
   id_miembro: number;
@@ -27,6 +29,9 @@ export interface MiembroEstadoResponse {
  * Obtener todos los miembros del equipo (solo entrenador)
  */
 export const fetchMiembrosEquipo = async (equipoId: number): Promise<MiembroEquipo[]> => {
+  if (isMockEnabled()) {
+    return await mockApi.mockFetchMiembrosEquipo(equipoId);
+  }
   return apiGet<MiembroEquipo[]>(`/equipos/${equipoId}/miembros`);
 };
 
@@ -37,6 +42,9 @@ export const asignarDelegado = async (
   equipoId: number,
   idUsuario: number
 ): Promise<DelegadoResponse> => {
+  if (isMockEnabled()) {
+    return await mockApi.mockAsignarDelegado(equipoId, idUsuario);
+  }
   return apiPut<DelegadoResponse>(`/equipos/${equipoId}/delegado`, { id_usuario: idUsuario });
 };
 
@@ -48,6 +56,9 @@ export const updateMiembroEstado = async (
   usuarioId: number,
   activo: boolean
 ): Promise<MiembroEstadoResponse> => {
+  if (isMockEnabled()) {
+    return await mockApi.mockUpdateMiembroEstado(equipoId, usuarioId, activo);
+  }
   return apiPut<MiembroEstadoResponse>(`/equipos/${equipoId}/miembros/${usuarioId}/estado`, { activo });
 };
 
@@ -58,5 +69,8 @@ export const deleteMiembroEquipo = async (
   equipoId: number,
   usuarioId: number
 ): Promise<{ mensaje: string }> => {
+  if (isMockEnabled()) {
+    return await mockApi.mockDeleteMiembroEquipo(equipoId, usuarioId);
+  }
   return apiDelete<{ mensaje: string }>(`/equipos/${equipoId}/miembros/${usuarioId}`);
 };

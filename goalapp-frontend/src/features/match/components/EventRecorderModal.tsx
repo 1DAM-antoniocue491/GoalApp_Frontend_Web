@@ -61,11 +61,17 @@ export default function EventRecorderModal({
     id_jugador_sale?: number;
     incidencias?: string;
   }) => {
+    const minuteValue = eventData.minuto;
+    if (isNaN(minuteValue) || minuteValue < 0 || minuteValue > 120) {
+      alert('El minuto debe estar entre 0 y 120');
+      return;
+    }
+
     try {
       await createMatchEvent(partidoId, {
         id_jugador: eventData.id_jugador,
         tipo_evento: selectedEventType as 'gol' | 'tarjeta_amarilla' | 'tarjeta_roja' | 'cambio',
-        minuto: eventData.minuto,
+        minuto: minuteValue,
         id_jugador_sale: eventData.id_jugador_sale,
         incidencias: eventData.incidencias,
       });

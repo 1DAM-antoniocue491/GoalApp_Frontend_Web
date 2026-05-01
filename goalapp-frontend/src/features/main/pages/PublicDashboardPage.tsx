@@ -7,9 +7,69 @@ import { PiRankingBold, PiCirclesFourBold } from "react-icons/pi";
 import { Link } from "react-router";
 import Footer from "../components/Footer";
 import Header from "../components/Header";
+import { isMockEnabled } from '../../../mocks/env';
+import * as dashboardApi from '../services/dashboardApi';
+import { useState, useEffect } from 'react';
 
 
 export default function PublicDashboardPage() {
+    const [resultadosRecientes, setResultadosRecientes] = useState<dashboardApi.DashboardResult[]>([]);
+    const [proximosPartidos, setProximosPartidos] = useState<dashboardApi.DashboardUpcomingMatch[]>([]);
+    const [clasificacion, setClasificacion] = useState<Array<{posicion: number; equipo: string; pj: number; pts: number}>>([]);
+    const [cargando, setCargando] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        const cargarDatos = async () => {
+            try {
+                setCargando(true);
+                const leagueId = 1; 
+                if (isMockEnabled()) {
+                    const partidosMock = await dashboardApi.fetchRecentResults(leagueId, 3);
+                    setResultadosRecientes(partidosMock);
+                    const proximosMock = await dashboardApi.fetchUpcomingMatches(leagueId, 3);
+                    setProximosPartidos(proximosMock);
+                } else {
+                    const partidos = await dashboardApi.fetchRecentResults(leagueId, 3);
+                    setResultadosRecientes(partidos);
+                    const proximos = await dashboardApi.fetchUpcomingMatches(leagueId, 3);
+                    setProximosPartidos(proximos);
+                }
+                const ligas = await dashboardApi.fetchLeagueStandings(leagueId);
+                setClasificacion(ligas);
+                setError(null);
+            } catch (err) {
+                setError('Error al cargar los datos');
+                console.error(err);
+            } finally {
+                setCargando(false);
+            }
+        };
+        cargarDatos();
+    }, []);
+
+    if (cargando) {
+        return (
+            <>
+            <Header />
+            <div className="bg-zinc-900 min-h-screen flex items-center justify-center">
+                <p className="text-white">Cargando datos...</p>
+            </div>
+            </>
+        );
+    }
+
+    if (error) {
+        return (
+            <>
+            <Header />
+            <div className="bg-zinc-900 min-h-screen flex items-center justify-center">
+                <p className="text-red-400">{error}</p>
+            </div>
+            </>
+        );
+    }
+
     return (
         <>
         <Header />
@@ -75,14 +135,6 @@ export default function PublicDashboardPage() {
                     <p className="text-zinc-500 text-sm text-center">Tablas de posiciones y clasificaciones actualizadas automáticamente.</p>
                 </div>
             </div>
-
-            <div className="bg-zinc-700 p-5 rounded-2xl border-2 border-lime-300 flex flex-col lg:flex-row justify-center items-center gap-5">
-                <div className="flex flex-col justify-center items-center lg:items-start">
-                    <p className="text-white font-semibold">¿Necesitas ayuda para crear tu liga?</p>
-                    <p className="text-zinc-400 text-sm">Completa un formulario y nosotros nos encargamos de todo</p>
-                </div>
-                <Link to={'/comunication_form'} className="bg-lime-300 px-7 py-3 rounded-2xl font-semibold">Solicitar Liga</Link>
-            </div>
         </div>
 
         <div className="bg-zinc-900 grid grid-cols-1 sm:grid-cols-2 justify-center px-5 sm:px-10 py-10 lg:px-20 gap-5 lg:gap-20">
@@ -95,42 +147,20 @@ export default function PublicDashboardPage() {
                     <a href="#" className="text-cyan-600 text-sm hover:underline">Ver todos</a>
                 </div>
                 <div className="flex flex-col gap-2 mt-3">
-                    <div className="bg-zinc-800 p-3 rounded-lg flex flex-col gap-2">
-                        <div className="flex flex-row justify-between items-center">
-                            <p className="text-zinc-300 text-sm">Real Madrid</p>
-                            <p className="text-white font-bold">3</p>
+                    {resultadosRecientes.map((resultado, index) => (
+                        <div key={index} className="bg-zinc-800 p-3 rounded-lg flex flex-col gap-2">
+                            <div className="flex flex-row justify-between items-center">
+                                <p className="text-zinc-300 text-sm">{resultado.home}</p>
+                                <p className="text-white font-bold">{resultado.homeScore}</p>
+                            </div>
+                            <div className="flex flex-row justify-between items-center">
+                                <p className="text-zinc-300 text-sm">{resultado.away}</p>
+                                <p className="text-white font-bold">{resultado.awayScore}</p>
+                            </div>
+                            <div className="w-full border border-zinc-700" />
+                            <p className="text-zinc-600 font-semibold text-sm">{resultado.league}</p>
                         </div>
-                        <div className="flex flex-row justify-between items-center">
-                            <p className="text-zinc-300 text-sm">Barcelona</p>
-                            <p className="text-white font-bold">1</p>
-                        </div>
-                        <div className="w-full border border-zinc-700" />
-                        <p className="text-zinc-600 font-semibold text-sm">Liga Premier</p>
-                    </div>
-                    <div className="bg-zinc-800 p-3 rounded-lg flex flex-col gap-2">
-                        <div className="flex flex-row justify-between items-center">
-                            <p className="text-zinc-300 text-sm">Real Madrid</p>
-                            <p className="text-white font-bold">3</p>
-                        </div>
-                        <div className="flex flex-row justify-between items-center">
-                            <p className="text-zinc-300 text-sm">Barcelona</p>
-                            <p className="text-white font-bold">1</p>
-                        </div>
-                        <div className="w-full border border-zinc-700" />
-                        <p className="text-zinc-600 font-semibold text-sm">Liga Premier</p>
-                    </div>
-                    <div className="bg-zinc-800 p-3 rounded-lg flex flex-col gap-2">
-                        <div className="flex flex-row justify-between items-center">
-                            <p className="text-zinc-300 text-sm">Real Madrid</p>
-                            <p className="text-white font-bold">3</p>
-                        </div>
-                        <div className="flex flex-row justify-between items-center">
-                            <p className="text-zinc-300 text-sm">Barcelona</p>
-                            <p className="text-white font-bold">1</p>
-                        </div>
-                        <div className="w-full border border-zinc-700" />
-                        <p className="text-zinc-600 font-semibold text-sm">Liga Premier</p>
-                    </div>
+                    ))}
                 </div>
             </div>
             <div>
@@ -142,48 +172,22 @@ export default function PublicDashboardPage() {
                     <a href="#" className="text-cyan-600 text-sm hover:underline">Ver todos</a>
                 </div>
                 <div className="flex flex-col gap-2 mt-3">
-                    <div className="bg-zinc-800 p-3 rounded-lg flex flex-col gap-2">
-                        <div>
-                            <div className="flex flex-row justify-between items-center">
-                                <p className="text-zinc-300 text-sm">Liverpool</p>
-                                <p className="text-lime-300 font-semibold text-sm">28 Feb</p>
+                    {proximosPartidos.map((partido, index) => (
+                        <div key={index} className="bg-zinc-800 p-3 rounded-lg flex flex-col gap-2">
+                            <div>
+                                <div className="flex flex-row justify-between items-center">
+                                    <p className="text-zinc-300 text-sm">{partido.home}</p>
+                                    <p className="text-lime-300 font-semibold text-sm">{partido.date}</p>
+                                </div>
+                                <div className="flex flex-row justify-between items-center">
+                                    <p className="text-zinc-300 text-sm">{partido.away}</p>
+                                    <p className="text-zinc-500 font-semibold text-sm">{partido.time}</p>
+                                </div>
                             </div>
-                            <div className="flex flex-row justify-between items-center">
-                                <p className="text-zinc-300 text-sm">Chelsea</p>
-                                <p className="text-zinc-500 font-semibold text-sm">15:00</p>
-                            </div>
+                            <div className="w-full border border-zinc-700" />
+                            <p className="text-zinc-600 font-semibold text-sm">{partido.league}</p>
                         </div>
-                        <div className="w-full border border-zinc-700" />
-                        <p className="text-zinc-600 font-semibold text-sm">Liga Premier</p>
-                    </div>
-                    <div className="bg-zinc-800 p-3 rounded-lg flex flex-col gap-2">
-                        <div>
-                            <div className="flex flex-row justify-between items-center">
-                                <p className="text-zinc-300 text-sm">Liverpool</p>
-                                <p className="text-lime-300 font-semibold text-sm">28 Feb</p>
-                            </div>
-                            <div className="flex flex-row justify-between items-center">
-                                <p className="text-zinc-300 text-sm">Chelsea</p>
-                                <p className="text-zinc-500 font-semibold text-sm">15:00</p>
-                            </div>
-                        </div>
-                        <div className="w-full border border-zinc-700" />
-                        <p className="text-zinc-600 font-semibold text-sm">Liga Premier</p>
-                    </div>
-                    <div className="bg-zinc-800 p-3 rounded-lg flex flex-col gap-2">
-                        <div>
-                            <div className="flex flex-row justify-between items-center">
-                                <p className="text-zinc-300 text-sm">Liverpool</p>
-                                <p className="text-lime-300 font-semibold text-sm">28 Feb</p>
-                            </div>
-                            <div className="flex flex-row justify-between items-center">
-                                <p className="text-zinc-300 text-sm">Chelsea</p>
-                                <p className="text-zinc-500 font-semibold text-sm">15:00</p>
-                            </div>
-                        </div>
-                        <div className="w-full border border-zinc-700" />
-                        <p className="text-zinc-600 font-semibold text-sm">Liga Premier</p>
-                    </div>
+                    ))}
                 </div>
             </div>
         </div>
@@ -207,30 +211,14 @@ export default function PublicDashboardPage() {
                         </tr>
                     </thead>
                     <tbody>
-                        <tr className="border-t border-zinc-700">
-                            <td className="text-center text-zinc-300 font-semibold py-2">1</td>
-                            <td className="pl-5 text-zinc-300 font-semibold py-2">Manchester City</td>
-                            <td className="text-center text-zinc-400 font-semibold py-2">28</td>
-                            <td className="text-center text-lime-300 font-semibold py-2">72</td>
-                        </tr>
-                        <tr className="border-t border-zinc-700">
-                            <td className="text-center text-zinc-300 font-semibold py-2">2</td>
-                            <td className="pl-5 text-zinc-300 font-semibold py-2">Arsenal</td>
-                            <td className="text-center text-zinc-400 font-semibold py-2">28</td>
-                            <td className="text-center text-lime-300 font-semibold py-2">68</td>
-                        </tr>
-                        <tr className="border-t border-zinc-700">
-                            <td className="text-center text-zinc-300 font-semibold py-2">3</td>
-                            <td className="pl-5 text-zinc-300 font-semibold py-2">Liverpool</td>
-                            <td className="text-center text-zinc-400 font-semibold py-2">28</td>
-                            <td className="text-center text-lime-300 font-semibold py-2">65</td>
-                        </tr>
-                        <tr className="border-t border-zinc-700">
-                            <td className="text-center text-zinc-300 font-semibold py-2">4</td>
-                            <td className="pl-5 text-zinc-300 font-semibold py-2">Aston Villa</td>
-                            <td className="text-center text-zinc-400 font-semibold py-2">28</td>
-                            <td className="text-center text-lime-300 font-semibold py-2">58</td>
-                        </tr>
+                        {clasificacion.map((fila, index) => (
+                            <tr key={index} className="border-t border-zinc-700">
+                                <td className="text-center text-zinc-300 font-semibold py-2">{index + 1}</td>
+                                <td className="pl-5 text-zinc-300 font-semibold py-2">{fila.equipo}</td>
+                                <td className="text-center text-zinc-400 font-semibold py-2">{fila.pj}</td>
+                                <td className="text-center text-lime-300 font-semibold py-2">{fila.pts}</td>
+                            </tr>
+                        ))}
                     </tbody>
                 </table>
             </div>

@@ -319,3 +319,84 @@ export async function fetchCoachDashboardStats(): Promise<CoachDashboardStats> {
     throw new Error(getErrorMessage(error as ApiError));
   }
 }
+
+/**
+ * Obtener clasificación de una liga (top 10 equipos)
+ * NOTA: El backend no tiene un endpoint directo para clasificación.
+ * En modo mock se devuelve una clasificación simulada.
+ *
+ * @param leagueId - ID de la liga para obtener la clasificación
+ * @returns Lista de equipos ordenados por posición
+ */
+export async function fetchLeagueStandings(leagueId: number): Promise<Array<{ posicion: number; equipo: string; pj: number; pts: number }>> {
+  if (isMockEnabled()) {
+    const equipos = await mockApi.mockFetchTeamsByLeague(leagueId);
+    const partidos = await mockApi.mockFetchMatchesByLeague(leagueId);
+    return calcularClasificacionMock(equipos, partidos);
+  }
+  return [];
+}
+
+function calcularClasificacionMock(
+  equipos: any[],
+  partidos: any[]
+): Array<{ posicion: number; equipo: string; pj: number; pts: number }> {
+  const estadisticasEquipo = new Map<string, { pj: number; pg: number; pe: number; pp: number; gf: number; gc: number; pts: number }>();
+
+  equipos.forEach((equipo) => {
+    estadisticasEquipo.set(equipo.nombre, { pj: 0, pg: 0, pe: 0, pp: 0, gf: 0, gc: 0, pts: 0 });
+  });
+
+  partidos.forEach((partido) => {
+    if (partido.estado !== 'finalizado' && partido.estado !== 'Finalizado') return;
+    if (partido.goles_local === null || partido.goles_visitante === null) return;
+
+    const equipoLocal = equipos.find((e) => e.id_equipo === partido.id_equipo_local);
+    const equipoVisitante = equipos.find((e) => e.id_equipo === partido.id_equipo_visitante);
+    
+    if (!equipoLocal || !equipoVisitante) return;
+
+    const estLocal = estadisticasEquipo.get(equipoLocal.nombre) || { pj: 0, pg: 0, pe: 0, pp: 0, gf: 0, gc: 0, pts: 0 };
+    const estVisitante = estadisticasEquipo.get(equipoVisitante.nombre) || { pj: 0, pg: 0, pe: 0, pp: 0, gf: 0, gc: 0, pts: 0 };
+
+    estLocal.pj += 1;
+    estVisitante.pj += 1;
+    estLocal.gf += partido.goles_local;
+    estLocal.gc += partido.goles_visitante;
+    estVisitante.gf += partido.goles_visitante;
+    estVisitante.gc += partido.goles_local;
+
+    if (partido.goles_local > partido.goles_visitante) {
+      estLocal.pg += 1;
+      estLocal.pts += 3;
+      estVisitante.pp += 1;
+    } else if (partido.goles_local < partido.goles_visitante) {
+      estVisitante.pg += 1;
+      estVisitante.pts += 3;
+      estLocal.pp += 1;
+    } else {
+      estLocal.pe += 1;
+      estVisitante.pe += 1;
+      estLocal.pts += 1;
+      estVisitante.pts += 1;
+    }
+
+    estadisticasEquipo.set(equipoLocal.nombre, estLocal);
+    estadisticasEquipo.set(equipoVisitante.nombre, estVisitante);
+  });
+
+  const clasificacion = Array.from(estadisticasEquipo.entries())
+    .map(([equipo, stats]) => ({
+      equipo,
+      pj: stats.pj,
+      pts: stats.pts,
+    }))
+    .sort((a, b) => b.pts - a.pts || (b.gf - b.gc) - (a.gf - a.gc));
+
+  return clasificacion.map((fila, index) => ({
+    posicion: index + 1,
+    equipo: fila.equipo,
+    pj: fila.pj,
+    pts: fila.pts,
+  })).slice(0, 10);
+}

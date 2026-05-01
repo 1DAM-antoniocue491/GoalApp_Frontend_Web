@@ -1,10 +1,13 @@
 /**
  * Servicio de API para Estadísticas
  * Maneja las llamadas relacionadas con estadísticas de la liga
+ * Soporta modo mock cuando VITE_USE_MOCKS=true
  */
 
 import { apiGet, getErrorMessage } from '../../../services/api';
 import type { ApiError } from '../../../services/api';
+import { isMockEnabled } from '../../../mocks/env';
+import * as mockApi from '../../../mocks/api';
 
 // ============================================
 // TIPOS DE API
@@ -94,6 +97,10 @@ export interface PlayerPersonalStats {
  * GET /estadisticas/liga/{ligaId}/temporada
  */
 export async function fetchSeasonStats(ligaId: number): Promise<SeasonStatsResponse> {
+  if (isMockEnabled()) {
+    return await mockApi.mockFetchSeasonStats(ligaId);
+  }
+
   try {
     return await apiGet<SeasonStatsResponse>(`/estadisticas/liga/${ligaId}/temporada`);
   } catch (error) {
@@ -106,6 +113,10 @@ export async function fetchSeasonStats(ligaId: number): Promise<SeasonStatsRespo
  * GET /estadisticas/liga/{ligaId}/goleadores
  */
 export async function fetchTopScorers(ligaId: number, limit: number = 5): Promise<TopScorerResponse[]> {
+  if (isMockEnabled()) {
+    return await mockApi.mockFetchTopScorers(ligaId, limit);
+  }
+
   try {
     return await apiGet<TopScorerResponse[]>(`/estadisticas/liga/${ligaId}/goleadores?limit=${limit}`);
   } catch (error) {
@@ -118,6 +129,10 @@ export async function fetchTopScorers(ligaId: number, limit: number = 5): Promis
  * GET /estadisticas/liga/{ligaId}/mvp
  */
 export async function fetchMatchdayMVP(ligaId: number): Promise<MatchdayMVP | null> {
+  if (isMockEnabled()) {
+    return await mockApi.mockFetchMatchdayMVP(ligaId);
+  }
+
   try {
     return await apiGet<MatchdayMVP>(`/estadisticas/liga/${ligaId}/mvp`);
   } catch (error) {
@@ -131,6 +146,10 @@ export async function fetchMatchdayMVP(ligaId: number): Promise<MatchdayMVP | nu
  * GET /estadisticas/liga/{ligaId}/equipos/goles
  */
 export async function fetchTeamGoalsStats(ligaId: number): Promise<TeamGoalsStats[]> {
+  if (isMockEnabled()) {
+    return await mockApi.mockFetchTeamGoalsStats(ligaId);
+  }
+
   try {
     return await apiGet<TeamGoalsStats[]>(`/estadisticas/liga/${ligaId}/equipos/goles`);
   } catch (error) {
@@ -146,6 +165,10 @@ export async function fetchPlayerPersonalStats(
   ligaId: number,
   usuarioId: number
 ): Promise<PlayerPersonalStats | null> {
+  if (isMockEnabled()) {
+    return await mockApi.mockFetchPlayerPersonalStats(ligaId, usuarioId);
+  }
+
   try {
     return await apiGet<PlayerPersonalStats>(
       `/estadisticas/liga/${ligaId}/jugador/${usuarioId}/estadisticas`

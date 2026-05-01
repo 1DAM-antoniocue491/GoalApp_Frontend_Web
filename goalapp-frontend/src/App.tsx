@@ -13,6 +13,7 @@ import TeamDetailPage from './features/team/pages/TeamDetailPage'
 import StatisticPage from './features/statistic/pages/StatisticPage'
 import CalendarioPage from './features/calendario/pages/CalendarioPage'
 import UsersPage from './features/users/pages/UsersPage'
+import NotificationsPage from './features/notificaciones/pages/NotificationsPage'
 import PrivateRoute from './features/auth/components/PrivateRoute'
 import { OnboardingPage } from './features/onboarding'
 import Finish from './features/main/pages/Finish'
@@ -41,6 +42,7 @@ function App() {
           <Route path='/statistics' element={<StatisticPage />} />
           <Route path='/calendar' element={<CalendarioPage />} />
           <Route path='/users' element={<UsersPage />} />
+          <Route path='/notifications' element={<NotificationsPage />} />
           <Route path='/finish' element={<Finish/>}/>
           <Route path="/live" element={<Live/>}/>
         </Route>

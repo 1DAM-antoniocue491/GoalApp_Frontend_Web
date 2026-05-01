@@ -1,9 +1,9 @@
-import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { FaTimes, FaSearch, FaUsers, FaStar, FaBolt } from 'react-icons/fa';
 import type { Jugador, EstadoConvocatoria, ConvocatoriaResumen } from '../types/convocatoria';
 import { fetchConvocatoria, fetchJugadoresPorEquipo, createConvocatoria } from '../services/convocatoriaApi';
 
-export interface ConvocatoriaEditModalProps {
+export interface LineupEditModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
@@ -18,7 +18,7 @@ interface JugadorUI extends Jugador {
   estado: EstadoConvocatoria;
 }
 
-export default function ConvocatoriaEditModal({
+export default function LineupEditModal({
   isOpen,
   onClose,
   onSuccess,
@@ -27,53 +27,48 @@ export default function ConvocatoriaEditModal({
   nombreEquipo,
   partidoFecha,
   competicion,
-}: ConvocatoriaEditModalProps) {
-   const [jugadores, setJugadores] = useState<JugadorUI[]>([]);
-   const [isLoading, setIsLoading] = useState(false);
-   const [isSaving, setIsSaving] = useState(false);
-   const [busqueda, setBusqueda] = useState('');
-   const [error, setError] = useState<string | null>(null);
+}: LineupEditModalProps) {
+  const [jugadores, setJugadores] = useState<JugadorUI[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [busqueda, setBusqueda] = useState('');
+  const [successMessage, setSuccessMessage] = useState<{ show: boolean; message: string }>({ show: false, message: '' });
+  const [errorMessage, setErrorMessage] = useState<{ show: boolean; message: string }>({ show: false, message: '' });
 
-   const cargarDatos = useCallback(async () => {
-     setIsLoading(true);
-     setError(null);
-     try {
-       const [jugadoresData, convocatoriaData] = await Promise.all([
-         fetchJugadoresPorEquipo(equipoId),
-         fetchConvocatoria(partidoId, equipoId).catch(() => null),
-       ]);
-
-       // Mapear jugadores con su estado de convocatoria
-       const convocadosTitulares = new Set(convocatoriaData?.titulares.map(j => j.id_jugador) || []);
-       const convocadosSuplentes = new Set(convocatoriaData?.suplentes.map(j => j.id_jugador) || []);
-
-       const jugadoresConEstado: JugadorUI[] = jugadoresData.map(j => ({
-         ...j,
-         estado: convocadosTitulares.has(j.id_jugador)
-           ? 'titular'
-           : convocadosSuplentes.has(j.id_jugador)
-           ? 'suplente'
-           : 'no_convocado',
-       }));
-
-       setJugadores(jugadoresConEstado);
-     } catch (error) {
-       console.error('Error al cargar datos:', error);
-       const errorMessage = error instanceof Error ? error.message : 'Error al cargar los datos del equipo';
-       setError(errorMessage);
-     } finally {
-       setIsLoading(false);
-     }
-   }, [equipoId, partidoId]);
-
-  // Cargar datos al abrir el modal
   useEffect(() => {
     if (isOpen) {
       cargarDatos();
     }
-  }, [isOpen, cargarDatos]);
+  }, [isOpen, partidoId, equipoId]);
 
-  // Agrupar jugadores por posición
+  const cargarDatos = async () => {
+    setIsLoading(true);
+    try {
+      const [jugadoresData, convocatoriaData] = await Promise.all([
+        fetchJugadoresPorEquipo(equipoId),
+        fetchConvocatoria(partidoId, equipoId).catch(() => null),
+      ]);
+
+      const convocadosTitulares = new Set(convocatoriaData?.titulares.map(j => j.id_jugador) || []);
+      const convocadosSuplentes = new Set(convocatoriaData?.suplentes.map(j => j.id_jugador) || []);
+
+      const jugadoresConEstado: JugadorUI[] = jugadoresData.map(j => ({
+        ...j,
+        estado: convocadosTitulares.has(j.id_jugador)
+          ? 'titular'
+          : convocadosSuplentes.has(j.id_jugador)
+          ? 'suplente'
+          : 'no_convocado',
+      }));
+
+      setJugadores(jugadoresConEstado);
+    } catch (error) {
+      setErrorMessage({ show: true, message: 'Error al cargar los datos del equipo' });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const jugadoresPorPosicion = useMemo(() => {
     const filtrados = jugadores.filter(j =>
       j.usuario.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
@@ -97,7 +92,6 @@ export default function ConvocatoriaEditModal({
     };
   }, [jugadores, busqueda]);
 
-  // Calcular resumen
   const resumen: ConvocatoriaResumen = useMemo(() => {
     const titulares = jugadores.filter(j => j.estado === 'titular').length;
     const suplentes = jugadores.filter(j => j.estado === 'suplente').length;
@@ -116,44 +110,44 @@ export default function ConvocatoriaEditModal({
     );
   };
 
-   const handleGuardar = useCallback(async () => {
-     // Validaciones
-     if (resumen.totalTitulares > 11) {
-       setError('Solo puede haber 11 jugadores titulares');
-       return;
-     }
+  const handleGuardar = async () => {
+    if (resumen.totalTitulares > 11) {
+      setErrorMessage({ show: true, message: 'Solo puede haber 11 jugadores titulares' });
+      return;
+    }
 
-     if (resumen.totalConvocados < 7) {
-       const confirmar = window.confirm(
-         'Tienes menos de 7 jugadores convocados. ¿Estás seguro de guardar?'
-       );
-       if (!confirmar) return;
-     }
+    if (resumen.totalConvocados < 7) {
+      const confirmar = window.confirm(
+        'Tienes menos de 7 jugadores convocados. ¿Estás seguro de guardar?'
+      );
+      if (!confirmar) return;
+    }
 
-     // Construir payload
-     const payload = {
-       id_partido: partidoId,
-       jugadores: jugadores
-         .filter(j => j.estado !== 'no_convocado')
-         .map(j => ({
-           id_jugador: j.id_jugador,
-           es_titular: j.estado === 'titular',
-         })),
-     };
+    const payload = {
+      id_partido: partidoId,
+      jugadores: jugadores
+        .filter(j => j.estado !== 'no_convocado')
+        .map(j => ({
+          id_jugador: j.id_jugador,
+          es_titular: j.estado === 'titular',
+        })),
+    };
 
-     setIsSaving(true);
-     setError(null);
-     try {
-       await createConvocatoria(payload);
-       onSuccess();
-       onClose();
-     } catch (error) {
-       const errorMessage = error instanceof Error ? error.message : 'Error al guardar la convocatoria';
-       setError(errorMessage);
-     } finally {
-       setIsSaving(false);
-     }
-   }, [resumen.totalTitulares, resumen.totalConvocados, partidoId, jugadores, onSuccess, onClose]);
+    setIsSaving(true);
+    try {
+      await createConvocatoria(payload);
+      setSuccessMessage({ show: true, message: 'Plantilla guardada correctamente' });
+      setTimeout(() => {
+        onSuccess();
+        onClose();
+      }, 2000);
+    } catch (error) {
+      const mensaje = error instanceof Error ? error.message : 'Error al guardar la plantilla';
+      setErrorMessage({ show: true, message: mensaje });
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const seleccionarTodos = () => {
     setJugadores(prev =>
@@ -169,7 +163,6 @@ export default function ConvocatoriaEditModal({
 
   if (!isOpen) return null;
 
-  // Formatear fecha
   const fechaDate = new Date(partidoFecha);
   const fechaTexto = fechaDate.toLocaleDateString('es-ES', {
     weekday: 'long',
@@ -191,7 +184,6 @@ export default function ConvocatoriaEditModal({
       }`}
     >
       <div className="flex items-center gap-3">
-        {/* Número de dorsal */}
         <div
           className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ${
             jugador.estado === 'titular'
@@ -204,7 +196,6 @@ export default function ConvocatoriaEditModal({
           {jugador.dorsal}
         </div>
 
-        {/* Información del jugador */}
         <div>
           <p className="text-white font-semibold">{jugador.usuario.nombre}</p>
           <p className="text-gray-500 text-xs">
@@ -213,7 +204,6 @@ export default function ConvocatoriaEditModal({
         </div>
       </div>
 
-      {/* Botones de acción */}
       <div className="flex gap-2">
         <button
           onClick={() => cambiarEstado(jugador.id_jugador, 'titular')}
@@ -239,9 +229,9 @@ export default function ConvocatoriaEditModal({
     </div>
   );
 
-   const renderSeccion = (titulo: string, jugadores: JugadorUI[], maxRecomendado: number) => {
-     const convocados = jugadores.filter(j => j.estado !== 'no_convocado').length;
-     void jugadores.filter(j => j.estado === 'titular').length;
+  const renderSeccion = (titulo: string, jugadores: JugadorUI[], maxRecomendado: number) => {
+    const convocados = jugadores.filter(j => j.estado !== 'no_convocado').length;
+    const titulares = jugadores.filter(j => j.estado === 'titular').length;
 
     return (
       <div className="mb-6">
@@ -259,11 +249,10 @@ export default function ConvocatoriaEditModal({
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-[#1a1a1e] border border-gray-800 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
-        {/* Header */}
         <div className="p-6 border-b border-gray-800">
           <div className="flex items-start justify-between">
             <div>
-              <h2 className="text-white text-2xl font-bold">Editar Convocatoria</h2>
+              <h2 className="text-white text-2xl font-bold">Gestionar Plantilla</h2>
               <p className="text-gray-400 text-sm mt-1">
                 {nombreEquipo} • {fechaTexto}
               </p>
@@ -278,7 +267,18 @@ export default function ConvocatoriaEditModal({
             </button>
           </div>
 
-          {/* Resumen */}
+          {successMessage.show && (
+            <div className="mt-4 p-3 bg-lime-500/10 border border-lime-500/30 rounded-xl text-lime-400 text-sm text-center animate-pulse">
+              {successMessage.message}
+            </div>
+          )}
+
+          {errorMessage.show && (
+            <div className="mt-4 p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-sm text-center">
+              {errorMessage.message}
+            </div>
+          )}
+
           <div className="grid grid-cols-3 gap-4 mt-4">
             <div className="bg-gray-900/50 rounded-xl p-3 border border-gray-800">
               <div className="flex items-center gap-2 text-gray-400 text-xs mb-1">
@@ -313,7 +313,6 @@ export default function ConvocatoriaEditModal({
             </div>
           </div>
 
-          {/* Buscador */}
           <div className="mt-4">
             <div className="relative">
               <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
@@ -324,19 +323,12 @@ export default function ConvocatoriaEditModal({
                 onChange={(e) => setBusqueda(e.target.value)}
                 className="w-full bg-gray-900/50 border border-gray-800 rounded-xl pl-10 pr-4 py-2.5 text-white placeholder-gray-600 focus:outline-none focus:border-lime-500/50 transition-colors"
               />
-             </div>
-           </div>
-         </div>
+            </div>
+          </div>
+        </div>
 
-         {error && (
-           <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 mb-4 mx-6">
-             <p className="text-red-400 text-sm text-center">{error}</p>
-           </div>
-         )}
-
-         {/* Lista de jugadores */}
-         <div className="flex-1 overflow-y-auto p-6">
-           {isLoading ? (
+        <div className="flex-1 overflow-y-auto p-6">
+          {isLoading ? (
             <div className="text-center py-8">
               <p className="text-gray-400">Cargando jugadores...</p>
             </div>
@@ -358,7 +350,6 @@ export default function ConvocatoriaEditModal({
           )}
         </div>
 
-        {/* Acciones rápidas */}
         <div className="px-6 py-4 border-t border-gray-800 bg-gray-900/30">
           <div className="flex gap-3">
             <button
@@ -376,7 +367,6 @@ export default function ConvocatoriaEditModal({
           </div>
         </div>
 
-        {/* Botones de acción */}
         <div className="flex gap-3 p-6 border-t border-gray-800">
           <button
             onClick={onClose}
@@ -390,7 +380,7 @@ export default function ConvocatoriaEditModal({
             disabled={isSaving || resumen.totalTitulares > 11}
             className="flex-1 bg-lime-500 text-black font-bold py-3 rounded-xl hover:bg-lime-400 transition-colors disabled:opacity-50"
           >
-            {isSaving ? 'Guardando...' : 'Guardar Convocatoria'}
+            {isSaving ? 'Guardando...' : 'Guardar Plantilla'}
           </button>
         </div>
       </div>

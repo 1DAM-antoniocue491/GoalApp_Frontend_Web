@@ -1,36 +1,31 @@
-/**
- * Dropdown de notificaciones
- * Muestra la lista de notificaciones del usuario con estados de leído/no leído
- */
-
 import { useState, useEffect, useRef } from 'react';
-import { FiBell, FiCheck, FiCheckSquare, FiInbox, FiTrash2 } from 'react-icons/fi';
-import { loadNotifications, markAsRead, markAllAsRead, removeNotification } from '../services/notificationService';
-import type { Notification } from '../services/types';
+import { FiBell, FiCheck, FiCheckSquare, FiInbox } from 'react-icons/fi';
+import { Link } from 'react-router';
+import { loadNotifications, markAsRead, markAllAsRead } from '../services/notificationsApi';
+import type { Notification } from '../types';
 
 interface NotificationsDropdownProps {
   isOpen: boolean;
   onClose: () => void;
+  triggerRef?: React.RefObject<HTMLElement>;
 }
 
-// Iconos por tipo de notificación
 const typeIcons: Record<string, React.ReactNode> = {
   partido_programado: <span className="text-blue-400">📅</span>,
-  partido_en_juego: <span className="text-green-400">🏆</span>,
-  partido_finalizado: <span className="text-green-400">🏆</span>,
+  partido_en_juego: <span className="text-green-400">⚽</span>,
+  partido_finalizado: <span className="text-purple-400">🏁</span>,
   partido_cancelado: <span className="text-red-400">❌</span>,
-  convocatoria: <span className="text-cyan-400">👥</span>,
+  convocatoria: <span className="text-yellow-400">📋</span>,
   convocatoria_actualizada: <span className="text-orange-400">🔄</span>,
   convocatoria_eliminada: <span className="text-red-400">🗑️</span>,
   resultado: <span className="text-green-400">📊</span>,
-  clasificacion: <span className="text-purple-400">📈</span>,
+  clasificacion: <span className="text-blue-400">📈</span>,
   jugador_nuevo: <span className="text-cyan-400">👤</span>,
-  liga_actualizacion: <span className="text-cyan-400">👑</span>,
+  liga_actualizacion: <span className="text-indigo-400">🏆</span>,
   tarjeta: <span className="text-red-400">🟥</span>,
   gol: <span className="text-green-400">⚽</span>,
   rol_asignado: <span className="text-yellow-400">🎯</span>,
   rol_revocado: <span className="text-orange-400">📤</span>,
-  sistema: <span className="text-zinc-400">⚙️</span>,
 };
 
 const typeLabels: Record<string, string> = {
@@ -49,12 +44,8 @@ const typeLabels: Record<string, string> = {
   gol: 'Gol',
   rol_asignado: 'Rol asignado',
   rol_revocado: 'Rol revocado',
-  sistema: 'Sistema',
 };
 
-/**
- * Formatear fecha relativa (hace X minutos/horas/días)
- */
 function formatRelativeTime(dateString: string): string {
   const date = new Date(dateString);
   const now = new Date();
@@ -71,31 +62,28 @@ function formatRelativeTime(dateString: string): string {
   return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
 }
 
-export function NotificationsDropdown({ isOpen, onClose }: NotificationsDropdownProps) {
+export function NotificationsDropdown({ isOpen, onClose, triggerRef }: NotificationsDropdownProps) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [markingAll, setMarkingAll] = useState(false);
   const [markingId, setMarkingId] = useState<number | null>(null);
-  const [deletingId, setDeletingId] = useState<number | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Debug: log cuando cambia isOpen
-  useEffect(() => {
-    console.log('[NotificationsDropdown] isOpen:', isOpen);
-  }, [isOpen]);
-
-  // Cargar notificaciones al abrir el dropdown
   useEffect(() => {
     if (isOpen) {
       loadNotificationsData();
     }
   }, [isOpen]);
 
-  // Cerrar al hacer click fuera
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+      const target = e.target as HTMLElement;
+      
+      const isInsideDropdown = dropdownRef.current?.contains(target);
+      const isInsideTrigger = triggerRef?.current?.contains(target);
+      
+      if (!isInsideDropdown && !isInsideTrigger) {
         onClose();
       }
     }
@@ -146,18 +134,6 @@ export function NotificationsDropdown({ isOpen, onClose }: NotificationsDropdown
     }
   };
 
-  const handleDelete = async (notificationId: number) => {
-    setDeletingId(notificationId);
-    try {
-      await removeNotification(notificationId);
-      setNotifications(prev => prev.filter(n => n.id_notificacion !== notificationId));
-    } catch (err) {
-      console.error('Error al eliminar:', err);
-    } finally {
-      setDeletingId(null);
-    }
-  };
-
   const unreadCount = notifications.filter(n => !n.leido).length;
 
   if (!isOpen) return null;
@@ -167,13 +143,12 @@ export function NotificationsDropdown({ isOpen, onClose }: NotificationsDropdown
       ref={dropdownRef}
       className="absolute right-0 top-12 bg-gradient-to-b from-zinc-800 to-70% to-zinc-950 border border-zinc-700 rounded-lg shadow-lg z-50 w-96"
     >
-      {/* Header */}
       <div className="flex items-center justify-between p-3 border-b border-zinc-700">
         <div className="flex items-center gap-2">
           <FiBell className="text-zinc-400" />
           <span className="text-zinc-300 text-sm font-semibold">
             {unreadCount > 0
-              ? `${unreadCount} nueva${unreadCount > 1 ? 's' : ''}`
+              ? `${unreadCount} no leída${unreadCount > 1 ? 's' : ''}`
               : 'Todas leídas'}
           </span>
         </div>
@@ -189,7 +164,6 @@ export function NotificationsDropdown({ isOpen, onClose }: NotificationsDropdown
         )}
       </div>
 
-      {/* Contenido */}
       <div className="space-y-1.5 p-3 max-h-[400px] overflow-y-auto">
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
@@ -227,12 +201,10 @@ export function NotificationsDropdown({ isOpen, onClose }: NotificationsDropdown
                 }`}
               >
                 <div className="flex items-start gap-3">
-                  {/* Icono */}
                   <div className="shrink-0 w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center">
                     {icon}
                   </div>
 
-                  {/* Contenido */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
@@ -244,27 +216,16 @@ export function NotificationsDropdown({ isOpen, onClose }: NotificationsDropdown
                         <p className="text-xs text-zinc-500 mt-0.5">{label}</p>
                       </div>
 
-                      {/* Botones de acción */}
-                      <div className="flex items-center gap-1">
-                        {!notification.leido && (
-                          <button
-                            onClick={() => handleMarkAsRead(notification.id_notificacion)}
-                            disabled={markingId === notification.id_notificacion}
-                            className="shrink-0 p-1.5 text-zinc-500 hover:text-lime-400 hover:bg-lime-900/20 rounded transition-colors disabled:opacity-50"
-                            title="Marcar como leída"
-                          >
-                            <FiCheck className="w-4 h-4" />
-                          </button>
-                        )}
+                      {!notification.leido && (
                         <button
-                          onClick={() => handleDelete(notification.id_notificacion)}
-                          disabled={deletingId === notification.id_notificacion}
-                          className="shrink-0 p-1.5 text-zinc-500 hover:text-red-400 hover:bg-red-900/20 rounded transition-colors disabled:opacity-50"
-                          title="Eliminar"
+                          onClick={() => handleMarkAsRead(notification.id_notificacion)}
+                          disabled={markingId === notification.id_notificacion}
+                          className="shrink-0 p-1.5 text-zinc-500 hover:text-lime-400 hover:bg-lime-900/20 rounded transition-colors disabled:opacity-50"
+                          title="Marcar como leída"
                         >
-                          <FiTrash2 className="w-4 h-4" />
+                          <FiCheck className="w-4 h-4" />
                         </button>
-                      </div>
+                      )}
                     </div>
 
                     <p className={`text-xs mt-2 ${
@@ -283,15 +244,8 @@ export function NotificationsDropdown({ isOpen, onClose }: NotificationsDropdown
           })
         )}
       </div>
-
-      {/* Footer */}
-      <div className="p-3 border-t border-zinc-700">
-        <button
-          onClick={onClose}
-          className="w-full text-center text-sm text-lime-400 hover:text-lime-300 transition-colors"
-        >
-          Ver todas las notificaciones
-        </button>
+      <div className="text-center p-2 border-t border-zinc-700">
+        <Link className="text-lime-400 hover:underline" to={'/notifications'}>Ver todas las notificaciones</Link>
       </div>
     </div>
   );

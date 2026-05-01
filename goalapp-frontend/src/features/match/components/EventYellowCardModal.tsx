@@ -59,12 +59,20 @@ export default function EventYellowCardModal({
   const handleConfirm = async () => {
     if (!selectedPlayer) return;
 
+    const minuteValue = parseInt(minute, 10);
+    if (isNaN(minuteValue) || minuteValue < 0 || minuteValue > 120) {
+      alert('El minuto debe estar entre 0 y 120');
+      return;
+    }
+
+    const motivoValue = motivo || 'Sin especificar';
+
     setIsLoading(true);
     try {
       await onConfirm({
         id_jugador: selectedPlayer,
-        minuto: parseInt(minute, 10) || minuto,
-        motivo: motivo || undefined,
+        minuto: minuteValue,
+        motivo: motivoValue,
       });
     } finally {
       setIsLoading(false);

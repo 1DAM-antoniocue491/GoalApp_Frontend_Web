@@ -3,7 +3,7 @@
  * Muestra el nombre de la liga seleccionada y permite cambiar de liga
  */
 
-import { NotificationsDropdown } from '../features/notificaciones/components/NotificationsDropdown.tsx';
+import { NotificationsDropdown } from '../features/onboarding/components/NotificationsDropdown.tsx';
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { NavLink } from 'react-router-dom';
@@ -16,7 +16,6 @@ import { useAuth } from '../features/auth/hooks/useAuth';
 import { updateProfile } from '../features/auth/services/authApi';
 import { getErrorMessage } from '../services/api';
 import type { ApiError } from '../services/api';
-import { useNotificationsBadge } from '../features/notificaciones/services/unreadBadgeApi';
 
 interface NavProps {
   /** Nombre de la liga seleccionada para mostrar en el header */
@@ -36,10 +35,8 @@ export default function Nav({ leagueName, userRole }: NavProps) {
   const [profileError, setProfileError] = useState<string | null>(null);
   const [profileForm, setProfileForm] = useState({ nombre: '', telefono: '', fecha_nacimiento: '' });
   const userMenuRef = useRef<HTMLDivElement>(null);
-  const notificationsMenuRef = useRef<HTMLDivElement>(null);
 
   const { user, logout, refreshUser } = useAuth();
-  const { unreadCount } = useNotificationsBadge();
 
   // Obtener iniciales del usuario
   const userInitials = user?.nombre
@@ -224,30 +221,17 @@ export default function Nav({ leagueName, userRole }: NavProps) {
         {/* User Section */}
         <div className="flex flex-row justify-end md:pr-10 items-center gap-2 sm:w-1/3">
           {/* Notifications */}
-        <div className="relative">
           <button
-            ref={notificationsMenuRef}
             onClick={() => {
               setIsNotificationsOpen(!isNotificationsOpen);
               setShowUserMenu(false);
+              alert("Notifications: ", isNotificationsOpen);
             }}
             className="p-2 text-zinc-400 hover:text-white transition-colors relative"
           >
             <FiBell className="w-5 h-5"></FiBell>
-            <span 
-              className={`absolute top-1 right-1 w-2 h-2 bg-lime-400 rounded-full transition-all duration-300 ${
-                unreadCount > 0 ? 'opacity-100 scale-110 animate-pulse' : 'opacity-0 scale-75'
-              }`}
-            />
+            <span className="absolute top-1 right-1 w-2 h-2 bg-lime-400 rounded-full"></span>
           </button>
-
-          {/* Notifications Dropdown */}
-          <NotificationsDropdown 
-            isOpen={isNotificationsOpen}
-            triggerRef={notificationsMenuRef}
-            onClose={() => setIsNotificationsOpen(false)} 
-          />
-        </div>
 
           {/* User Avatar */}
           <div ref={userMenuRef} className="relative">
