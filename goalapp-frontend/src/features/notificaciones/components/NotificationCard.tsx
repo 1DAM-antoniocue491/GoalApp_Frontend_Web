@@ -16,7 +16,7 @@ export default function NotificationCard({
         
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-4">
-            <h3 className={`text-sm font-semibold ${notification.leida ? 'text-zinc-500' : 'text-white'}`}>
+            <h3 className={`text-sm font-semibold ${notification.leido ? 'text-zinc-500' : 'text-white'}`}>
               {notification.titulo}
             </h3>
             <span className="text-xs text-zinc-600 whitespace-nowrap">
