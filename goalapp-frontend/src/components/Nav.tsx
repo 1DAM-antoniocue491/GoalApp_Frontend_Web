@@ -36,6 +36,8 @@ export default function Nav({ leagueName, userRole }: NavProps) {
   const [profileError, setProfileError] = useState<string | null>(null);
   const [profileForm, setProfileForm] = useState({ nombre: '', telefono: '', fecha_nacimiento: '' });
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const leagueMenuRef = useRef<HTMLDivElement>(null);
+  const mobileMenuRef = useRef<HTMLDivElement>(null);
   const notificationsMenuRef = useRef<HTMLDivElement>(null);
 
   const { user, logout, refreshUser } = useAuth();
@@ -119,6 +121,32 @@ export default function Nav({ leagueName, userRole }: NavProps) {
     navigate('/login');
   };
 
+  // Cerrar menú de ligas al hacer click fuera
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (leagueMenuRef.current && !leagueMenuRef.current.contains(e.target as Node)) {
+        setShowLeagueMenu(false);
+      }
+    }
+    if (showLeagueMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showLeagueMenu]);
+
+  // Cerrar menú móvil al hacer click fuera
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (mobileMenuRef.current && !mobileMenuRef.current.contains(e.target as Node)) {
+        setShowMenu(false);
+      }
+    }
+    if (showMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showMenu]);
+
   // Cerrar menú de usuario al hacer click fuera
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -167,7 +195,7 @@ export default function Nav({ leagueName, userRole }: NavProps) {
 
           {/* League Dropdown */}
           {showLeagueMenu && leagueName && (
-            <div className="absolute top-12 left-2 bg-zinc-800 border border-zinc-700 rounded-lg shadow-lg z-50 min-w-[180px]">
+            <div ref={leagueMenuRef} className="absolute top-12 left-2 bg-zinc-800 border border-zinc-700 rounded-lg shadow-lg z-50 min-w-[180px]">
               <div className="p-3 border-b border-zinc-700">
                 <p className="text-zinc-400 text-xs">Liga actual</p>
                 <p className="text-white font-semibold">{leagueName}</p>
@@ -360,7 +388,7 @@ export default function Nav({ leagueName, userRole }: NavProps) {
       </div>
 
       {/* Mobile Navigation */}
-      <div className={`flex flex-col items-center gap-2 md:w-1/3 pb-2 px-5 ${showMenu ? '' : 'hidden'}`}>
+      <div ref={mobileMenuRef} className={`flex flex-col items-center gap-2 md:w-1/3 pb-2 px-5 ${showMenu ? '' : 'hidden'}`}>
         {navItems.map((item) => (
           item.implemented ? (
             <NavLink
