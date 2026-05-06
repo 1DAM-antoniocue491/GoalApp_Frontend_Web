@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { FaFlag, FaTimes, FaTrophy, FaStar } from 'react-icons/fa';
+import { useToast } from '../../../contexts/ToastContext';
 
 interface FinishMatchModalProps {
   isOpen: boolean;
@@ -33,6 +34,7 @@ export default function FinishMatchModal({
   visitanteTeam,
   jugadores,
 }: FinishMatchModalProps) {
+  const toast = useToast();
   const [golesLocal, setGolesLocal] = useState(0);
   const [golesVisitante, setGolesVisitante] = useState(0);
   const [idEquipoMvp, setIdEquipoMvp] = useState<number | ''>('');
@@ -64,7 +66,7 @@ export default function FinishMatchModal({
 
   const handleConfirm = async () => {
     if (!idEquipoMvp || !idJugadorMvp) {
-      alert('Debes seleccionar el equipo y el jugador MVP');
+      toast.showError('Debes seleccionar el equipo y el jugador MVP');
       return;
     }
 

@@ -24,6 +24,8 @@ export interface UserWithRole {
   rol: UserRole;
   activo: boolean;
   created_at: string;
+  id_equipo?: number;
+  nombre_equipo?: string;
 }
 
 export interface InviteUserPayload {
@@ -47,7 +49,6 @@ export interface UserStats {
 export interface TeamResponse {
   id_equipo: number;
   nombre: string;
-  escudo: string | null;
   colores: string | null;
   id_liga: number;
   id_entrenador: number;
@@ -59,6 +60,22 @@ export interface TeamResponse {
 export interface Rol {
   id_rol: number;
   nombre: string;
+}
+
+/**
+ * Estadísticas deportivas de un usuario en una liga
+ */
+export interface UserSportsStats {
+  id_jugador: number;
+  id_usuario: number;
+  nombre: string;
+  nombre_equipo: string;
+  goles: number;
+  asistencias: number;
+  tarjetas_amarillas: number;
+  tarjetas_rojas: number;
+  partidos_jugados: number;
+  veces_mvp: number;
 }
 
 /**
@@ -115,6 +132,34 @@ export async function fetchUsersByLeague(ligaId: number): Promise<UserWithRole[]
 }
 
 /**
+ * Obtener estadísticas deportivas de un usuario en una liga
+ * GET /estadisticas/liga/{ligaId}/jugador/{usuarioId}/estadisticas
+ * Retorna null si el usuario no es jugador en esa liga
+ */
+export async function fetchUserSportsStats(
+  ligaId: number,
+  usuarioId: number
+): Promise<UserSportsStats | null> {
+  if (isMockEnabled()) {
+    return await mockApi.mockFetchPlayerPersonalStats(ligaId, usuarioId);
+  }
+
+  try {
+    const { apiGet } = await import('../../../services/api');
+    return await apiGet<UserSportsStats>(
+      `/estadisticas/liga/${ligaId}/jugador/${usuarioId}/estadisticas`
+    );
+  } catch (error) {
+    const apiError = error as ApiError;
+    // Retornar null para 404 (usuario no es jugador en esta liga)
+    if (apiError && typeof apiError === 'object' && 'status' in apiError && apiError.status === 404) {
+      return null;
+    }
+    throw new Error(getErrorMessage(apiError));
+  }
+}
+
+/**
  * Invitar usuario a una liga
  * POST /invitaciones/ligas/{ligaId}/invitar
  */
@@ -135,6 +180,29 @@ export async function inviteUser(payload: InviteUserPayload): Promise<void> {
       posicion: payload.posicion,
       tipo_jugador: payload.tipo_jugador,
     });
+  } catch (error) {
+    throw new Error(getErrorMessage(error as ApiError));
+  }
+}
+
+/**
+ * Obtener estadísticas de usuarios en una liga
+ * GET /usuarios/ligas/{ligaId}/stats
+ */
+export async function fetchUserLeagueStats(ligaId: number): Promise<UserStats> {
+  if (isMockEnabled()) {
+    // Mock data
+    return {
+      total: 5,
+      activos: 4,
+      pendientes: 1,
+      admin_activos: 1,
+    };
+  }
+
+  try {
+    const { apiGet } = await import('../../../services/api');
+    return await apiGet<UserStats>(`/usuarios/ligas/${ligaId}/stats`);
   } catch (error) {
     throw new Error(getErrorMessage(error as ApiError));
   }

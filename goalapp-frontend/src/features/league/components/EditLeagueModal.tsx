@@ -4,7 +4,19 @@
  */
 
 import { useState, useEffect } from 'react';
-import { FiX, FiLoader, FiAlertCircle, FiUpload, FiTrash2 } from 'react-icons/fi';
+import { FiX, FiLoader, FiAlertCircle, FiTrash2 } from 'react-icons/fi';
+
+/**
+ * Genera las iniciales de un nombre para mostrar en el logo automático
+ */
+function getInitials(nombre: string): string {
+  if (!nombre) return 'G';
+  const parts = nombre.trim().split(' ');
+  if (parts.length >= 2) {
+    return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+  }
+  return nombre.substring(0, 2).toUpperCase();
+}
 import {
   updateLeague,
   deleteLeague,
@@ -80,7 +92,6 @@ export function EditLeagueModal({ isOpen, onClose, onSuccess, league }: EditLeag
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isLoadingConfig, setIsLoadingConfig] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [logoPreview, setLogoPreview] = useState<string | null>(null);
 
   // Cargar datos de la liga y su configuración al abrir
   useEffect(() => {
@@ -237,15 +248,6 @@ export function EditLeagueModal({ isOpen, onClose, onSuccess, league }: EditLeag
     }
   };
 
-  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => setLogoPreview(reader.result as string);
-      reader.readAsDataURL(file);
-    }
-  };
-
   const updateField = (field: keyof FormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     if (errors[field]) {
@@ -288,33 +290,13 @@ export function EditLeagueModal({ isOpen, onClose, onSuccess, league }: EditLeag
             <div className="space-y-4">
               <h3 className="text-sm font-semibold text-zinc-300 uppercase tracking-wider">Datos de la liga</h3>
 
-              {/* Logo */}
-              <div>
-                <label className="block text-sm text-zinc-400 mb-2">Logo de la liga</label>
-                <div className="relative">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleLogoChange}
-                    className="hidden"
-                    id="edit-logo-upload"
-                    disabled={isSubmitting}
-                  />
-                  <label
-                    htmlFor="edit-logo-upload"
-                    className="flex flex-col items-center justify-center w-full h-28 border-2 border-dashed border-zinc-700 rounded-lg cursor-pointer hover:border-zinc-600 transition-colors overflow-hidden disabled:opacity-50"
-                  >
-                    {logoPreview ? (
-                      <img src={logoPreview} alt="Logo preview" className="w-full h-full object-cover" />
-                    ) : (
-                      <>
-                        <FiUpload className="w-7 h-7 text-zinc-500 mb-2" />
-                        <span className="text-zinc-500 text-sm">Cambiar logo</span>
-                      </>
-                    )}
-                  </label>
+              {/* Logo automático con iniciales */}
+              <div className="flex justify-center mb-4">
+                <div className="w-20 h-20 bg-gradient-to-br from-lime-400 to-emerald-500 rounded-xl flex items-center justify-center">
+                  <span className="text-zinc-900 font-bold text-2xl">
+                    {formData.nombre ? getInitials(formData.nombre) : 'GL'}
+                  </span>
                 </div>
-                <p className="text-zinc-600 text-xs mt-1">Opcional</p>
               </div>
 
               {/* Nombre */}

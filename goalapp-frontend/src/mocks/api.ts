@@ -503,19 +503,57 @@ export async function mockReactivarLiga(ligaId: number): Promise<void> {
 }
 
 /**
- * Unirse a una liga mediante código de invitación
- * Simula la validación del código y el seguimiento de la liga
+ * Validar un código de invitación
+ * Simula la validación de un código corto (6-8 caracteres)
  */
-export async function mockJoinLeagueByCode(codigo: string): Promise<MockSeguimientoResponse> {
+export async function mockValidateCode(codigo: string): Promise<{
+  valido: boolean;
+  liga_nombre: string;
+  rol: string;
+  equipo_nombre?: string;
+}> {
+  await simulateDelay();
+
+  // Simular código válido (cualquier código de 6-8 chars es válido en mock)
+  if (!/^[A-Z0-9]{6,8}$/.test(codigo)) {
+    return { valido: false, liga_nombre: '', rol: '' };
+  }
+
+  // Devolver información mock basada en el código
+  const liga = ligas[0]; // Usar primera liga mock
+  return {
+    valido: true,
+    liga_nombre: liga?.nombre || 'Liga Mock',
+    rol: 'player',
+    equipo_nombre: 'Equipo Mock',
+  };
+}
+
+/**
+ * Unirse a una liga mediante código de invitación
+ * Simula la aceptación del código y el seguimiento de la liga
+ */
+export async function mockJoinLeagueByCode(
+  codigo: string,
+  datos?: { email: string; password: string; nombre: string }
+): Promise<MockSeguimientoResponse> {
   await simulateDelay(MOCK_WRITE_DELAY_MS);
 
-  // Buscar liga por código (simulado: el código es el ID de la liga)
-  const ligaId = parseInt(codigo, 10);
-  const liga = ligas.find((l) => l.id_liga === ligaId);
-
-  if (!liga) {
+  // En mock, aceptar cualquier código válido
+  if (!/^[A-Z0-9]{6,8}$/.test(codigo)) {
     throw new Error('Código de invitación inválido o expirado');
   }
+
+  // Validar datos de registro si se proporcionan
+  if (datos) {
+    if (!datos.email || !datos.password || !datos.nombre) {
+      throw new Error('Se requieren email, contraseña y nombre');
+    }
+  }
+
+  // Usar la primera liga mock
+  const liga = ligas[0];
+  const ligaId = liga?.id_liga || 1;
 
   // Seguir la liga
   if (!ligasSeguidasIds.includes(ligaId)) {
@@ -551,7 +589,6 @@ export async function mockFetchTeamsByLeagueForUsers(ligaId: number): Promise<Mo
   return equipos.filter((e) => e.id_liga === ligaId).map((e) => ({
     id_equipo: e.id_equipo,
     nombre: e.nombre,
-    escudo: e.escudo ?? null,
     colores: null,
     id_liga: e.id_liga,
     id_entrenador: 1,
@@ -578,7 +615,7 @@ export async function mockFetchTeamById(id: number): Promise<MockEquipo> {
  */
 export async function mockUpdateTeam(
   id: number,
-  data: { nombre?: string; ciudad?: string; estadio?: string; escudo?: string; colores?: string }
+  data: { nombre?: string; ciudad?: string; estadio?: string; colores?: string }
 ): Promise<MockEquipo> {
   await simulateDelay(MOCK_WRITE_DELAY_MS);
 
@@ -592,7 +629,6 @@ export async function mockUpdateTeam(
     ...(data.nombre !== undefined && { nombre: data.nombre }),
     ...(data.ciudad !== undefined && { ciudad: data.ciudad }),
     ...(data.estadio !== undefined && { estadio: data.estadio }),
-    ...(data.escudo !== undefined && { escudo: data.escudo }),
     ...(data.colores !== undefined && { colores: data.colores }),
     updated_at: new Date().toISOString(),
   };
@@ -619,7 +655,6 @@ export async function mockDeleteTeam(id: number): Promise<void> {
  */
 export async function mockCreateTeam(data: {
   nombre: string;
-  escudo?: string;
   colores?: string;
   id_liga: number;
   id_entrenador?: number;
@@ -630,7 +665,6 @@ export async function mockCreateTeam(data: {
   const nuevoEquipo: MockEquipo = {
     id_equipo: generateId(),
     nombre: data.nombre,
-    escudo: data.escudo ?? null,
     colores: data.colores ?? '#D4FF59',
     id_liga: data.id_liga,
     id_entrenador: data.id_entrenador ?? 1,
@@ -650,7 +684,6 @@ export async function mockCreateTeam(data: {
 export async function mockFetchTeamDetail(id: number): Promise<{
   id_equipo: number;
   nombre: string;
-  escudo: string | null;
   colores: string | null;
   id_liga: number;
   id_entrenador: number;
@@ -699,8 +732,9 @@ export async function mockFetchTeamDetail(id: number): Promise<{
   const partidos_jugados = victorias + empates + derrotas;
   const tasa_victoria = partidos_jugados > 0 ? Math.round((victorias / partidos_jugados) * 100 * 10) / 10 : 0;
 
+  const { escudo, ...equipoSinEscudo } = equipo;
   return {
-    ...equipo,
+    ...equipoSinEscudo,
     ciudad: equipo.ciudad ?? 'Madrid',
     estadio: equipo.estadio ?? 'Estadio Municipal',
     posicion_liga: 2,
@@ -722,8 +756,6 @@ export async function mockFetchTeamNextMatches(id: number): Promise<{
   id_equipo_visitante: number;
   nombre_equipo_local: string;
   nombre_equipo_visitante: string;
-  escudo_equipo_local: string | null;
-  escudo_equipo_visitante: string | null;
   goles_local: number | null;
   goles_visitante: number | null;
 }[]> {
@@ -745,8 +777,6 @@ export async function mockFetchTeamNextMatches(id: number): Promise<{
     id_equipo_visitante: p.id_equipo_visitante,
     nombre_equipo_local: equipos.find((e) => e.id_equipo === p.id_equipo_local)?.nombre ?? 'Unknown',
     nombre_equipo_visitante: equipos.find((e) => e.id_equipo === p.id_equipo_visitante)?.nombre ?? 'Unknown',
-    escudo_equipo_local: equipos.find((e) => e.id_equipo === p.id_equipo_local)?.escudo ?? null,
-    escudo_equipo_visitante: equipos.find((e) => e.id_equipo === p.id_equipo_visitante)?.escudo ?? null,
     goles_local: p.goles_local,
     goles_visitante: p.goles_visitante,
   }));
@@ -763,8 +793,6 @@ export async function mockFetchTeamLastMatches(id: number): Promise<{
   id_equipo_visitante: number;
   nombre_equipo_local: string;
   nombre_equipo_visitante: string;
-  escudo_equipo_local: string | null;
-  escudo_equipo_visitante: string | null;
   goles_local: number | null;
   goles_visitante: number | null;
   resultado?: 'W' | 'D' | 'L';
@@ -797,8 +825,6 @@ export async function mockFetchTeamLastMatches(id: number): Promise<{
       id_equipo_visitante: p.id_equipo_visitante,
       nombre_equipo_local: equipos.find((e) => e.id_equipo === p.id_equipo_local)?.nombre ?? 'Unknown',
       nombre_equipo_visitante: equipos.find((e) => e.id_equipo === p.id_equipo_visitante)?.nombre ?? 'Unknown',
-      escudo_equipo_local: equipos.find((e) => e.id_equipo === p.id_equipo_local)?.escudo ?? null,
-      escudo_equipo_visitante: equipos.find((e) => e.id_equipo === p.id_equipo_visitante)?.escudo ?? null,
       goles_local: p.goles_local,
       goles_visitante: p.goles_visitante,
       resultado,
@@ -964,8 +990,6 @@ export async function mockFetchMatchesWithTeams(ligaId: number): Promise<{
   updated_at: string;
   nombre_equipo_local: string;
   nombre_equipo_visitante: string;
-  escudo_equipo_local: string | null;
-  escudo_equipo_visitante: string | null;
 }[]> {
   await simulateDelay();
   const matches = partidos.filter((p) => p.id_liga === ligaId);
@@ -975,8 +999,6 @@ export async function mockFetchMatchesWithTeams(ligaId: number): Promise<{
     // Usar nombre directo si existe, sino buscar en equipos
     nombre_equipo_local: p.nombre_equipo_local || (equipos.find((e) => e.id_equipo === p.id_equipo_local)?.nombre ?? 'Unknown'),
     nombre_equipo_visitante: p.nombre_equipo_visitante || (equipos.find((e) => e.id_equipo === p.id_equipo_visitante)?.nombre ?? 'Unknown'),
-    escudo_equipo_local: p.escudo_equipo_local ?? (equipos.find((e) => e.id_equipo === p.id_equipo_local)?.escudo ?? null),
-    escudo_equipo_visitante: p.escudo_equipo_visitante ?? (equipos.find((e) => e.id_equipo === p.id_equipo_visitante)?.escudo ?? null),
   }));
 }
 
@@ -997,8 +1019,6 @@ export async function mockFetchUpcomingMatches(limit?: number): Promise<{
   updated_at: string;
   nombre_equipo_local: string;
   nombre_equipo_visitante: string;
-  escudo_equipo_local: string | null;
-  escudo_equipo_visitante: string | null;
 }[]> {
   await simulateDelay();
   const matches = partidos
@@ -1010,8 +1030,6 @@ export async function mockFetchUpcomingMatches(limit?: number): Promise<{
     ...p,
     nombre_equipo_local: p.nombre_equipo_local || (equipos.find((e) => e.id_equipo === p.id_equipo_local)?.nombre ?? 'Unknown'),
     nombre_equipo_visitante: p.nombre_equipo_visitante || (equipos.find((e) => e.id_equipo === p.id_equipo_visitante)?.nombre ?? 'Unknown'),
-    escudo_equipo_local: p.escudo_equipo_local ?? (equipos.find((e) => e.id_equipo === p.id_equipo_local)?.escudo ?? null),
-    escudo_equipo_visitante: p.escudo_equipo_visitante ?? (equipos.find((e) => e.id_equipo === p.id_equipo_visitante)?.escudo ?? null),
   }));
 }
 
@@ -1032,8 +1050,6 @@ export async function mockFetchLiveMatches(): Promise<{
   updated_at: string;
   nombre_equipo_local: string;
   nombre_equipo_visitante: string;
-  escudo_equipo_local: string | null;
-  escudo_equipo_visitante: string | null;
 }[]> {
   await simulateDelay();
   const matches = partidos.filter((p) => p.estado === 'en_juego');
@@ -1042,8 +1058,6 @@ export async function mockFetchLiveMatches(): Promise<{
     ...p,
     nombre_equipo_local: p.nombre_equipo_local || (equipos.find((e) => e.id_equipo === p.id_equipo_local)?.nombre ?? 'Unknown'),
     nombre_equipo_visitante: p.nombre_equipo_visitante || (equipos.find((e) => e.id_equipo === p.id_equipo_visitante)?.nombre ?? 'Unknown'),
-    escudo_equipo_local: p.escudo_equipo_local ?? (equipos.find((e) => e.id_equipo === p.id_equipo_local)?.escudo ?? null),
-    escudo_equipo_visitante: p.escudo_equipo_visitante ?? (equipos.find((e) => e.id_equipo === p.id_equipo_visitante)?.escudo ?? null),
   }));
 }
 
@@ -1064,8 +1078,6 @@ export async function mockFetchRecentMatches(limit?: number): Promise<{
   updated_at: string;
   nombre_equipo_local: string;
   nombre_equipo_visitante: string;
-  escudo_equipo_local: string | null;
-  escudo_equipo_visitante: string | null;
 }[]> {
   await simulateDelay();
   const matches = partidos
@@ -1077,8 +1089,6 @@ export async function mockFetchRecentMatches(limit?: number): Promise<{
     ...p,
     nombre_equipo_local: p.nombre_equipo_local || (equipos.find((e) => e.id_equipo === p.id_equipo_local)?.nombre ?? 'Unknown'),
     nombre_equipo_visitante: p.nombre_equipo_visitante || (equipos.find((e) => e.id_equipo === p.id_equipo_visitante)?.nombre ?? 'Unknown'),
-    escudo_equipo_local: p.escudo_equipo_local ?? (equipos.find((e) => e.id_equipo === p.id_equipo_local)?.escudo ?? null),
-    escudo_equipo_visitante: p.escudo_equipo_visitante ?? (equipos.find((e) => e.id_equipo === p.id_equipo_visitante)?.escudo ?? null),
   }));
 }
 
@@ -1099,8 +1109,6 @@ export async function mockFetchMatchById(id: number): Promise<{
   updated_at: string;
   nombre_equipo_local: string;
   nombre_equipo_visitante: string;
-  escudo_equipo_local: string | null;
-  escudo_equipo_visitante: string | null;
 }> {
   await simulateDelay();
   const partido = partidos.find((p) => p.id_partido === id);
@@ -1112,8 +1120,6 @@ export async function mockFetchMatchById(id: number): Promise<{
     ...partido,
     nombre_equipo_local: equipos.find((e) => e.id_equipo === partido.id_equipo_local)?.nombre ?? 'Unknown',
     nombre_equipo_visitante: equipos.find((e) => e.id_equipo === partido.id_equipo_visitante)?.nombre ?? 'Unknown',
-    escudo_equipo_local: equipos.find((e) => e.id_equipo === partido.id_equipo_local)?.escudo ?? null,
-    escudo_equipo_visitante: equipos.find((e) => e.id_equipo === partido.id_equipo_visitante)?.escudo ?? null,
   };
 }
 
@@ -1263,8 +1269,6 @@ export async function mockFetchMatchesByJornada(ligaId: number): Promise<{
     updated_at: string;
     nombre_equipo_local: string;
     nombre_equipo_visitante: string;
-    escudo_equipo_local: string | null;
-    escudo_equipo_visitante: string | null;
   }[];
 }[]> {
   await simulateDelay();
@@ -1297,8 +1301,6 @@ export async function mockFetchMatchesByJornada(ligaId: number): Promise<{
       updated_at: string;
       nombre_equipo_local: string;
       nombre_equipo_visitante: string;
-      escudo_equipo_local: string | null;
-      escudo_equipo_visitante: string | null;
     }[];
   }[] = [];
 
@@ -1310,8 +1312,6 @@ export async function mockFetchMatchesByJornada(ligaId: number): Promise<{
         ...p,
         nombre_equipo_local: equipos.find((e) => e.id_equipo === p.id_equipo_local)?.nombre ?? 'Unknown',
         nombre_equipo_visitante: equipos.find((e) => e.id_equipo === p.id_equipo_visitante)?.nombre ?? 'Unknown',
-        escudo_equipo_local: equipos.find((e) => e.id_equipo === p.id_equipo_local)?.escudo ?? null,
-        escudo_equipo_visitante: equipos.find((e) => e.id_equipo === p.id_equipo_visitante)?.escudo ?? null,
       })),
     });
   });
@@ -1608,6 +1608,19 @@ export function mockGetCoachDashboardStats() {
   };
 }
 
+/**
+ * Obtener estadisticas de dashboard para jugador
+ */
+export function mockGetPlayerDashboardStats() {
+  return {
+    partidosJugados: 12,
+    goles: 5,
+    asistencias: 3,
+    tarjetasAmarillas: 2,
+    tarjetasRojas: 0,
+  };
+}
+
 // ============================================
 // ESTADÍSTICAS
 // ============================================
@@ -1648,7 +1661,7 @@ export async function mockFetchSeasonStats(ligaId: number): Promise<{
   return {
     total_partidos: partidosLiga.length,
     total_goles: totalGoles,
-    promedio_goles_por_partido: partidosLiga.length > 0 ? (totalGoles / partidosLiga.length).toFixed(1) : 0,
+    promedio_goles_por_partido: partidosLiga.length > 0 ? parseFloat((totalGoles / partidosLiga.length).toFixed(1)) : 0,
     total_amarillas: eventosAmarilla.length,
     total_rojas: eventosRojas.length,
     total_asistencias: eventosAsistencia.length,
@@ -1687,10 +1700,9 @@ export async function mockFetchTopScorers(
       id_equipo: j.id_equipo,
       nombre: usuarios.find((u) => u.id_usuario === j.id_usuario)?.nombre ?? `Jugador ${j.id_jugador}`,
       nombre_equipo: equipos.find((e) => e.id_equipo === j.id_equipo)?.nombre ?? 'Unknown',
-      escudo_equipo: equipos.find((e) => e.id_equipo === j.id_equipo)?.escudo ?? null,
       goles: golesPorJugador.get(j.id_jugador) || 0,
       partidos_jugados: Math.floor(Math.random() * 10) + 1,
-      promedio_goles: (golesPorJugador.get(j.id_jugador) || 0) > 0 ? (golesPorJugador.get(j.id_jugador)! / (Math.floor(Math.random() * 10) + 1)).toFixed(2) : '0.00',
+      promedio_goles: (golesPorJugador.get(j.id_jugador) || 0) > 0 ? parseFloat((golesPorJugador.get(j.id_jugador)! / (Math.floor(Math.random() * 10) + 1)).toFixed(2)) : 0,
     }))
     .sort((a, b) => b.goles - a.goles)
     .slice(0, limit);
@@ -1723,7 +1735,6 @@ export async function mockFetchMatchdayMVP(ligaId: number): Promise<MockMatchday
     id_usuario: jugador.id_usuario,
     nombre: usuarios.find((u) => u.id_usuario === jugador.id_usuario)?.nombre ?? `Jugador ${jugador.id_jugador}`,
     nombre_equipo: equipo.nombre,
-    escudo_equipo: equipo.escudo ?? null,
     rating: mvpEvento.puntuacion_mvp ?? 8.5,
     goles: 0,
     asistencias: 0,
@@ -1763,11 +1774,10 @@ export async function mockFetchTeamGoalsStats(ligaId: number): Promise<MockTeamG
     return {
       id_equipo: equipo.id_equipo,
       nombre: equipo.nombre,
-      escudo: equipo.escudo ?? null,
       goles_favor: golesFavor,
       goles_contra: golesContra,
       diferencia_goles: golesFavor - golesContra,
-      promedio_goles_favor: partidosJugados > 0 ? (golesFavor / partidosJugados).toFixed(2) : '0.00',
+      promedio_goles_favor: partidosJugados > 0 ? parseFloat((golesFavor / partidosJugados).toFixed(2)) : 0,
       partidos_jugados: partidosJugados,
     };
   });
@@ -1799,7 +1809,6 @@ export async function mockFetchPlayerPersonalStats(
     id_usuario: usuarioId,
     nombre: usuarios.find((u) => u.id_usuario === usuarioId)?.nombre ?? `Usuario ${usuarioId}`,
     nombre_equipo: equipo.nombre,
-    escudo_equipo: equipo.escudo ?? null,
     goles: eventosGol.length,
     asistencias: 0,
     tarjetas_amarillas: eventosAmarilla.length,

@@ -70,6 +70,14 @@ const rolIdMap: Record<RolType, number> = {
   observador: 13,   // viewer en BD
 };
 
+const POSICIONES = [
+  { value: '', label: 'Selecciona posición' },
+  { value: 'portero', label: 'Portero' },
+  { value: 'defensa', label: 'Defensa' },
+  { value: 'centrocampista', label: 'Centrocampista' },
+  { value: 'delantero', label: 'Delantero' },
+];
+
 export default function InviteUserModal({ isOpen, onClose, onSuccess, ligaId }: InviteUserModalProps) {
   const [selectedRol, setSelectedRol] = useState<RolType | null>(null);
   const [formData, setFormData] = useState({
@@ -107,6 +115,28 @@ export default function InviteUserModal({ isOpen, onClose, onSuccess, ligaId }: 
         return;
       }
 
+      // Validaciones según el rol
+      if (selectedRol === 'entrenador' || selectedRol === 'delegado' || selectedRol === 'jugador') {
+        if (!formData.id_equipo) {
+          setError('Por favor, selecciona un equipo');
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
+      if (selectedRol === 'jugador') {
+        if (!formData.dorsal) {
+          setError('Por favor, introduce el dorsal');
+          setIsSubmitting(false);
+          return;
+        }
+        if (!formData.posicion) {
+          setError('Por favor, selecciona la posición');
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
       const payload: Record<string, unknown> = {
         email: formData.email,
         liga_id: ligaId,
@@ -116,18 +146,12 @@ export default function InviteUserModal({ isOpen, onClose, onSuccess, ligaId }: 
 
       // Añadir campos según el rol
       if (selectedRol === 'entrenador' || selectedRol === 'delegado' || selectedRol === 'jugador') {
-        if (formData.id_equipo) {
-          payload.id_equipo = parseInt(formData.id_equipo, 10);
-        }
+        payload.id_equipo = parseInt(formData.id_equipo, 10);
       }
 
       if (selectedRol === 'jugador') {
-        if (formData.dorsal) {
-          payload.dorsal = parseInt(formData.dorsal, 10);
-        }
-        if (formData.posicion) {
-          payload.posicion = formData.posicion;
-        }
+        payload.dorsal = formData.dorsal;  // Enviar como string (backend espera VARCHAR)
+        payload.posicion = formData.posicion;
       }
 
       await inviteUser(payload);
@@ -239,7 +263,7 @@ export default function InviteUserModal({ isOpen, onClose, onSuccess, ligaId }: 
             {showEquipoField && (
               <div>
                 <label className="block text-zinc-300 text-sm font-medium mb-1">
-                  Equipo
+                  Equipo <span className="text-lime-400">*</span>
                 </label>
                 {isLoadingEquipos ? (
                   <div className="flex items-center gap-2 text-zinc-500 text-sm">
@@ -269,7 +293,7 @@ export default function InviteUserModal({ isOpen, onClose, onSuccess, ligaId }: 
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-zinc-300 text-sm font-medium mb-1">
-                    Dorsal
+                    Dorsal <span className="text-lime-400">*</span>
                   </label>
                   <input
                     type="number"
@@ -282,7 +306,7 @@ export default function InviteUserModal({ isOpen, onClose, onSuccess, ligaId }: 
                 </div>
                 <div>
                   <label className="block text-zinc-300 text-sm font-medium mb-1">
-                    Posición
+                    Posición <span className="text-lime-400">*</span>
                   </label>
                   <select
                     value={formData.posicion}
@@ -290,11 +314,11 @@ export default function InviteUserModal({ isOpen, onClose, onSuccess, ligaId }: 
                     className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-lime-400 transition-colors"
                     required
                   >
-                    <option value="">Selecciona posición</option>
-                    <option value="portero">Portero</option>
-                    <option value="defensa">Defensa</option>
-                    <option value="centrocampista">Centrocampista</option>
-                    <option value="delantero">Delantero</option>
+                    {POSICIONES.map((pos) => (
+                      <option key={pos.value} value={pos.value}>
+                        {pos.label}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>

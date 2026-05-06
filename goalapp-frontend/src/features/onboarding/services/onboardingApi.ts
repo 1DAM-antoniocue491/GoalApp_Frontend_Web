@@ -157,16 +157,24 @@ export async function dejarDeSeguirLiga(ligaId: number): Promise<DejarSeguirResp
 
 /**
  * Mapear rol del backend al tipo del frontend
+ * El backend devuelve roles en inglés (admin, coach, delegate, player, viewer)
+ * El frontend usa roles en español (admin, entrenador, delegado, jugador, observador)
  */
 function mapRol(rol: string): UserRole {
   const rolMap: Record<string, UserRole> = {
+    // Español
     admin: 'admin',
     entrenador: 'entrenador',
     jugador: 'jugador',
     delegado: 'delegado',
     observador: 'observador',
+    // Inglés (como viene del backend)
+    coach: 'entrenador',
+    delegate: 'delegado',
+    player: 'jugador',
+    viewer: 'observador',
   };
-  return rolMap[rol.toLowerCase()] || 'jugador';
+  return rolMap[rol.toLowerCase()] || 'observador';
 }
 
 /**
@@ -272,15 +280,53 @@ export interface JoinLeagueResponse {
 }
 
 /**
- * Unirse a una liga mediante código de invitación
- * POST /usuarios/me/ligas/codigo/{codigo}
- *
- * NOTA: El backend NO tiene un endpoint específico para unirse por código.
- * El endpoint actual usa liga_id: POST /usuarios/me/ligas/{liga_id}/seguir
- * Se usa este endpoint como alternativa mientras el backend implementa
- * el endpoint por código de invitación.
+ * Validar un código de invitación
+ * GET /invitaciones/validar-codigo/{codigo}
  *
  * @param codigo - Código de invitación de la liga
+ * @returns Promesa con la información del código
+ * @throws Error si el código es inválido
+ */
+export async function validateCode(codigo: string): Promise<{
+  valido: boolean;
+  liga_nombre: string;
+  rol: string;
+  equipo_nombre?: string;
+}> {
+  if (isMockEnabled()) {
+    return mockApi.mockValidateCode(codigo);
+  }
+
+  const codigoLimpio = codigo.trim().toUpperCase();
+  if (!/^[A-Z0-9]{6,8}$/.test(codigoLimpio)) {
+    throw new Error('Código inválido. Debe tener 6-8 caracteres alfanuméricos.');
+  }
+
+  try {
+    const response = await apiGet(`/invitaciones/validar-codigo/${codigoLimpio}`);
+    if (!response.valido) {
+      throw new Error(response.motivo || 'Código inválido');
+    }
+    return {
+      valido: response.valido,
+      liga_nombre: response.liga_nombre,
+      rol: response.rol,
+      equipo_nombre: response.equipo_nombre,
+    };
+  } catch (error) {
+    throw new Error(getErrorMessage(error as ApiError));
+  }
+}
+
+/**
+ * Unirse a una liga mediante código de invitación
+ * POST /invitaciones/aceptar-codigo/{codigo}
+ *
+ * El usuario ya debe estar autenticado. El backend asigna automáticamente
+ * la información y el rol necesarios según el código de invitación.
+ * El código solo puede usarse UNA vez.
+ *
+ * @param codigo - Código de invitación de la liga (6-8 caracteres alfanuméricos)
  * @returns Promesa con la respuesta del seguimiento
  * @throws Error si el código es inválido o la operación falla
  */
@@ -292,15 +338,16 @@ export async function joinLeagueByCode(codigo: string): Promise<JoinLeagueRespon
   }
 
   try {
-    // NOTA: El backend no tiene endpoint por código aún.
-    // Se intenta usar el código como si fuera el id_liga temporalmente.
-    // Cuando el backend implemente el endpoint correcto, se cambiará aquí.
-    const ligaId = parseInt(codigo, 10);
-    if (isNaN(ligaId)) {
-      throw new Error('Código de invitación inválido. Debe ser un número de liga válido.');
+    const codigoLimpio = codigo.trim().toUpperCase();
+    if (!/^[A-Z0-9]{6,8}$/.test(codigoLimpio)) {
+      throw new Error('Código inválido. Debe tener 6-8 caracteres alfanuméricos.');
     }
+
+    // El usuario ya está autenticado, el backend obtiene los datos del current_user
+    // Se envía body vacío {} porque FastAPI requiere un body para POST
     const response = await apiPost<JoinLeagueResponse>(
-      `/usuarios/me/ligas/${ligaId}/seguir`
+      `/invitaciones/aceptar-codigo/${codigoLimpio}`,
+      {}
     );
     return response;
   } catch (error) {

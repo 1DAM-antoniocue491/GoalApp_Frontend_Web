@@ -4,6 +4,7 @@ import {
   FaExclamationCircle,
   FaUsers,
   FaUserPlus,
+  FaQrcode,
   FaSearch,
   FaCheck,
   FaClock,
@@ -12,11 +13,15 @@ import {
   FaUserShield,
   FaUser,
   FaEllipsisV,
+  FaFutbol,
+  FaClipboardList,
+  FaMedal,
 } from 'react-icons/fa';
 import Nav from '../../../components/Nav';
 import { useSelectedLeague } from '../../../context/SelectedLeagueContext';
-import { fetchUsersByLeague, fetchRoles, type UserWithRole, type UserStats, type Rol } from '../services/usersApi';
+import { fetchUsersByLeague, fetchRoles, fetchUserLeagueStats, type UserWithRole, type UserStats, type Rol, type UserSportsStats, fetchUserSportsStats } from '../services/usersApi';
 import InviteUserModal from '../components/InviteUserModal';
+import GenerateUnionCodeModal from '../components/GenerateUnionCodeModal';
 import UserActionsModal from '../../league/components/UserActionsModal';
 import TeamMemberActionsModal from '../../team/components/TeamMemberActionsModal';
 import { fetchMiembrosEquipo, type MiembroEquipo } from '../../team/services/teamMembersApi';
@@ -34,6 +39,7 @@ export default function UsersPage() {
   const [filtroRol, setFiltroRol] = useState<string>('todos');
   const [filtroEstado, setFiltroEstado] = useState<string>('todos');
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const [isGenerateCodeModalOpen, setIsGenerateCodeModalOpen] = useState(false);
   const [isUserActionsModalOpen, setIsUserActionsModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserWithRole | null>(null);
   const [roles, setRoles] = useState<Rol[]>([]);
@@ -45,6 +51,13 @@ export default function UsersPage() {
   const [usuariosParaDelegado, setUsuariosParaDelegado] = useState<UserWithRole[]>([]);
   const [isTeamMemberModalOpen, setIsTeamMemberModalOpen] = useState(false);
   const [selectedMiembro, setSelectedMiembro] = useState<MiembroEquipo | null>(null);
+
+  // Estadísticas de usuarios desde la API
+  const [userStats, setUserStats] = useState<UserStats | null>(null);
+
+  // Estadísticas deportivas de usuarios (solo jugadores)
+  const [userSportsStats, setUserSportsStats] = useState<Record<number, UserSportsStats>>({});
+  const [isLoadingStats, setIsLoadingStats] = useState(false);
 
   const loadRoles = async () => {
     try {
@@ -112,18 +125,66 @@ export default function UsersPage() {
     }
   };
 
+  const loadUserStats = async () => {
+    if (!selectedLeague) return;
+    try {
+      const stats = await fetchUserLeagueStats(selectedLeague.id);
+      setUserStats(stats);
+    } catch (error) {
+      console.error('Error al cargar stats de usuarios:', error);
+      // No establecer error - usar fallback local
+    }
+  };
+
   useEffect(() => {
     loadUsers();
+    loadUserStats();
   }, [selectedLeague]);
+
+  // Cargar estadísticas deportivas después de cargar usuarios
+  useEffect(() => {
+    if (users.length > 0 && !isLoading) {
+      loadUserSportsStats();
+    }
+  }, [users, isLoading]);
+
+  const loadUserSportsStats = async () => {
+    if (!selectedLeague || isLoadingStats) return;
+
+    setIsLoadingStats(true);
+    const statsMap: Record<number, UserSportsStats> = {};
+
+    // Cargar estadísticas solo para usuarios que podrían ser jugadores
+    const promises = users.map(async (user) => {
+      try {
+        const stats = await fetchUserSportsStats(selectedLeague.id, user.id_usuario);
+        if (stats) {
+          statsMap[user.id_usuario] = stats;
+        }
+      } catch (error) {
+        // Silenciar errores individuales - continuar con los demas si uno falla
+        console.warn(`Error cargando stats para usuario ${user.id_usuario}:`, error);
+      }
+    });
+
+    await Promise.all(promises);
+    setUserSportsStats(statsMap);
+    setIsLoadingStats(false);
+  };
 
   // Calcular estadísticas para vista de admin
   const stats: UserStats = useMemo(() => {
+    // Si hay estadísticas de la API, usarlas
+    if (userStats) {
+      return userStats;
+    }
+    // Fallback al cálculo local si la API falla o no hay datos
     const total = users.length;
     const activos = users.filter((u) => u.activo).length;
     const pendientes = users.filter((u) => !u.activo).length;
     const admin_activos = users.filter((u) => u.rol === 'admin' && u.activo).length;
     return { total, activos, pendientes, admin_activos };
-  }, [users]);
+  }, [users, userStats]);
 
   // Calcular estadísticas para vista de entrenador
   const coachStats = useMemo(() => {
@@ -134,6 +195,17 @@ export default function UsersPage() {
     return { total, activos, inactivos, delegados };
   }, [miembrosEquipo]);
 
+  // Normalizar rol a español para filtros y etiquetas
+  const normalizeRolToSpanish = (rol: string): string => {
+    const rolMap: Record<string, string> = {
+      coach: 'entrenador',
+      delegate: 'delegado',
+      player: 'jugador',
+      viewer: 'observador',
+    };
+    return rolMap[rol.toLowerCase()] || rol;
+  };
+
   // Filtrar usuarios (vista admin)
   const usuariosFiltrados = useMemo(() => {
     return users.filter((user) => {
@@ -142,8 +214,9 @@ export default function UsersPage() {
         user.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
         user.email.toLowerCase().includes(busqueda.toLowerCase());
 
-      // Filtro por rol
-      const matchRol = filtroRol === 'todos' || user.rol === filtroRol;
+      // Filtro por rol (normalizar a español para comparar)
+      const rolNormalizado = normalizeRolToSpanish(user.rol);
+      const matchRol = filtroRol === 'todos' || rolNormalizado === filtroRol;
 
       // Filtro por estado
       const matchEstado = filtroEstado === 'todos' ||
@@ -173,9 +246,10 @@ export default function UsersPage() {
     });
   }, [miembrosEquipo, busqueda, filtroEstado, filtroRol]);
 
-  // Obtener icono según el rol
+  // Obtener icono según el rol (soporta español e inglés del backend)
   const getRoleIcon = (rol: UserRole) => {
-    switch (rol) {
+    const rolNormalizado = normalizeRolToSpanish(rol);
+    switch (rolNormalizado) {
       case 'admin':
         return <FaCrown className="text-lime-400" />;
       case 'entrenador':
@@ -189,16 +263,16 @@ export default function UsersPage() {
     }
   };
 
-  // Obtener etiqueta del rol
+  // Obtener etiqueta del rol (soporta español e inglés del backend)
   const getRoleLabel = (rol: UserRole) => {
-    const labels: Record<UserRole, string> = {
+    const labels: Record<string, string> = {
       admin: 'Admin',
       entrenador: 'Entrenador',
       delegado: 'Delegado',
       jugador: 'Jugador',
       observador: 'Observador',
     };
-    return labels[rol] || rol;
+    return labels[rol] || labels[normalizeRolToSpanish(rol)] || rol;
   };
 
   // Obtener iniciales del nombre
@@ -409,15 +483,24 @@ export default function UsersPage() {
                 />
               </div>
 
-              {/* Botón Invitar usuario - Solo admin */}
+              {/* Botones Invitar usuario y Generar código - Solo admin */}
               {userRole === 'admin' && (
-                <button
-                  onClick={() => setIsInviteModalOpen(true)}
-                  className="flex items-center justify-center gap-2 bg-lime-500 hover:bg-lime-400 text-zinc-950 font-semibold px-4 py-2 rounded-lg transition-colors whitespace-nowrap"
-                >
-                  <FaUserPlus />
-                  <span className="hidden sm:inline">Invitar usuario</span>
-                </button>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <button
+                    onClick={() => setIsInviteModalOpen(true)}
+                    className="flex items-center justify-center gap-2 bg-lime-500 hover:bg-lime-400 text-zinc-950 font-semibold px-4 py-2 rounded-lg transition-colors whitespace-nowrap"
+                  >
+                    <FaUserPlus />
+                    <span className="hidden sm:inline">Invitar usuario</span>
+                  </button>
+                  <button
+                    onClick={() => setIsGenerateCodeModalOpen(true)}
+                    className="flex items-center justify-center gap-2 bg-zinc-700 hover:bg-zinc-600 text-white font-semibold px-4 py-2 rounded-lg transition-colors whitespace-nowrap"
+                  >
+                    <FaQrcode />
+                    <span className="hidden sm:inline">Generar código</span>
+                  </button>
+                </div>
               )}
             </div>
           </div>
@@ -472,6 +555,30 @@ export default function UsersPage() {
                           </span>
                         </div>
                         <p className="text-zinc-400 text-sm truncate">{user.email}</p>
+                        {/* Equipo del usuario - Para jugadores, entrenadores y delegados */}
+                        {user.nombre_equipo && (
+                          <div className="flex items-center gap-1 mt-1">
+                            <FaFutbol className="text-zinc-500 text-xs" />
+                            <span className="text-zinc-500 text-xs truncate">{user.nombre_equipo}</span>
+                          </div>
+                        )}
+                        {/* Estadísticas deportivas - Solo para jugadores */}
+                        {userSportsStats[user.id_usuario] && (
+                          <div className="flex items-center gap-3 mt-2">
+                            <span className="flex items-center gap-1 text-xs text-zinc-500">
+                              <FaFutbol className="text-lime-400" />
+                              {userSportsStats[user.id_usuario].goles} goles
+                            </span>
+                            <span className="flex items-center gap-1 text-xs text-zinc-500">
+                              <FaClipboardList className="text-blue-400" />
+                              {userSportsStats[user.id_usuario].asistencias} asistencias
+                            </span>
+                            <span className="flex items-center gap-1 text-xs text-zinc-500">
+                              <FaMedal className="text-purple-400" />
+                              {userSportsStats[user.id_usuario].partidos_jugados} partidos
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -634,6 +741,19 @@ export default function UsersPage() {
             setIsInviteModalOpen(false);
           }}
           ligaId={selectedLeague.id}
+        />
+      )}
+
+      {/* Modal para generar código de unión */}
+      {selectedLeague && (
+        <GenerateUnionCodeModal
+          isOpen={isGenerateCodeModalOpen}
+          onClose={() => setIsGenerateCodeModalOpen(false)}
+          onSuccess={() => {
+            setIsGenerateCodeModalOpen(false);
+          }}
+          ligaId={selectedLeague.id}
+          ligaNombre={selectedLeague.nombre}
         />
       )}
 

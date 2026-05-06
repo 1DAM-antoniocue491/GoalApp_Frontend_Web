@@ -76,8 +76,9 @@ export default function ConvocatoriaModal({
     onSuccess();
   };
 
-  // Si no puede editar, siempre mostrar vista
-  if (!canEdit) {
+  // Si no puede editar o el partido está en juego, siempre mostrar vista
+  const partidoEnJuego = estadoPartido === 'en_juego';
+  if (!canEdit || partidoEnJuego) {
     return (
       <ConvocatoriaViewModal
         isOpen={isOpen}

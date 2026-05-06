@@ -9,7 +9,8 @@ export interface Jugador {
   posicion: string;
   dorsal: number;
   activo: boolean;
-  usuario: {
+  nombre?: string;  // API directa devuelve nombre en raíz
+  usuario?: {
     id_usuario: number;
     nombre: string;
     email: string;

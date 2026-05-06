@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { FaPlay, FaTimes, FaCalendar, FaUsers, FaMapMarkerAlt, FaTrophy } from 'react-icons/fa';
+import { getInitials } from '../../../utils/getInitials';
 
 interface InitMatchModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: () => Promise<void>;
-  localTeam: { nombre: string; escudo?: string | null };
-  visitanteTeam: { nombre: string; escudo?: string | null };
+  localTeam: { nombre: string };
+  visitanteTeam: { nombre: string };
   fecha: string;
   competicion: string;
   campo: string;
@@ -49,11 +50,6 @@ export default function InitMatchModal({
   const fechaTexto = esHoy ? 'Hoy' : fechaDate.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
   const horaTexto = fechaDate.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
 
-  // Generar iniciales para escudos
-  const getIniciales = (nombre: string) => {
-    return nombre.split(' ').slice(0, 3).map(word => word[0]).join('').toUpperCase().slice(0, 3);
-  };
-
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-[#1a1a1e] border border-gray-800 rounded-2xl w-full max-w-md overflow-hidden">
@@ -75,12 +71,8 @@ export default function InitMatchModal({
           <div className="flex items-center justify-center gap-4 mb-6">
             {/* Equipo local */}
             <div className="flex flex-col items-center gap-2">
-              <div className="w-16 h-16 rounded-xl bg-lime-900/30 border border-lime-500/30 flex items-center justify-center">
-                {localTeam.escudo ? (
-                  <img src={localTeam.escudo} alt={localTeam.nombre} className="w-12 h-12 object-contain" />
-                ) : (
-                  <span className="text-lime-400 font-bold text-lg">{getIniciales(localTeam.nombre)}</span>
-                )}
+              <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-lime-400 to-emerald-500 flex items-center justify-center">
+                <span className="text-zinc-900 font-bold text-xl">{getInitials(localTeam.nombre, 3)}</span>
               </div>
               <span className="text-white font-semibold text-sm text-center">{localTeam.nombre}</span>
               <span className="text-gray-500 text-xs">Local</span>
@@ -93,12 +85,8 @@ export default function InitMatchModal({
 
             {/* Equipo visitante */}
             <div className="flex flex-col items-center gap-2">
-              <div className="w-16 h-16 rounded-xl bg-blue-900/30 border border-blue-500/30 flex items-center justify-center">
-                {visitanteTeam.escudo ? (
-                  <img src={visitanteTeam.escudo} alt={visitanteTeam.nombre} className="w-12 h-12 object-contain" />
-                ) : (
-                  <span className="text-blue-400 font-bold text-lg">{getIniciales(visitanteTeam.nombre)}</span>
-                )}
+              <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-blue-400 to-cyan-500 flex items-center justify-center">
+                <span className="text-zinc-900 font-bold text-xl">{getInitials(visitanteTeam.nombre, 3)}</span>
               </div>
               <span className="text-white font-semibold text-sm text-center">{visitanteTeam.nombre}</span>
               <span className="text-gray-500 text-xs">Visitante</span>
@@ -124,7 +112,7 @@ export default function InitMatchModal({
           {/* Advertencia */}
           <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 mb-6">
             <p className="text-amber-400 text-sm font-medium">
-              <strong>Importante:</strong> Al iniciar el partido, la convocatoria y plantilla quedarán bloqueadas.
+              <strong>Importante:</strong> Al iniciar el partido, la convocatoria quedará bloqueada.
             </p>
           </div>
         </div>

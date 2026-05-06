@@ -15,19 +15,31 @@ interface LeagueCardProps {
 }
 
 const roleColors: Record<string, string> = {
+  // Español
   admin: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
   entrenador: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
   jugador: 'bg-green-500/20 text-green-400 border-green-500/30',
   delegado: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
-  observador: '', // Observador no muestra badge
+  observador: '',
+  // Inglés (backend)
+  coach: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+  delegate: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
+  player: 'bg-green-500/20 text-green-400 border-green-500/30',
+  viewer: '',
 };
 
 const roleLabels: Record<string, string> = {
+  // Español
   admin: 'Admin',
   entrenador: 'Entrenador',
   jugador: 'Jugador',
   delegado: 'Delegado',
-  observador: '', // Observador no muestra badge
+  observador: '',
+  // Inglés (backend)
+  coach: 'Entrenador',
+  delegate: 'Delegado',
+  player: 'Jugador',
+  viewer: '',
 };
 
 export function LeagueCard({ league, onEnter, onReactivate, onToggleFavorite, isTogglingFavorite }: LeagueCardProps) {

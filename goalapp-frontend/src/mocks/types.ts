@@ -39,7 +39,6 @@ export interface MockEquipo {
   nombre: string;
   ciudad?: string;
   estadio?: string;
-  escudo?: string | null;
   colores?: string;
   id_liga: number;
   id_entrenador?: number;
@@ -50,17 +49,20 @@ export interface MockEquipo {
 
 export interface MockJugador {
   id_jugador: number;
-  nombre: string;
+  id_usuario: number;
   id_equipo: number;
   posicion: string;
-  dorsal: number;
-  fecha_nacimiento: string;
-  goles: number;
-  asistencias: number;
-  tarjetas_amarillas: number;
-  tarjetas_rojas: number;
-  partidos_jugados: number;
+  dorsal: number;  // INT en PostgreSQL
   activo: boolean;
+  created_at: string;
+  updated_at: string | null;
+  // Campos calculados para UI
+  nombre?: string;
+  goles?: number;
+  asistencias?: number;
+  tarjetas_amarillas?: number;
+  tarjetas_rojas?: number;
+  partidos_jugados?: number;
 }
 
 export interface MockPartido {
@@ -71,8 +73,6 @@ export interface MockPartido {
   id_equipo_visitante: number;
   nombre_equipo_local?: string;
   nombre_equipo_visitante?: string;
-  escudo_equipo_local?: string | null;
-  escudo_equipo_visitante?: string | null;
   equipo_local?: string;
   equipo_visitante?: string;
   goles_local: number | null;
@@ -170,10 +170,9 @@ export interface MockTopScorer {
   id_equipo: number;
   nombre: string;
   nombre_equipo: string;
-  escudo_equipo: string | null;
   goles: number;
   partidos_jugados: number;
-  promedio_goles: string;
+  promedio_goles: number;
 }
 
 export interface MockMatchdayMVP {
@@ -181,7 +180,6 @@ export interface MockMatchdayMVP {
   id_usuario: number;
   nombre: string;
   nombre_equipo: string;
-  escudo_equipo: string | null;
   rating: number;
   goles: number;
   asistencias: number;
@@ -191,11 +189,10 @@ export interface MockMatchdayMVP {
 export interface MockTeamGoals {
   id_equipo: number;
   nombre: string;
-  escudo: string | null;
   goles_favor: number;
   goles_contra: number;
   diferencia_goles: number;
-  promedio_goles_favor: string;
+  promedio_goles_favor: number;
   partidos_jugados: number;
 }
 
@@ -204,7 +201,6 @@ export interface MockPlayerStats {
   id_usuario: number;
   nombre: string;
   nombre_equipo: string;
-  escudo_equipo: string | null;
   goles: number;
   asistencias: number;
   tarjetas_amarillas: number;
@@ -220,13 +216,24 @@ export interface MockPlayerStats {
 export interface MockTeamResponse {
   id_equipo: number;
   nombre: string;
-  escudo: string | null;
   colores: string | null;
   id_liga: number;
   id_entrenador: number;
   id_delegado: number;
   created_at: string;
   updated_at: string;
+}
+
+// ============================================
+// TIPOS DE RESPUESTA DE API (invitaciones)
+// ============================================
+
+export interface MockInvitacionCodigoResponse {
+  codigo: string;
+  rol: string;
+  liga: string;
+  expiracion: string;
+  id_equipo?: number;
 }
 
 export interface MockUserWithRole {

@@ -8,6 +8,7 @@ import {
   fetchMiembrosEquipo,
 } from '../services/teamMembersApi';
 import { fetchUsersByLeague } from '../../users/services/usersApi';
+import { useToast } from '../../../contexts/ToastContext';
 
 export default function TeamMemberActionsModal({
   isOpen,
@@ -18,6 +19,7 @@ export default function TeamMemberActionsModal({
   usuariosDisponibles,
   esEntrenador = false,
 }: TeamMemberActionsModalProps) {
+  const toast = useToast();
   const [selectedDelegado, setSelectedDelegado] = useState<number | null>(null);
   const [selectedEstado, setSelectedEstado] = useState(miembro.activo);
   const [isLoading, setIsLoading] = useState(false);
@@ -48,13 +50,13 @@ export default function TeamMemberActionsModal({
     setIsLoading(true);
     try {
       await asignarDelegado(equipoId, selectedDelegado);
-      alert('Delegado asignado correctamente');
+      toast.showSuccess('Delegado asignado correctamente');
       onSuccess();
       onClose();
     } catch (error) {
       console.error('Error al asignar delegado:', error);
       const message = error instanceof Error ? error.message : 'Error al asignar delegado';
-      alert(message);
+      toast.showError(message);
     } finally {
       setIsLoading(false);
     }
@@ -66,11 +68,11 @@ export default function TeamMemberActionsModal({
     setIsLoading(true);
     try {
       await updateMiembroEstado(equipoId, miembro.id_usuario, selectedEstado);
-      alert(`Jugador ${selectedEstado ? 'activado' : 'desactivado'} correctamente`);
+      toast.showSuccess(`Jugador ${selectedEstado ? 'activado' : 'desactivado'} correctamente`);
       onSuccess();
     } catch (error) {
       console.error('Error al actualizar estado:', error);
-      alert('Error al actualizar el estado del jugador');
+      toast.showError('Error al actualizar el estado del jugador');
     } finally {
       setIsLoading(false);
     }
@@ -88,13 +90,13 @@ export default function TeamMemberActionsModal({
     setIsDeleting(true);
     try {
       await deleteMiembroEquipo(equipoId, miembro.id_usuario);
-      alert(miembro.tipo === 'delegado' ? 'Delegado eliminado del equipo' : 'Jugador eliminado del equipo');
+      toast.showSuccess(miembro.tipo === 'delegado' ? 'Delegado eliminado del equipo' : 'Jugador eliminado del equipo');
       onSuccess();
       onClose();
     } catch (error) {
       console.error('Error al eliminar miembro:', error);
       const message = error instanceof Error ? error.message : 'Error al eliminar el miembro';
-      alert(message);
+      toast.showError(message);
     } finally {
       setIsDeleting(false);
     }

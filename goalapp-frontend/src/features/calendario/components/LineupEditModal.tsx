@@ -70,10 +70,11 @@ export default function LineupEditModal({
   };
 
   const jugadoresPorPosicion = useMemo(() => {
-    const filtrados = jugadores.filter(j =>
-      j.usuario.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
-      j.posicion.toLowerCase().includes(busqueda.toLowerCase())
-    );
+    const filtrados = jugadores.filter(j => {
+      const nombreJugador = j.usuario?.nombre || j.nombre || '';
+      return nombreJugador.toLowerCase().includes(busqueda.toLowerCase()) ||
+        j.posicion.toLowerCase().includes(busqueda.toLowerCase());
+    });
 
     return {
       porteros: filtrados.filter(j => j.posicion.toLowerCase().includes('portero')),
@@ -106,7 +107,16 @@ export default function LineupEditModal({
 
   const cambiarEstado = (idJugador: number, nuevoEstado: EstadoConvocatoria) => {
     setJugadores(prev =>
-      prev.map(j => (j.id_jugador === idJugador ? { ...j, estado: nuevoEstado } : j))
+      prev.map(j => {
+        if (j.id_jugador === idJugador) {
+          // Si se hace clic en titular y ya es titular, deseleccionar
+          if (nuevoEstado === 'titular' && j.estado === 'titular') {
+            return { ...j, estado: 'no_convocado' };
+          }
+          return { ...j, estado: nuevoEstado };
+        }
+        return j;
+      })
     );
   };
 
@@ -136,13 +146,13 @@ export default function LineupEditModal({
     setIsSaving(true);
     try {
       await createConvocatoria(payload);
-      setSuccessMessage({ show: true, message: 'Plantilla guardada correctamente' });
+      setSuccessMessage({ show: true, message: 'Convocatoria guardada correctamente' });
       setTimeout(() => {
         onSuccess();
         onClose();
       }, 2000);
     } catch (error) {
-      const mensaje = error instanceof Error ? error.message : 'Error al guardar la plantilla';
+      const mensaje = error instanceof Error ? error.message : 'Error al guardar la convocatoria';
       setErrorMessage({ show: true, message: mensaje });
     } finally {
       setIsSaving(false);
@@ -197,7 +207,7 @@ export default function LineupEditModal({
         </div>
 
         <div>
-          <p className="text-white font-semibold">{jugador.usuario.nombre}</p>
+          <p className="text-white font-semibold">{jugador.usuario?.nombre || jugador.nombre}</p>
           <p className="text-gray-500 text-xs">
             {jugador.posicion} • {jugador.activo ? 'Activo' : 'Inactivo'}
           </p>
@@ -252,7 +262,7 @@ export default function LineupEditModal({
         <div className="p-6 border-b border-gray-800">
           <div className="flex items-start justify-between">
             <div>
-              <h2 className="text-white text-2xl font-bold">Gestionar Plantilla</h2>
+              <h2 className="text-white text-2xl font-bold">Gestionar Convocatoria</h2>
               <p className="text-gray-400 text-sm mt-1">
                 {nombreEquipo} • {fechaTexto}
               </p>
@@ -380,7 +390,7 @@ export default function LineupEditModal({
             disabled={isSaving || resumen.totalTitulares > 11}
             className="flex-1 bg-lime-500 text-black font-bold py-3 rounded-xl hover:bg-lime-400 transition-colors disabled:opacity-50"
           >
-            {isSaving ? 'Guardando...' : 'Guardar Plantilla'}
+            {isSaving ? 'Guardando...' : 'Guardar Convocatoria'}
           </button>
         </div>
       </div>

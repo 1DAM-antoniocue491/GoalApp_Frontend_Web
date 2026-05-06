@@ -5,13 +5,16 @@ import App from './App.tsx'
 import { BrowserRouter } from 'react-router'
 import { AuthProvider } from './features/auth/hooks/useAuth'
 import { SelectedLeagueProvider } from './context'
+import { ToastProvider } from './contexts/ToastContext'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
       <AuthProvider>
         <SelectedLeagueProvider>
-          <App />
+          <ToastProvider>
+            <App />
+          </ToastProvider>
         </SelectedLeagueProvider>
       </AuthProvider>
     </BrowserRouter>

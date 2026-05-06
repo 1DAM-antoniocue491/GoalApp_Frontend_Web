@@ -19,6 +19,8 @@ import {
 } from 'react-icons/fa';
 import Nav from '../../../components/Nav';
 import { useSelectedLeague } from '../../../context/SelectedLeagueContext';
+import { useToast } from '../../../contexts/ToastContext';
+import { getInitials } from '../../../utils/getInitials';
 import {
   fetchTeamDetail,
   fetchTeamNextMatches,
@@ -43,6 +45,7 @@ export default function TeamDetailPage() {
   const { selectedLeague } = useSelectedLeague();
   const { user } = useAuth();
   const isAdmin = selectedLeague?.rol === 'admin';
+  const toast = useToast();
 
   const [equipo, setEquipo] = useState<TeamDetailResponse | null>(null);
   const [proximosPartidos, setProximosPartidos] = useState<MatchResult[]>([]);
@@ -100,21 +103,21 @@ export default function TeamDetailPage() {
   const handleEditEquipo = async (equipoIdParam: number, datos: any) => {
     try {
       await updateTeam(equipoIdParam, datos);
-      alert('Equipo actualizado exitosamente');
+      toast.showSuccess('Equipo actualizado exitosamente');
       setShowEditModal(false);
       loadData();
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Error al actualizar el equipo');
+      toast.showError(err instanceof Error ? err.message : 'Error al actualizar el equipo');
     }
   };
 
   const handleDeleteEquipo = async () => {
     try {
       await deleteTeam(parseInt(equipoId!));
-      alert('Equipo eliminado exitosamente');
+      toast.showSuccess('Equipo eliminado exitosamente');
       navigate('/teams');
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Error al eliminar el equipo');
+      toast.showError(err instanceof Error ? err.message : 'Error al eliminar el equipo');
     }
   };
 
@@ -226,13 +229,11 @@ export default function TeamDetailPage() {
             {/* Información básica */}
             <div className="flex-1">
               <div className="flex items-start gap-4 mb-4">
-                {/* Escudo */}
-                <div className="w-20 h-20 bg-zinc-700 rounded-full flex items-center justify-center flex-shrink-0 border-2 border-zinc-600">
-                  {equipo.escudo ? (
-                    <img src={equipo.escudo} alt={equipo.nombre} className="w-full h-full object-cover rounded-full" />
-                  ) : (
-                    <FaShieldAlt className="text-zinc-400 text-3xl" />
-                  )}
+                {/* Logo automático con iniciales */}
+                <div className="w-20 h-20 bg-gradient-to-br from-lime-400 to-emerald-500 rounded-xl flex items-center justify-center flex-shrink-0 border-2 border-lime-600">
+                  <span className="text-zinc-900 font-bold text-2xl">
+                    {getInitials(equipo.nombre, 3)}
+                  </span>
                 </div>
                 <div className="flex-1">
                   <h1 className="text-white text-2xl font-bold mb-1">{equipo.nombre}</h1>
@@ -312,16 +313,10 @@ export default function TeamDetailPage() {
               <div className="flex items-center justify-between">
                 {/* Equipo local */}
                 <div className="flex items-center gap-3 flex-1">
-                  <div className="w-10 h-10 bg-zinc-700 rounded-full flex items-center justify-center">
-                    {proximosPartidos[0].escudo_equipo_local ? (
-                      <img
-                        src={proximosPartidos[0].escudo_equipo_local}
-                        alt={proximosPartidos[0].nombre_equipo_local}
-                        className="w-full h-full object-cover rounded-full"
-                      />
-                    ) : (
-                      <FaShieldAlt className="text-zinc-400" />
-                    )}
+                  <div className="w-10 h-10 bg-gradient-to-br from-lime-400 to-emerald-500 rounded-lg flex items-center justify-center">
+                    <span className="text-zinc-900 font-bold text-xs">
+                      {getInitials(proximosPartidos[0].nombre_equipo_local)}
+                    </span>
                   </div>
                   <span className="text-white font-semibold">
                     {proximosPartidos[0].nombre_equipo_local}
@@ -351,16 +346,10 @@ export default function TeamDetailPage() {
                   <span className="text-white font-semibold">
                     {proximosPartidos[0].nombre_equipo_visitante}
                   </span>
-                  <div className="w-10 h-10 bg-zinc-700 rounded-full flex items-center justify-center">
-                    {proximosPartidos[0].escudo_equipo_visitante ? (
-                      <img
-                        src={proximosPartidos[0].escudo_equipo_visitante}
-                        alt={proximosPartidos[0].nombre_equipo_visitante}
-                        className="w-full h-full object-cover rounded-full"
-                      />
-                    ) : (
-                      <FaShieldAlt className="text-zinc-400" />
-                    )}
+                  <div className="w-10 h-10 bg-gradient-to-br from-lime-400 to-emerald-500 rounded-lg flex items-center justify-center">
+                    <span className="text-zinc-900 font-bold text-xs">
+                      {getInitials(proximosPartidos[0].nombre_equipo_visitante)}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -611,18 +600,16 @@ export default function TeamDetailPage() {
               )}
             </div>
 
-            {/* Capitán */}
+            {/* Estadio */}
             <div className="bg-zinc-900 rounded-lg p-4">
               <div className="flex items-center gap-3 mb-2">
                 <FaMedal className="text-yellow-400" />
-                <span className="text-zinc-400 text-sm">Capitán</span>
+                <span className="text-zinc-400 text-sm">Estadio</span>
               </div>
-              {staff?.capitan ? (
-                <p className="text-white font-semibold">
-                  {staff.capitan.nombre} #{staff.capitan.dorsal}
-                </p>
+              {equipo.estadio ? (
+                <p className="text-white font-semibold">{equipo.estadio}</p>
               ) : (
-                <p className="text-zinc-500 text-sm">Sin capitán asignado</p>
+                <p className="text-zinc-500 text-sm">Sin estadio asignado</p>
               )}
             </div>
           </div>

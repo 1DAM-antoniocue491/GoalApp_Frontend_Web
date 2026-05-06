@@ -1,7 +1,19 @@
 import { useState } from 'react';
-import { FaTimes, FaShieldAlt } from 'react-icons/fa';
+import { FaTimes } from 'react-icons/fa';
 import Modal from '../../../components/ui/Modal';
 import { updateTeam, type UpdateTeamPayload } from '../services/teamApi';
+
+/**
+ * Genera las iniciales de un nombre para mostrar en el logo automático
+ */
+function getInitials(nombre: string): string {
+  if (!nombre) return 'E';
+  const parts = nombre.trim().split(' ');
+  if (parts.length >= 2) {
+    return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+  }
+  return nombre.substring(0, 2).toUpperCase();
+}
 
 interface EditTeamModalProps {
   isOpen: boolean;
@@ -12,7 +24,6 @@ interface EditTeamModalProps {
     nombre: string;
     ciudad?: string;
     estadio?: string;
-    escudo?: string | null;
     colores?: string;
   };
   onSave: () => void;
@@ -23,7 +34,6 @@ export default function EditTeamModal({ isOpen, onClose, ligaId, equipoId, initi
     nombre: initialData.nombre || '',
     ciudad: initialData.ciudad || '',
     estadio: initialData.estadio || '',
-    escudo: initialData.escudo || '',
     colores: initialData.colores || '#D4FF59',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -58,7 +68,6 @@ export default function EditTeamModal({ isOpen, onClose, ligaId, equipoId, initi
       nombre: initialData.nombre || '',
       ciudad: initialData.ciudad || '',
       estadio: initialData.estadio || '',
-      escudo: initialData.escudo || '',
       colores: initialData.colores || '#D4FF59',
     });
     setError(null);
@@ -67,17 +76,13 @@ export default function EditTeamModal({ isOpen, onClose, ligaId, equipoId, initi
 
   return (
     <Modal isOpen={isOpen} onClose={handleClose} size="lg">
-      <div className="flex flex-col items-center mb-6">
-        <div
-          className="w-20 h-20 bg-zinc-700 rounded-full flex items-center justify-center border-2 border-zinc-600 mb-3"
-        >
-          {formData.escudo ? (
-            <img src={formData.escudo} alt="Escudo" className="w-full h-full object-cover" />
-          ) : (
-            <FaShieldAlt className="text-white text-3xl" />
-          )}
+      {/* Logo automático con iniciales */}
+      <div className="flex justify-center mb-6">
+        <div className="w-20 h-20 bg-gradient-to-br from-lime-400 to-emerald-500 rounded-xl flex items-center justify-center">
+          <span className="text-zinc-900 font-bold text-2xl">
+            {formData.nombre ? getInitials(formData.nombre) : 'EQ'}
+          </span>
         </div>
-        <p className="text-zinc-400 text-sm">Escudo actual</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">

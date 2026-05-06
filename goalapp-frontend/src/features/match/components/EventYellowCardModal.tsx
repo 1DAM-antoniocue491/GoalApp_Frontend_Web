@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { FaExclamationTriangle, FaTimes } from 'react-icons/fa';
 import type { PlayerWithStatsResponse } from '../../team/services/teamApi';
+import { getInitials } from '../../../utils/getInitials';
+import { useToast } from '../../../contexts/ToastContext';
 
 interface Team {
   id: number;
   nombre: string;
-  escudo?: string | null;
 }
 
 interface EventYellowCardModalProps {
@@ -29,6 +30,7 @@ export default function EventYellowCardModal({
   visitantePlayers,
   minuto,
 }: EventYellowCardModalProps) {
+  const toast = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState<number | null>(null);
   const [selectedPlayer, setSelectedPlayer] = useState<number | null>(null);
@@ -61,7 +63,7 @@ export default function EventYellowCardModal({
 
     const minuteValue = parseInt(minute, 10);
     if (isNaN(minuteValue) || minuteValue < 0 || minuteValue > 120) {
-      alert('El minuto debe estar entre 0 y 120');
+      toast.showError('El minuto debe estar entre 0 y 120');
       return;
     }
 
@@ -80,11 +82,6 @@ export default function EventYellowCardModal({
   };
 
   const isFormValid = selectedTeam && selectedPlayer && minute;
-
-  // Generar iniciales para escudos
-  const getIniciales = (nombre: string) => {
-    return nombre.split(' ').slice(0, 3).map(word => word[0]).join('').toUpperCase().slice(0, 3);
-  };
 
   if (!isOpen) return null;
 
@@ -132,11 +129,9 @@ export default function EventYellowCardModal({
                     : 'border-gray-700 bg-gray-800/50 hover:border-gray-600'
                 }`}
               >
-                {localTeam.escudo ? (
-                  <img src={localTeam.escudo} alt={localTeam.nombre} className="w-5 h-5 object-contain" />
-                ) : (
-                  <span className="text-green-400 font-bold text-xs">{getIniciales(localTeam.nombre)}</span>
-                )}
+                <div className="w-5 h-5 bg-gradient-to-br from-green-400 to-emerald-500 rounded flex items-center justify-center">
+                  <span className="text-zinc-900 font-bold text-[10px]">{getInitials(localTeam.nombre)}</span>
+                </div>
                 <span className={`text-sm font-medium ${
                   selectedTeam === localTeam.id ? 'text-yellow-400' : 'text-gray-300'
                 }`}>
@@ -156,11 +151,9 @@ export default function EventYellowCardModal({
                     : 'border-gray-700 bg-gray-800/50 hover:border-gray-600'
                 }`}
               >
-                {visitanteTeam.escudo ? (
-                  <img src={visitanteTeam.escudo} alt={visitanteTeam.nombre} className="w-5 h-5 object-contain" />
-                ) : (
-                  <span className="text-blue-400 font-bold text-xs">{getIniciales(visitanteTeam.nombre)}</span>
-                )}
+                <div className="w-5 h-5 bg-gradient-to-br from-blue-400 to-cyan-500 rounded flex items-center justify-center">
+                  <span className="text-zinc-900 font-bold text-[10px]">{getInitials(visitanteTeam.nombre)}</span>
+                </div>
                 <span className={`text-sm font-medium ${
                   selectedTeam === visitanteTeam.id ? 'text-yellow-400' : 'text-gray-300'
                 }`}>

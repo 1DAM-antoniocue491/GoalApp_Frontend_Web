@@ -3,6 +3,7 @@ import { FaCalendar, FaClock, FaTimes, FaUsers } from 'react-icons/fa';
 import { fetchTeamsByLeague } from '../../team/services/teamApi';
 import type { TeamResponse } from '../../team/services/teamApi';
 import { createMatch, type MatchCreatePayload } from '../../match/services/matchApi';
+import { useToast } from '../../../contexts/ToastContext';
 
 interface CreateMatchModalProps {
   isOpen: boolean;
@@ -12,6 +13,7 @@ interface CreateMatchModalProps {
 }
 
 export default function CreateMatchModal({ isOpen, onClose, ligaId, onSuccess }: CreateMatchModalProps) {
+  const toast = useToast();
   const [fecha, setFecha] = useState('');
   const [hora, setHora] = useState('16:00');
   const [equipoLocalId, setEquipoLocalId] = useState<number>(0);
@@ -40,12 +42,12 @@ export default function CreateMatchModal({ isOpen, onClose, ligaId, onSuccess }:
 
   const handleCreate = async () => {
     if (!fecha || !hora || !equipoLocalId || !equipoVisitanteId) {
-      alert('Por favor, completa todos los campos obligatorios');
+      toast.showError('Por favor, completa todos los campos obligatorios');
       return;
     }
 
     if (equipoLocalId === equipoVisitanteId) {
-      alert('El equipo local y visitante deben ser diferentes');
+      toast.showError('El equipo local y visitante deben ser diferentes');
       return;
     }
 
@@ -56,14 +58,15 @@ export default function CreateMatchModal({ isOpen, onClose, ligaId, onSuccess }:
         id_equipo_local: equipoLocalId,
         id_equipo_visitante: equipoVisitanteId,
         fecha: `${fecha}T${hora}:00`,
+        estado: 'programado',
       };
       await createMatch(payload);
-      alert('Partido creado exitosamente');
+      toast.showSuccess('Partido creado exitosamente');
       handleCancel();
       onSuccess();
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Error al crear el partido';
-      alert(message);
+      toast.showError(message);
     } finally {
       setIsLoading(false);
     }

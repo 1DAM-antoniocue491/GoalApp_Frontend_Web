@@ -33,6 +33,7 @@ export interface MatchCreatePayload {
   id_equipo_local: number;
   id_equipo_visitante: number;
   fecha: string;
+  estado?: 'programado' | 'en_juego' | 'finalizado' | 'cancelado' | 'suspendido';
 }
 
 export interface MatchUpdatePayload {
@@ -45,8 +46,6 @@ export interface MatchUpdatePayload {
 export interface MatchWithTeams extends MatchResponse {
   nombre_equipo_local: string;
   nombre_equipo_visitante: string;
-  escudo_equipo_local: string | null;
-  escudo_equipo_visitante: string | null;
 }
 
 export interface Jornada {

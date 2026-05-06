@@ -3,7 +3,7 @@ import { FaRegClock } from "react-icons/fa";
 export interface MatchAction {
   label: string;
   icon?: string;
-  variant: 'convocatoria' | 'plantillas' | 'iniciar' | 'finalizar' | 'eventos';
+  variant: 'convocatoria' | 'iniciar' | 'finalizar' | 'eventos' | 'editar';
   onClick: () => void;
   disabled?: boolean;
 }
@@ -24,8 +24,6 @@ export default function MatchCardDashboard({
   const getVariantClasses = (variant: MatchAction['variant']) => {
     switch (variant) {
       case 'convocatoria':
-        return 'bg-lime-800/40 text-lime-300 hover:bg-lime-800/60 border-lime-700';
-      case 'plantillas':
         return 'bg-cyan-800/30 text-cyan-300 hover:bg-cyan-800/50 border-cyan-700';
       case 'iniciar':
         return 'bg-lime-300 text-black hover:bg-lime-200/95 shadow shadow-lime-300';
@@ -33,6 +31,8 @@ export default function MatchCardDashboard({
         return 'bg-orange-600 text-white hover:bg-orange-500 shadow shadow-orange-600/30';
       case 'eventos':
         return 'bg-purple-600 text-white hover:bg-purple-500 shadow shadow-purple-600/30';
+      case 'editar':
+        return 'bg-purple-800/30 text-purple-300 hover:bg-purple-800/50 border-purple-700';
       default:
         return 'bg-gray-800 text-gray-400';
     }

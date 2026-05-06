@@ -5,22 +5,63 @@ import SectionHeader from '../components/dashboard/SectionHeader'
 import { FiArrowLeft } from 'react-icons/fi'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { useSelectedLeague } from '../../../context'
+import { useToast } from '../../../contexts/ToastContext'
+import { apiGet } from '../../../services/api'
 import { fetchLiveMatches, type MatchWithTeams } from '../../match/services/matchApi'
+import FinishMatchModal, { type FinishData } from '../../match/components/FinishMatchModal'
+import { fetchTeamSquad, type PlayerWithStatsResponse } from '../../team/services/teamApi'
 
 export default function Live() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const { selectedLeague } = useSelectedLeague()
+  const toast = useToast()
 
   const [liveMatches, setLiveMatches] = useState<MatchWithTeams[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [showFinishModal, setShowFinishModal] = useState(false)
+  const [finishMatchData, setFinishMatchData] = useState<{
+    id_partido: number
+    localTeam: { nombre: string; id: number }
+    visitanteTeam: { nombre: string; id: number }
+  } | null>(null)
+  const [localTeamPlayers, setLocalTeamPlayers] = useState<PlayerWithStatsResponse[]>([])
+  const [visitanteTeamPlayers, setVisitanteTeamPlayers] = useState<PlayerWithStatsResponse[]>([])
+  const [delegadoEquipoId, setDelegadoEquipoId] = useState<number | null>(null)
 
   // Determinar rol del usuario
   const userRole = user?.rol_principal?.toLowerCase() || ''
   const isAdmin = userRole === 'admin'
   const isDelegado = userRole === 'delegado'
-  const tienePoderes = isAdmin || isDelegado
+
+  // Función para verificar si el usuario puede registrar eventos en un partido
+  const canRegisterEvents = (match: MatchWithTeams): boolean => {
+    // Admin siempre puede registrar eventos
+    if (isAdmin) {
+      return true;
+    }
+    // Para delegado: solo puede registrar eventos si el partido es de su equipo
+    if (!delegadoEquipoId) return false;
+    return match.id_equipo_local === delegadoEquipoId || match.id_equipo_visitante === delegadoEquipoId;
+  };
+
+  // Cargar el equipo asignado al delegado
+  useEffect(() => {
+    const cargarEquipo = async () => {
+      if (!isDelegado || !selectedLeague?.id) return;
+      try {
+        const data = await apiGet<{ id_equipo: number }>('/equipos/usuario/mi-equipo', {
+          liga_id: selectedLeague.id,
+        });
+        setDelegadoEquipoId(data.id_equipo);
+      } catch (error) {
+        console.error('Error al cargar equipo del delegado:', error);
+        setDelegadoEquipoId(null);
+      }
+    };
+    cargarEquipo();
+  }, [selectedLeague?.id, isDelegado]);
 
   // Calcular minuto de juego desde fecha_inicio
   const calcularMinuto = (fechaInicio: string): string => {
@@ -29,6 +70,61 @@ export default function Live() {
     const diffMs = ahora.getTime() - inicio.getTime()
     const minutos = Math.floor(diffMs / 60000)
     return `${minutos}'`
+  }
+
+  // Función para abrir el modal de finalizar partido
+  const handleOpenFinishMatchModal = async (match: MatchWithTeams) => {
+    try {
+      const [localPlayers, visitantePlayers] = await Promise.all([
+        fetchTeamSquad(match.id_equipo_local),
+        fetchTeamSquad(match.id_equipo_visitante),
+      ])
+
+      setLocalTeamPlayers(localPlayers)
+      setVisitanteTeamPlayers(visitantePlayers)
+
+      setFinishMatchData({
+        id_partido: match.id_partido,
+        localTeam: { nombre: match.nombre_equipo_local, id: match.id_equipo_local },
+        visitanteTeam: { nombre: match.nombre_equipo_visitante, id: match.id_equipo_visitante },
+      })
+      setShowFinishModal(true)
+    } catch (error) {
+      console.error('Error al cargar jugadores:', error)
+      toast.showError('No se pudo cargar la información de los jugadores')
+    }
+  }
+
+  // Función para confirmar la finalización del partido
+  const handleConfirmFinishMatch = async (data: FinishData) => {
+    if (!finishMatchData) return
+
+    try {
+      const token = localStorage.getItem('token')
+      const response = await fetch(`/api/v1/partidos/${finishMatchData.id_partido}/finalizar`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      })
+      if (!response.ok) throw new Error('Error al finalizar el partido')
+
+      setShowFinishModal(false)
+      setFinishMatchData(null)
+      toast.showSuccess('Partido finalizado correctamente')
+
+      // Recargar partidos en vivo
+      if (selectedLeague?.id) {
+        const matches = await fetchLiveMatches(selectedLeague.id)
+        setLiveMatches(matches)
+      }
+    } catch (error) {
+      console.error('Error al finalizar partido:', error)
+      toast.showError('No se pudo finalizar el partido')
+      throw error
+    }
   }
 
   // Cargar partidos en vivo al montar
@@ -157,20 +253,23 @@ export default function Live() {
                 </div>
                 <div className='w-full border border-zinc-900 mt-2'></div>
                 <div className="flex gap-2 mt-3">
-                  {tienePoderes && (
+                  {canRegisterEvents(match) && (
                     <button
+                      onClick={() => navigate(`/live`)}
                       className="flex-1 px-3 py-1.5 text-sm font-bold rounded-lg transition-colors border-2 bg-lime-800/40 text-lime-300 hover:bg-lime-800/60 border-lime-700"
                     >
-                      🏆 Registrar Evento
+                      🏆 Eventos
                     </button>
                   )}
                   <button
+                    onClick={() => navigate(`/live`)}
                     className="flex-1 px-3 py-1.5 text-sm font-bold rounded-lg transition-colors border-2 bg-cyan-800/30 text-cyan-700 hover:bg-cyan-800/50 border-cyan-700"
                   >
-                    👥 Ver Plantillas
+                    👥 Convocatoria
                   </button>
-                  {tienePoderes && (
+                  {(isAdmin || canRegisterEvents(match)) && (
                     <button
+                      onClick={() => handleOpenFinishMatchModal(match)}
                       className="flex-1 px-3 py-1.5 text-sm font-bold rounded-lg transition-colors border-2 bg-yellow-800/30 text-yellow-700 hover:bg-yellow-800/50 border-yellow-700"
                     >
                       🔒 Finalizar
@@ -182,6 +281,34 @@ export default function Live() {
           </div>
         )}
       </div>
+
+      {/* Modal de finalizar partido */}
+      {finishMatchData && (
+        <FinishMatchModal
+          isOpen={showFinishModal}
+          onClose={() => {
+            setShowFinishModal(false)
+            setFinishMatchData(null)
+          }}
+          onConfirm={handleConfirmFinishMatch}
+          localTeam={finishMatchData.localTeam}
+          visitanteTeam={finishMatchData.visitanteTeam}
+          jugadores={[
+            ...localTeamPlayers.map(p => ({
+              id: p.id_jugador,
+              nombre: p.nombre_jugador || p.nombre,
+              id_equipo: finishMatchData.localTeam.id,
+              dorsal: p.dorsal,
+            })),
+            ...visitanteTeamPlayers.map(p => ({
+              id: p.id_jugador,
+              nombre: p.nombre_jugador || p.nombre,
+              id_equipo: finishMatchData.visitanteTeam.id,
+              dorsal: p.dorsal,
+            })),
+          ]}
+        />
+      )}
     </div>
   )
 }

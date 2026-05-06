@@ -1,15 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaSpinner, FaExclamationCircle, FaShieldAlt, FaUser, FaCheck, FaMinus, FaTimes, FaSearch, FaPlus, FaList, FaThLarge } from 'react-icons/fa';
+import { FaSpinner, FaExclamationCircle, FaShieldAlt, FaCheck, FaMinus, FaTimes, FaSearch, FaPlus, FaList, FaThLarge } from 'react-icons/fa';
 import Nav from '../../../components/Nav';
 import { useSelectedLeague } from '../../../context/SelectedLeagueContext';
 import { apiGet } from '../../../services/api';
+import { getInitials } from '../../../utils/getInitials';
 import CreateTeamModal from '../components/CreateTeamModal';
 
 interface EquipoRendimiento {
   id_equipo: number;
   nombre: string;
-  escudo: string | null;
   colores: string | null;
   id_liga: number;
   partidos_jugados: number;
@@ -240,10 +240,10 @@ export default function TeamPage() {
                           <td className={`px-4 py-3 text-sm ${posicionClass || 'text-zinc-400'}`}>{index + 1}</td>
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-3">
-                              <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                                esZonaAlta ? 'bg-lime-900/30' : esZonaBaja ? 'bg-red-900/30' : 'bg-zinc-700'
-                              }`}>
-                                <FaUser className={esZonaAlta ? 'text-lime-400' : esZonaBaja ? 'text-red-400' : 'text-zinc-400'} />
+                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-gradient-to-br from-lime-400 to-emerald-500`}>
+                                <span className="text-zinc-900 font-bold text-xs">
+                                  {getInitials(equipo.nombre)}
+                                </span>
                               </div>
                               <span className={`font-medium text-sm ${
                                 esZonaAlta ? 'text-lime-300' : esZonaBaja ? 'text-red-300' : 'text-white'
@@ -296,9 +296,11 @@ export default function TeamPage() {
                 {/* Header de la tarjeta */}
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-3">
-                    {/* Escudo placeholder */}
-                    <div className="w-12 h-12 bg-zinc-700 rounded-full flex items-center justify-center flex-shrink-0">
-                      <FaUser className="text-zinc-400 text-lg" />
+                    {/* Logo automático con iniciales */}
+                    <div className="w-12 h-12 bg-gradient-to-br from-lime-400 to-emerald-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <span className="text-zinc-900 font-bold text-sm">
+                        {getInitials(equipo.nombre)}
+                      </span>
                     </div>
                     <div>
                       <h3 className="text-white font-semibold text-sm">{equipo.nombre}</h3>

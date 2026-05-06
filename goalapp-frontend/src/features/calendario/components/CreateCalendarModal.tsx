@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { FaCalendar, FaClock, FaTimes } from 'react-icons/fa';
+import { useToast } from '../../../contexts/ToastContext';
 
 interface CreateCalendarModalProps {
   isOpen: boolean;
@@ -28,6 +29,7 @@ const DIAS_SEMANA = [
 ];
 
 export default function CreateCalendarModal({ isOpen, onClose, onSave, isEditMode = false, initialConfig }: CreateCalendarModalProps) {
+  const toast = useToast();
   const [tipo, setTipo] = useState<'ida' | 'ida_vuelta'>('ida_vuelta');
   const [fechaInicio, setFechaInicio] = useState('');
   const [diasPartido, setDiasPartido] = useState<number[]>([]);
@@ -53,11 +55,11 @@ export default function CreateCalendarModal({ isOpen, onClose, onSave, isEditMod
 
   const handleSave = () => {
     if (!fechaInicio) {
-      alert('Selecciona una fecha de inicio');
+      toast.showError('Selecciona una fecha de inicio');
       return;
     }
     if (diasPartido.length === 0) {
-      alert('Selecciona al menos un día de partido');
+      toast.showError('Selecciona al menos un día de partido');
       return;
     }
 
@@ -149,15 +151,12 @@ export default function CreateCalendarModal({ isOpen, onClose, onSave, isEditMod
           {/* Fecha de inicio */}
           <div>
             <h3 className="text-white font-semibold mb-3">Fecha de inicio</h3>
-            <div className="relative">
-              <input
-                type="date"
-                value={fechaInicio}
-                onChange={(e) => setFechaInicio(e.target.value)}
-                className="w-full bg-gray-900/50 border border-gray-800 rounded-xl px-4 py-3 text-white pr-12 focus:outline-none focus:border-lime-500/50 transition-colors"
-              />
-              <FaCalendar className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500" />
-            </div>
+            <input
+              type="date"
+              value={fechaInicio}
+              onChange={(e) => setFechaInicio(e.target.value)}
+              className="w-full bg-gray-900/50 border border-gray-800 rounded-xl px-4 py-3 text-white pr-12 focus:outline-none focus:border-lime-500/50 transition-colors"
+            />
           </div>
 
           {/* Días de partido */}

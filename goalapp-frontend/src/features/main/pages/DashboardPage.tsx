@@ -15,12 +15,19 @@ import {
   DelegateDashboard,
 } from '../components/dashboard/roles';
 
-// Mapeo de roles a etiquetas legibles
+// Mapeo de roles a etiquetas legibles (soporta español e inglés del backend)
 const roleLabels: Record<string, string> = {
+  // Español
   admin: 'Administrador',
   entrenador: 'Entrenador',
   jugador: 'Jugador',
   delegado: 'Delegado',
+  observador: 'Observador',
+  // Inglés (backend)
+  coach: 'Entrenador',
+  delegate: 'Delegado',
+  player: 'Jugador',
+  viewer: 'Observador',
 };
 
 export default function DashboardPage() {
@@ -59,9 +66,10 @@ export default function DashboardPage() {
   const userName = user?.nombre || 'Usuario';
   const userRole = roleLabels[selectedLeague.rol] || selectedLeague.rol;
 
-  // Renderizar dashboard según el rol
+  // Renderizar dashboard según el rol (soporta español e inglés del backend)
   const renderDashboardByRole = () => {
-    switch (selectedLeague.rol) {
+    const rol = selectedLeague.rol.toLowerCase();
+    switch (rol) {
       case 'admin':
         return (
           <AdminDashboard
@@ -71,6 +79,7 @@ export default function DashboardPage() {
           />
         );
       case 'entrenador':
+      case 'coach':
         return (
           <CoachDashboard
             league={selectedLeague}
@@ -79,6 +88,7 @@ export default function DashboardPage() {
           />
         );
       case 'jugador':
+      case 'player':
         return (
           <PlayerDashboard
             league={selectedLeague}
@@ -87,8 +97,19 @@ export default function DashboardPage() {
           />
         );
       case 'delegado':
+      case 'delegate':
         return (
           <DelegateDashboard
+            league={selectedLeague}
+            userName={userName}
+            userRole={userRole}
+          />
+        );
+      case 'observador':
+      case 'viewer':
+        // Viewer usa el dashboard de jugador pero con permisos limitados
+        return (
+          <PlayerDashboard
             league={selectedLeague}
             userName={userName}
             userRole={userRole}

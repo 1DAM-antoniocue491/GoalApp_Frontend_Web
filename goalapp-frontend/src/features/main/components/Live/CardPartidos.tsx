@@ -55,7 +55,7 @@ export default function CardPartidos({
         {!tienePoderes ? (
           /* VISTA USUARIO / ENTRENADOR */
           <button className="w-full bg-[#0a1e24] border border-[#144d5a] text-[#22d3ee] py-3 rounded-xl flex items-center justify-center gap-2 text-xs font-bold hover:bg-[#0f2d35] transition-all active:scale-95">
-            <span>🏆</span> Plantilla
+            <span>🏆</span> Convocatoria
           </button>
         ) : (
           /* VISTA ADMIN / DELEGADO */
@@ -65,7 +65,7 @@ export default function CardPartidos({
             </button>
 
             <button className="flex-1 bg-[#0a1e24] border border-[#144d5a] text-[#22d3ee] py-3 rounded-xl flex items-center justify-center gap-1 text-[10px] font-bold hover:bg-[#0f2d35] transition-all">
-              <span>👥</span> Ver Plantilla
+              <span>👥</span> Ver Convocatoria
             </button>
 
             <button className="flex-1 bg-[#f59e0b] text-black py-3 rounded-xl flex items-center justify-center gap-1 text-[10px] font-black shadow-[0_4px_15px_rgba(245,158,11,0.3)] hover:brightness-110 active:scale-95 transition-all">

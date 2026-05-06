@@ -14,6 +14,7 @@ import {
 } from 'react-icons/fa';
 import Nav from '../../../components/Nav';
 import { useSelectedLeague } from '../../../context/SelectedLeagueContext';
+import { getInitials } from '../../../utils/getInitials';
 import {
   fetchSeasonStats,
   fetchTopScorers,
@@ -54,8 +55,8 @@ export default function StatisticPage() {
         fetchTopScorers(selectedLeague.id, 5),
         fetchMatchdayMVP(selectedLeague.id),
         fetchTeamGoalsStats(selectedLeague.id),
-        // Solo cargar stats personales si el usuario es jugador
-        selectedLeague.rol === 'jugador' && selectedLeague.usuarioId
+        // Solo cargar stats personales si el usuario es jugador (soporta inglés del backend)
+        (selectedLeague.rol === 'jugador' || selectedLeague.rol === 'player') && selectedLeague.usuarioId
           ? fetchPlayerPersonalStats(selectedLeague.id, selectedLeague.usuarioId)
           : Promise.resolve(null),
       ]);
@@ -129,8 +130,8 @@ export default function StatisticPage() {
         {/* Contenido principal */}
         {!isLoading && !error && (
           <div className="space-y-8">
-            {/* Mis Estadísticas - Solo para jugadores */}
-            {myStats && selectedLeague?.rol === 'jugador' && (
+            {/* Mis Estadísticas - Solo para jugadores (soporta inglés del backend) */}
+            {myStats && (selectedLeague?.rol === 'jugador' || selectedLeague?.rol === 'player') && (
               <div className="bg-gradient-to-r from-lime-900/20 to-emerald-900/20 rounded-xl p-6 border border-lime-700/30">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="w-12 h-12 bg-lime-500/20 rounded-full flex items-center justify-center">
@@ -346,9 +347,9 @@ export default function StatisticPage() {
                         <div key={team.id_equipo} className="space-y-2">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 bg-zinc-700 rounded-full flex items-center justify-center flex-shrink-0">
-                                <span className="text-white text-xs font-bold">
-                                  {team.nombre.split(' ').map((n) => n[0]).join('').substring(0, 2)}
+                              <div className="w-8 h-8 bg-gradient-to-br from-lime-400 to-emerald-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                                <span className="text-zinc-900 font-bold text-xs">
+                                  {getInitials(team.nombre)}
                                 </span>
                               </div>
                               <span className="text-white font-medium text-sm">{team.nombre}</span>

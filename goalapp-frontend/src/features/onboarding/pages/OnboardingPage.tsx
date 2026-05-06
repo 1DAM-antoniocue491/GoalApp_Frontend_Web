@@ -258,8 +258,22 @@ export function OnboardingPage() {
   };
 
   const handleJoinLeague = () => {
+    console.log('[Onboarding] handleJoinLeague llamado manualmente');
     setIsJoinLeagueModalOpen(true);
   };
+
+  // Debug: rastrear cambios en los estados de los modales
+  useEffect(() => {
+    console.log('[Onboarding] isJoinLeagueModalOpen:', isJoinLeagueModalOpen);
+  }, [isJoinLeagueModalOpen]);
+
+  useEffect(() => {
+    console.log('[Onboarding] isCreateLeagueModalOpen:', isCreateLeagueModalOpen);
+  }, [isCreateLeagueModalOpen]);
+
+  useEffect(() => {
+    console.log('[Onboarding] isReactivateModalOpen:', isReactivateModalOpen);
+  }, [isReactivateModalOpen]);
 
   const handleEnterLeague = (leagueId: number) => {
     // Encontrar la liga seleccionada

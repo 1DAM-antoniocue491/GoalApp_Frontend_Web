@@ -252,7 +252,9 @@ export default function ConvocatoriaViewModal({
           <p className="text-gray-500 text-xs text-center">
             {estadoPartido === 'programado'
               ? 'La convocatoria puede modificarse hasta el inicio del partido'
-              : 'Convocatoria cerrada - Partido iniciado'}
+              : estadoPartido === 'en_juego'
+              ? 'Partido en juego - Convocatoria cerrada'
+              : 'Partido finalizado - Convocatoria cerrada'}
           </p>
         </div>
       </div>

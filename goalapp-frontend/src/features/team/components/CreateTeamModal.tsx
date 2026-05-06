@@ -1,8 +1,19 @@
 import { useState, useRef } from 'react';
-import { FaTimes, FaShieldAlt, FaPlus, FaCamera } from 'react-icons/fa';
+import { FaTimes, FaPlus } from 'react-icons/fa';
 import Modal from '../../../components/ui/Modal';
 import { createTeam, type CreateTeamPayload } from '../services/teamApi';
-import { apiPost } from '../../../services/api';
+
+/**
+ * Genera las iniciales de un nombre para mostrar en el logo automático
+ */
+function getInitials(nombre: string): string {
+  if (!nombre) return 'E';
+  const parts = nombre.trim().split(' ');
+  if (parts.length >= 2) {
+    return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+  }
+  return nombre.substring(0, 2).toUpperCase();
+}
 
 interface CreateTeamModalProps {
   isOpen: boolean;
@@ -18,25 +29,9 @@ export default function CreateTeamModal({ isOpen, onClose, onSuccess, ligaId }: 
     colores: '#D4FF59',
     estadio: '',
   });
-  const [escudoPreview, setEscudoPreview] = useState<string | null>(null);
-  const [escudoFile, setEscudoFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const createdTeamId = useRef<number | null>(null);
-
-  const handleEscudoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      // Leer archivo como Data URL para preview
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setEscudoPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-      setEscudoFile(file);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,27 +45,7 @@ export default function CreateTeamModal({ isOpen, onClose, onSuccess, ligaId }: 
         id_liga: ligaId,
       };
 
-      // 1. Crear el equipo
-      const nuevoEquipo = await createTeam(payload);
-      createdTeamId.current = nuevoEquipo.id_equipo;
-
-      // 2. Si hay imagen, subirla después de crear el equipo
-      if (escudoFile && createdTeamId.current) {
-        try {
-          const formDataImagen = new FormData();
-          formDataImagen.append('file', escudoFile);
-
-          const { apiPostRaw } = await import('../../../services/api');
-          if (apiPostRaw) {
-            await apiPostRaw(`/imagenes/equipos/${createdTeamId.current}`, formDataImagen);
-          } else {
-            console.warn('apiPostRaw no disponible en modo mock');
-          }
-        } catch (imgError) {
-          console.warn('Error al subir la imagen:', imgError);
-          // No fallamos el proceso si solo falla la imagen
-        }
-      }
+      await createTeam(payload);
 
       onSuccess();
       handleClose();
@@ -82,46 +57,20 @@ export default function CreateTeamModal({ isOpen, onClose, onSuccess, ligaId }: 
   };
 
   const handleClose = () => {
-    setFormData({ nombre: '', ciudad: '', colores: '#D4FF59', estadio: '', escudoUrl: '' });
-    setEscudoPreview(null);
+    setFormData({ nombre: '', ciudad: '', colores: '#D4FF59', estadio: '' });
     setError(null);
     onClose();
   };
 
   return (
     <Modal isOpen={isOpen} onClose={handleClose} size="lg">
-      {/* Header con escudo - input de imagen */}
-      <div className="flex flex-col items-center mb-6">
-        {/* Escudo circular con preview */}
-        <div
-          className="w-20 h-20 bg-zinc-700 rounded-full flex items-center justify-center border-2 border-zinc-600 mb-3 cursor-pointer hover:border-lime-400 transition-colors relative overflow-hidden"
-          onClick={() => fileInputRef.current?.click()}
-        >
-          {escudoPreview ? (
-            <img src={escudoPreview} alt="Escudo" className="w-full h-full object-cover" />
-          ) : (
-            <FaShieldAlt className="text-white text-3xl" />
-          )}
-          {/* Overlay con icono de cámara */}
-          <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-            <FaCamera className="text-white text-xl" />
-          </div>
+      {/* Logo automático con iniciales */}
+      <div className="flex justify-center mb-6">
+        <div className="w-20 h-20 bg-gradient-to-br from-lime-400 to-emerald-500 rounded-xl flex items-center justify-center">
+          <span className="text-zinc-900 font-bold text-2xl">
+            {formData.nombre ? getInitials(formData.nombre) : 'EQ'}
+          </span>
         </div>
-        <p className="text-zinc-400 text-sm">Escudo del equipo</p>
-        <button
-          type="button"
-          onClick={() => fileInputRef.current?.click()}
-          className="text-zinc-500 text-xs hover:text-lime-400 transition-colors mt-1"
-        >
-          {escudoPreview ? 'Cambiar imagen' : 'Añadir imagen'}
-        </button>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          onChange={handleEscudoChange}
-          className="hidden"
-        />
       </div>
 
       {/* Formulario */}

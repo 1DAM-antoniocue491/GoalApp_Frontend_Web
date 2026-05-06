@@ -75,24 +75,25 @@ export default function ConvocatoriaEditModal({
 
   // Agrupar jugadores por posición
   const jugadoresPorPosicion = useMemo(() => {
-    const filtrados = jugadores.filter(j =>
-      j.usuario.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
-      j.posicion.toLowerCase().includes(busqueda.toLowerCase())
-    );
+    const filtrados = jugadores.filter(j => {
+      const nombreJugador = j.usuario?.nombre || j.nombre_jugador || j.nombre || '';
+      return nombreJugador.toLowerCase().includes(busqueda.toLowerCase()) ||
+        (j.posicion || '').toLowerCase().includes(busqueda.toLowerCase());
+    });
 
     return {
-      porteros: filtrados.filter(j => j.posicion.toLowerCase().includes('portero')),
-      defensas: filtrados.filter(j => j.posicion.toLowerCase().includes('defensa')),
+      porteros: filtrados.filter(j => (j.posicion || '').toLowerCase().includes('portero')),
+      defensas: filtrados.filter(j => (j.posicion || '').toLowerCase().includes('defensa')),
       centrocampistas: filtrados.filter(j =>
-        j.posicion.toLowerCase().includes('centrocampista') ||
-        j.posicion.toLowerCase().includes('mediocentro')
+        (j.posicion || '').toLowerCase().includes('centrocampista') ||
+        (j.posicion || '').toLowerCase().includes('mediocentro')
       ),
-      delanteros: filtrados.filter(j => j.posicion.toLowerCase().includes('delantero')),
+      delanteros: filtrados.filter(j => (j.posicion || '').toLowerCase().includes('delantero')),
       otros: filtrados.filter(j =>
-        !j.posicion.toLowerCase().includes('portero') &&
-        !j.posicion.toLowerCase().includes('defensa') &&
-        !j.posicion.toLowerCase().includes('centrocampista') &&
-        !j.posicion.toLowerCase().includes('delantero')
+        !(j.posicion || '').toLowerCase().includes('portero') &&
+        !(j.posicion || '').toLowerCase().includes('defensa') &&
+        !(j.posicion || '').toLowerCase().includes('centrocampista') &&
+        !(j.posicion || '').toLowerCase().includes('delantero')
       ),
     };
   }, [jugadores, busqueda]);
@@ -112,7 +113,19 @@ export default function ConvocatoriaEditModal({
 
   const cambiarEstado = (idJugador: number, nuevoEstado: EstadoConvocatoria) => {
     setJugadores(prev =>
-      prev.map(j => (j.id_jugador === idJugador ? { ...j, estado: nuevoEstado } : j))
+      prev.map(j => {
+        if (j.id_jugador === idJugador) {
+          // Si se hace clic en el estado activo, deseleccionar
+          if (nuevoEstado === 'titular' && j.estado === 'titular') {
+            return { ...j, estado: 'no_convocado' };
+          }
+          if (nuevoEstado === 'suplente' && j.estado === 'suplente') {
+            return { ...j, estado: 'no_convocado' };
+          }
+          return { ...j, estado: nuevoEstado };
+        }
+        return j;
+      })
     );
   };
 
@@ -206,7 +219,7 @@ export default function ConvocatoriaEditModal({
 
         {/* Información del jugador */}
         <div>
-          <p className="text-white font-semibold">{jugador.usuario.nombre}</p>
+          <p className="text-white font-semibold">{jugador.usuario?.nombre || jugador.nombre}</p>
           <p className="text-gray-500 text-xs">
             {jugador.posicion} • {jugador.activo ? 'Activo' : 'Inactivo'}
           </p>

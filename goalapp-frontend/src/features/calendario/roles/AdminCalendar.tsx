@@ -26,7 +26,7 @@ interface AdminCalendarProps {
   onInitMatch: (id: number) => void;
   onFinishMatch: (id: number) => void;
   onManageConvocatoria: (id: number) => void;
-  onManageLineup: (id: number) => void;
+  onRegisterEvent: (id: number) => void;
   onEditCalendar: () => void;
   onOpenCreateCalendar: () => void;
   onOpenEditCalendar: () => void;
@@ -52,7 +52,7 @@ export default function AdminCalendar({
   onInitMatch,
   onFinishMatch,
   onManageConvocatoria,
-  onManageLineup,
+  onRegisterEvent,
   onEditCalendar,
   onOpenCreateCalendar,
   onOpenEditCalendar,
@@ -287,16 +287,16 @@ export default function AdminCalendar({
             {partidosEnVivo.map((partido) => {
               const actions: MatchAction[] = [
                 {
+                  label: 'Eventos',
+                  icon: '📋',
+                  variant: 'eventos',
+                  onClick: () => onRegisterEvent(partido.id_partido),
+                },
+                {
                   label: 'Convocatoria',
                   icon: '👥',
                   variant: 'convocatoria',
                   onClick: () => onManageConvocatoria(partido.id_partido),
-                },
-                {
-                  label: 'Plantillas',
-                  icon: '📋',
-                  variant: 'plantillas',
-                  onClick: () => onManageLineup(partido.id_partido),
                 },
                 {
                   label: 'Finalizar',
@@ -330,7 +330,9 @@ export default function AdminCalendar({
               </h2>
               <div className="space-y-4">
                 {jornada.partidos.map((partido) => {
-                  const isTodayMatch = new Date(partido.fecha).toDateString() === new Date().toDateString();
+                  const ahora = new Date();
+                  const fechaPartido = new Date(partido.fecha);
+                  const canStartMatch = fechaPartido <= ahora;
                   const isEnJuego = partido.estado === 'en_juego';
                   const actions: MatchAction[] = [
                     {
@@ -340,10 +342,10 @@ export default function AdminCalendar({
                       onClick: () => onManageConvocatoria(partido.id_partido),
                     },
                     {
-                      label: 'Plantillas',
-                      icon: '📋',
-                      variant: 'plantillas',
-                      onClick: () => onManageLineup(partido.id_partido),
+                      label: 'Editar',
+                      icon: '✏️',
+                      variant: 'editar',
+                      onClick: onEditCalendar,
                     },
                     ...(isEnJuego
                       ? [{
@@ -357,7 +359,7 @@ export default function AdminCalendar({
                           icon: '▶️',
                           variant: 'iniciar' as const,
                           onClick: () => onInitMatch(partido.id_partido),
-                          disabled: !isTodayMatch,
+                          disabled: !canStartMatch,
                         }]),
                   ];
                   return (

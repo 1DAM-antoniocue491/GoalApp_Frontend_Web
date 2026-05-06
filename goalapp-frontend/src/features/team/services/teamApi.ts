@@ -16,7 +16,6 @@ import * as mockApi from '../../../mocks/api';
 export interface TeamResponse {
   id_equipo: number;
   nombre: string;
-  escudo: string | null;
   colores: string | null;
   id_liga: number;
   id_entrenador: number;
@@ -49,8 +48,6 @@ export interface MatchResult {
   id_equipo_visitante: number;
   nombre_equipo_local: string;
   nombre_equipo_visitante: string;
-  escudo_equipo_local: string | null;
-  escudo_equipo_visitante: string | null;
   goles_local: number | null;
   goles_visitante: number | null;
   resultado?: 'W' | 'D' | 'L';
@@ -207,7 +204,6 @@ export async function fetchPlayersWithStatsByTeam(equipoId: number): Promise<Pla
 
 export interface CreateTeamPayload {
   nombre: string;
-  escudo?: string;
   colores?: string;
   id_liga: number;
   id_entrenador?: number;
@@ -339,7 +335,6 @@ export interface UpdateTeamPayload {
   nombre?: string;
   ciudad?: string;
   estadio?: string;
-  escudo?: string;
   colores?: string;
 }
 

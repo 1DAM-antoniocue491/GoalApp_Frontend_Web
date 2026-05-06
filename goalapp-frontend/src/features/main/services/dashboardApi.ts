@@ -21,6 +21,10 @@ export interface DashboardLiveMatch {
   homeScore: number;
   awayScore: number;
   minute: string;
+  id_equipo_local?: number;
+  id_equipo_visitante?: number;
+  nombre_equipo_local?: string;
+  nombre_equipo_visitante?: string;
 }
 
 export interface DashboardResult {
@@ -38,6 +42,18 @@ export interface DashboardUpcomingMatch {
   away: string;
   date: string;
   time: string;
+  estado?: 'programado' | 'en_juego' | 'finalizado' | 'cancelado' | 'suspendido';
+  // Datos adicionales para el modal de iniciar partido
+  id_equipo_local?: number;
+  id_equipo_visitante?: number;
+  nombre_equipo_local?: string;
+  nombre_equipo_visitante?: string;
+  campo?: string;
+  fecha_completa?: string; // ISO string para el modal
+  id_liga?: number;
+  id_jornada?: number;
+  goles_local?: number | null;
+  goles_visitante?: number | null;
 }
 
 export interface AdminDashboardStats {
@@ -51,6 +67,14 @@ export interface CoachDashboardStats {
   partidosJugados: number;
   victorias: number;
   goles: number;
+}
+
+export interface PlayerDashboardStats {
+  partidosJugados: number;
+  goles: number;
+  asistencias: number;
+  tarjetasAmarillas: number;
+  tarjetasRojas: number;
 }
 
 /**
@@ -78,7 +102,6 @@ interface EquipoApi {
   id_equipo: number;
   id_liga: number;
   nombre: string;
-  escudo_url?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -110,12 +133,17 @@ export async function fetchLiveMatches(leagueId: number): Promise<DashboardLiveM
   if (isMockEnabled()) {
     const partidos = await mockApi.mockFetchLiveMatches();
     return partidos.map((p) => ({
+      id_partido: p.id_partido,
       league: `Liga ${p.id_liga}`,
       home: p.nombre_equipo_local,
       away: p.nombre_equipo_visitante,
       homeScore: p.goles_local ?? 0,
       awayScore: p.goles_visitante ?? 0,
       minute: "En juego",
+      id_equipo_local: p.id_equipo_local,
+      id_equipo_visitante: p.id_equipo_visitante,
+      nombre_equipo_local: p.nombre_equipo_local,
+      nombre_equipo_visitante: p.nombre_equipo_visitante,
     }));
   }
 
@@ -144,6 +172,10 @@ export async function fetchLiveMatches(leagueId: number): Promise<DashboardLiveM
       homeScore: p.goles_local ?? 0,
       awayScore: p.goles_visitante ?? 0,
       minute: "En juego",
+      id_equipo_local: p.id_equipo_local,
+      id_equipo_visitante: p.id_equipo_visitante,
+      nombre_equipo_local: equiposMap.get(p.id_equipo_local) || `Equipo ${p.id_equipo_local}`,
+      nombre_equipo_visitante: equiposMap.get(p.id_equipo_visitante) || `Equipo ${p.id_equipo_visitante}`,
     }));
   } catch (error) {
     throw new Error(getErrorMessage(error as ApiError));
@@ -213,11 +245,19 @@ export async function fetchUpcomingMatches(leagueId: number, limit: number = 5):
     return partidos.map((p) => {
       const date = new Date(p.fecha);
       return {
+        id_partido: p.id_partido,
         league: `Liga ${p.id_liga}`,
         home: p.nombre_equipo_local,
         away: p.nombre_equipo_visitante,
         date: date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }),
         time: date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
+        // Datos adicionales para el modal de iniciar partido
+        id_equipo_local: p.id_equipo_local,
+        id_equipo_visitante: p.id_equipo_visitante,
+        nombre_equipo_local: p.nombre_equipo_local,
+        nombre_equipo_visitante: p.nombre_equipo_visitante,
+        campo: 'Campo principal',
+        fecha_completa: p.fecha,
       };
     });
   }
@@ -243,13 +283,27 @@ export async function fetchUpcomingMatches(leagueId: number, limit: number = 5):
 
     return upcomingMatches.map((p) => {
       const date = new Date(p.fecha);
+      const homeTeam = equiposMap.get(p.id_equipo_local) || `Equipo ${p.id_equipo_local}`;
+      const awayTeam = equiposMap.get(p.id_equipo_visitante) || `Equipo ${p.id_equipo_visitante}`;
       return {
         id_partido: p.id_partido,
         league: liga.nombre,
-        home: equiposMap.get(p.id_equipo_local) || `Equipo ${p.id_equipo_local}`,
-        away: equiposMap.get(p.id_equipo_visitante) || `Equipo ${p.id_equipo_visitante}`,
+        home: homeTeam,
+        away: awayTeam,
         date: date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }),
         time: date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
+        estado: p.estado,
+        // Datos adicionales para el modal de iniciar partido
+        id_equipo_local: p.id_equipo_local,
+        id_equipo_visitante: p.id_equipo_visitante,
+        nombre_equipo_local: homeTeam,
+        nombre_equipo_visitante: awayTeam,
+        campo: 'Campo principal',
+        fecha_completa: p.fecha,
+        id_liga: p.id_liga,
+        id_jornada: 0, // El backend no devuelve jornada en este endpoint
+        goles_local: p.goles_local,
+        goles_visitante: p.goles_visitante,
       };
     });
   } catch (error) {
@@ -295,25 +349,114 @@ export async function fetchAdminDashboardStats(leagueId: number): Promise<AdminD
 /**
  * Obtener estadísticas del dashboard entrenador
  *
- * NOTA: El backend NO tiene endpoint /dashboard/coach/stats.
- * Se calcula a partir de los endpoints existentes.
- * En modo mock se usan datos simulados.
+ * Calcula las stats del equipo del entrenador:
+ * - jugadores: desde /equipos/{id}/plantilla
+ * - partidosJugados: desde /partidos/ filtrados por equipo y estado 'finalizado'
+ * - victorias: calculado de partidos finalizados donde el equipo ganó
+ * - goles: suma de goles en partidos finalizados
+ *
+ * @param leagueId - ID de la liga para obtener el equipo del usuario
  */
-export async function fetchCoachDashboardStats(): Promise<CoachDashboardStats> {
+export async function fetchCoachDashboardStats(leagueId: number): Promise<CoachDashboardStats> {
   if (isMockEnabled()) {
     return mockApi.mockGetCoachDashboardStats();
   }
 
   try {
-    // NOTA: Las estadísticas del entrenador requieren saber su equipo
-    // y calcular desde los partidos y jugadores. Por ahora se devuelven
-    // valores por defecto ya que no hay un endpoint directo.
-    // Cuando el backend implemente un endpoint de stats, se actualizará aquí.
+    // 1. Obtener el equipo del usuario en esta liga
+    const miEquipo = await apiGet<{ id_equipo: number; nombre: string }>(
+      '/equipos/usuario/mi-equipo',
+      { liga_id: leagueId }
+    );
+
+    const equipoId = miEquipo.id_equipo;
+
+    // 2. Obtener plantilla del equipo (jugadores)
+    const plantilla = await apiGet<Array<{ id_jugador: number; nombre: string }>>(
+      `/equipos/${equipoId}/plantilla`
+    );
+
+    // 3. Obtener todos los partidos de la liga para filtrar por equipo
+    const partidos = await apiGet<PartidoApi[]>('/partidos/', { liga_id: leagueId });
+
+    // Filtrar partidos del equipo (local o visitante) que estén finalizados
+    const partidosDelEquipo = partidos.filter(
+      (p) =>
+        (p.id_equipo_local === equipoId || p.id_equipo_visitante === equipoId) &&
+        p.estado === 'finalizado'
+    );
+
+    // Calcular victorias y goles
+    let victorias = 0;
+    let goles = 0;
+
+    partidosDelEquipo.forEach((p) => {
+      const esLocal = p.id_equipo_local === equipoId;
+      const golesEquipo = esLocal ? (p.goles_local ?? 0) : (p.goles_visitante ?? 0);
+      const golesRival = esLocal ? (p.goles_visitante ?? 0) : (p.goles_local ?? 0);
+
+      goles += golesEquipo;
+      if (golesEquipo > golesRival) {
+        victorias += 1;
+      }
+    });
+
     return {
-      jugadores: 0,
-      partidosJugados: 0,
-      victorias: 0,
-      goles: 0,
+      jugadores: plantilla.length,
+      partidosJugados: partidosDelEquipo.length,
+      victorias,
+      goles,
+    };
+  } catch (error) {
+    throw new Error(getErrorMessage(error as ApiError));
+  }
+}
+
+/**
+ * Obtener estadísticas del dashboard jugador
+ *
+ * Obtiene las estadísticas personales del jugador autenticado:
+ * - partidosJugados: desde /estadisticas/liga/{liga_id}/jugador/{usuario_id}/estadisticas
+ * - goles, asistencias, tarjetas: mismo endpoint
+ *
+ * @param leagueId - ID de la liga para obtener las estadísticas
+ * @param userId - ID del usuario jugador
+ */
+export async function fetchPlayerDashboardStats(
+  leagueId: number,
+  userId: number
+): Promise<PlayerDashboardStats> {
+  if (isMockEnabled()) {
+    return mockApi.mockGetPlayerDashboardStats();
+  }
+
+  try {
+    // Obtener estadísticas personales del jugador
+    const stats = await apiGet<{
+      partidos_jugados: number;
+      goles: number;
+      asistencias: number;
+      tarjetas_amarillas: number;
+      tarjetas_rojas: number;
+    } | null>(`/estadisticas/liga/${leagueId}/jugador/${userId}/estadisticas`);
+
+    if (!stats) {
+      // Usuario no es jugador en esta liga
+      return {
+        partidosJugados: 0,
+        goles: 0,
+        asistencias: 0,
+        tarjetasAmarillas: 0,
+        tarjetasRojas: 0,
+      };
+    }
+
+    return {
+      partidosJugados: stats.partidos_jugados,
+      goles: stats.goles,
+      asistencias: stats.asistencias,
+      tarjetasAmarillas: stats.tarjetas_amarillas,
+      tarjetasRojas: stats.tarjetas_rojas,
     };
   } catch (error) {
     throw new Error(getErrorMessage(error as ApiError));

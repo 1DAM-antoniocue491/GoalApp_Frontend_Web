@@ -36,7 +36,6 @@ export interface TopScorerResponse {
   id_equipo: number;
   nombre: string;
   nombre_equipo: string;
-  escudo_equipo: string | null;
   goles: number;
   partidos_jugados: number;
   promedio_goles: number;
@@ -50,7 +49,6 @@ export interface MatchdayMVP {
   id_usuario: number;
   nombre: string;
   nombre_equipo: string;
-  escudo_equipo: string | null;
   rating: number;
   goles: number;
   asistencias: number;
@@ -63,7 +61,6 @@ export interface MatchdayMVP {
 export interface TeamGoalsStats {
   id_equipo: number;
   nombre: string;
-  escudo: string | null;
   goles_favor: number;
   goles_contra: number;
   diferencia_goles: number;
@@ -79,7 +76,6 @@ export interface PlayerPersonalStats {
   id_usuario: number;
   nombre: string;
   nombre_equipo: string;
-  escudo_equipo: string | null;
   goles: number;
   asistencias: number;
   tarjetas_amarillas: number;
@@ -136,8 +132,13 @@ export async function fetchMatchdayMVP(ligaId: number): Promise<MatchdayMVP | nu
   try {
     return await apiGet<MatchdayMVP>(`/estadisticas/liga/${ligaId}/mvp`);
   } catch (error) {
-    // Si no hay MVP (404), retornar null
-    return null;
+    const apiError = error as ApiError;
+    // Solo retornar null para 404 (no hay MVP disponible)
+    // Otros errores se propagan para que el usuario los vea
+    if (apiError && typeof apiError === 'object' && 'status' in apiError && apiError.status === 404) {
+      return null;
+    }
+    throw error;
   }
 }
 
@@ -174,7 +175,12 @@ export async function fetchPlayerPersonalStats(
       `/estadisticas/liga/${ligaId}/jugador/${usuarioId}/estadisticas`
     );
   } catch (error) {
-    // Si no es jugador (404 o null), retornar null
-    return null;
+    const apiError = error as ApiError;
+    // Solo retornar null para 404 (usuario no es jugador en esta liga)
+    // Otros errores se propagan para que el usuario los vea
+    if (apiError && typeof apiError === 'object' && 'status' in apiError && apiError.status === 404) {
+      return null;
+    }
+    throw error;
   }
 }

@@ -6,6 +6,8 @@ interface DelegateCalendarProps {
   jornadas: Jornada[];
   partidosEnVivo: Array<{
     id_partido: number;
+    id_equipo_local: number;
+    id_equipo_visitante: number;
     nombre_equipo_local: string;
     nombre_equipo_visitante: string;
     fecha: string;
@@ -13,6 +15,8 @@ interface DelegateCalendarProps {
   }>;
   partidosFiltrados: Array<{
     id_partido: number;
+    id_equipo_local: number;
+    id_equipo_visitante: number;
     nombre_equipo_local: string;
     nombre_equipo_visitante: string;
     fecha: string;
@@ -25,6 +29,8 @@ interface DelegateCalendarProps {
   onInitMatch: (id: number) => void;
   onFinishMatch: (id: number) => void;
   onRegisterEvent: (id: number) => void;
+  equipoId?: number;
+  isLoadingEquipo?: boolean;
 }
 
 export default function DelegateCalendar({
@@ -38,7 +44,18 @@ export default function DelegateCalendar({
   onInitMatch,
   onFinishMatch,
   onRegisterEvent,
+  equipoId,
+  isLoadingEquipo,
 }: DelegateCalendarProps) {
+  // Función para verificar si el delegado puede registrar eventos en un partido
+  // Solo puede registrar eventos si es el delegado del equipo local
+  const canRegisterEvents = (partido: { id_equipo_local: number; id_equipo_visitante: number }): boolean => {
+    if (!equipoId) return false;
+    // El delegado solo puede registrar eventos del partido si es su equipo
+    // Por simplicidad, permitimos registrar eventos si el partido es de SU equipo (local o visitante)
+    return partido.id_equipo_local === equipoId || partido.id_equipo_visitante === equipoId;
+  };
+
   const formatTime = (fecha: string) => {
     const date = new Date(fecha);
     const today = new Date();
@@ -87,13 +104,14 @@ export default function DelegateCalendar({
           </h2>
           <div className="space-y-4">
             {partidosEnVivo.map((partido) => {
+              const accionesPermitidas = canRegisterEvents(partido);
               const actions: MatchAction[] = [
-                {
+                ...(accionesPermitidas ? [{
                   label: 'Eventos',
                   icon: '⚽',
                   variant: 'eventos',
                   onClick: () => onRegisterEvent(partido.id_partido),
-                },
+                }] : []),
                 {
                   label: 'Finalizar',
                   icon: '🏁',
@@ -126,10 +144,13 @@ export default function DelegateCalendar({
               </h2>
               <div className="space-y-4">
                 {jornada.partidos.map((partido) => {
-                  const isTodayMatch = new Date(partido.fecha).toDateString() === new Date().toDateString();
+                  const ahora = new Date();
+                  const fechaPartido = new Date(partido.fecha);
+                  const canStartMatch = fechaPartido <= ahora;
                   const isEnJuego = partido.estado === 'en_juego';
+                  const puedeRegistrarEventos = canRegisterEvents(partido);
                   const actions: MatchAction[] = [
-                    ...(isEnJuego
+                    ...(isEnJuego && puedeRegistrarEventos
                       ? [
                           {
                             label: 'Eventos',
@@ -144,13 +165,22 @@ export default function DelegateCalendar({
                             onClick: () => onFinishMatch(partido.id_partido),
                           },
                         ]
+                      : isEnJuego
+                      ? [
+                          {
+                            label: 'Finalizar',
+                            icon: '🏁',
+                            variant: 'finalizar' as const,
+                            onClick: () => onFinishMatch(partido.id_partido),
+                          },
+                        ]
                       : [
                           {
                             label: 'Iniciar',
                             icon: '▶️',
                             variant: 'iniciar' as const,
                             onClick: () => onInitMatch(partido.id_partido),
-                            disabled: !isTodayMatch,
+                            disabled: !canStartMatch,
                           },
                         ]),
                   ];

@@ -57,29 +57,31 @@ export default function CardJornadas({
                 
             {/* CONTENEDOR DE BOTONES: Ocupa todo el ancho en una sola línea */}
             <div className="flex gap-3 w-full items-center pr-1 pl-1 mr-2 ml-2">
-                
-                {/* Botones para Admin o Entrenador */}
+
+                {/* Botón Convocatoria - Admin y Entrenador */}
                 {(isadmin || isentrenador) && (
-                    <>
-                        <button className="flex-1 bg-lime-900/10 border border-lime-500/30 text-lime-400 py-4 rounded-xl flex items-center justify-center gap-2 text-sm hover:bg-lime-500/20 transition-all">
-                            <span className="opacity-80">👥</span> 
-                            <span>Convocatoria</span>
-                        </button>
-                        <button className="flex-1 bg-cyan-900/10 border border-cyan-500/30 text-cyan-400 py-4 rounded-xl flex items-center justify-center gap-2 text-sm hover:bg-cyan-500/20 transition-all">
-                            <span className="opacity-80">📋</span> 
-                            <span>Plantilla</span>
-                        </button>
-                    </>
+                    <button className="flex-1 bg-lime-900/10 border border-lime-500/30 text-lime-400 py-4 rounded-xl flex items-center justify-center gap-2 text-sm hover:bg-lime-500/20 transition-all">
+                        <span className="opacity-80">👥</span>
+                        <span>Convocatoria</span>
+                    </button>
                 )}
 
-                {/* Botón Iniciar para Admin o Delegado */}
+                {/* Botón Editar - Solo Admin */}
+                {isadmin && (
+                    <button className="flex-1 bg-purple-900/10 border border-purple-500/30 text-purple-400 py-4 rounded-xl flex items-center justify-center gap-2 text-sm hover:bg-purple-500/20 transition-all">
+                        <span className="opacity-80">✏️</span>
+                        <span>Editar</span>
+                    </button>
+                )}
+
+                {/* Botón Iniciar - Admin o Delegado */}
                 {(isadmin || isdelegado) && (
                     <button className={`
                         flex-1 /* Ahora es flex-1 siempre para igualar el tamaño */
-                        ${estiloBotonIniciar} 
+                        ${estiloBotonIniciar}
                         font-black py-4 rounded-xl flex items-center justify-center gap-2 hover:scale-[1.01] transition-all whitespace-nowrap
                     `}>
-                        <span className="text-xs">▶️</span> 
+                        <span className="text-xs">▶️</span>
                         <span>INICIAR</span>
                     </button>
                 )}

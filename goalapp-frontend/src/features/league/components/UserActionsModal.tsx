@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { FaTimes, FaUserShield, FaToggleOn, FaToggleOff, FaTrash } from 'react-icons/fa';
 import type { UserActionsModalProps } from '../types/member';
 import { updateUsuarioRol, updateUsuarioEstado, deleteUsuarioLiga } from '../services/memberApi';
+import { useToast } from '../../../contexts/ToastContext';
 
 export default function UserActionsModal({
   isOpen,
@@ -11,6 +12,7 @@ export default function UserActionsModal({
   ligaId,
   rolesDisponibles,
 }: UserActionsModalProps) {
+  const toast = useToast();
   const [selectedRol, setSelectedRol] = useState(usuario.id_rol);
   const [selectedEstado, setSelectedEstado] = useState(usuario.activo);
   const [isLoading, setIsLoading] = useState(false);
@@ -21,12 +23,12 @@ export default function UserActionsModal({
     setIsLoading(true);
     try {
       await updateUsuarioRol(ligaId, usuario.id_usuario, { id_rol: selectedRol });
-      alert('Rol actualizado correctamente');
+      toast.showSuccess('Rol actualizado correctamente');
       onSuccess();
       onClose();
     } catch (error) {
       console.error('Error al actualizar rol:', error);
-      alert('Error al actualizar el rol del usuario');
+      toast.showError('Error al actualizar el rol del usuario');
     } finally {
       setIsLoading(false);
     }
@@ -38,11 +40,11 @@ export default function UserActionsModal({
     setIsLoading(true);
     try {
       await updateUsuarioEstado(ligaId, usuario.id_usuario, { activo: selectedEstado });
-      alert(`Usuario ${selectedEstado ? 'activado' : 'desactivado'} correctamente`);
+      toast.showSuccess(`Usuario ${selectedEstado ? 'activado' : 'desactivado'} correctamente`);
       onSuccess();
     } catch (error) {
       console.error('Error al actualizar estado:', error);
-      alert('Error al actualizar el estado del usuario');
+      toast.showError('Error al actualizar el estado del usuario');
     } finally {
       setIsLoading(false);
     }
@@ -56,13 +58,13 @@ export default function UserActionsModal({
     setIsLoading(true);
     try {
       await deleteUsuarioLiga(ligaId, usuario.id_usuario);
-      alert('Usuario eliminado de la liga');
+      toast.showSuccess('Usuario eliminado de la liga');
       onSuccess();
       onClose();
     } catch (error) {
       console.error('Error al eliminar usuario:', error);
       const message = error instanceof Error ? error.message : 'Error al eliminar el usuario';
-      alert(message);
+      toast.showError(message);
     } finally {
       setIsLoading(false);
     }

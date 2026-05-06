@@ -6,11 +6,11 @@ import EventRedCardModal from './EventRedCardModal';
 import EventSubstitutionModal from './EventSubstitutionModal';
 import { createMatchEvent } from '../services/matchApi';
 import type { PlayerWithStatsResponse } from '../../team/services/teamApi';
+import { useToast } from '../../../contexts/ToastContext';
 
 interface Team {
   id: number;
   nombre: string;
-  escudo?: string | null;
 }
 
 interface EventRecorderModalProps {
@@ -38,6 +38,7 @@ export default function EventRecorderModal({
   visitantePlayers,
   minuto,
 }: EventRecorderModalProps) {
+  const toast = useToast();
   const [selectedEventType, setSelectedEventType] = useState<EventType>(null);
 
   // Resetear estado al cerrar
@@ -63,7 +64,7 @@ export default function EventRecorderModal({
   }) => {
     const minuteValue = eventData.minuto;
     if (isNaN(minuteValue) || minuteValue < 0 || minuteValue > 120) {
-      alert('El minuto debe estar entre 0 y 120');
+      toast.showError('El minuto debe estar entre 0 y 120');
       return;
     }
 
@@ -78,9 +79,10 @@ export default function EventRecorderModal({
       await onEventRegistered();
       handleCloseSubModal();
       onClose();
+      toast.showSuccess('Evento registrado correctamente');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Error al registrar el evento';
-      alert(message);
+      toast.showError(message);
       throw error; // Re-lanzar para que el modal sepa que falló
     }
   };

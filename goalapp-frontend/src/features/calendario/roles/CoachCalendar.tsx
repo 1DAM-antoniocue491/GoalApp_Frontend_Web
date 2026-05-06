@@ -21,7 +21,8 @@ interface CoachCalendarProps {
   proximosCount: number;
   enVivoCount: number;
   onManageConvocatoria: (id: number) => void;
-  onManageLineup: (id: number) => void;
+  isLoadingEquipo?: boolean;
+  equipoError?: string | null;
 }
 
 export default function CoachCalendar({
@@ -33,7 +34,8 @@ export default function CoachCalendar({
   proximosCount,
   enVivoCount,
   onManageConvocatoria,
-  onManageLineup,
+  isLoadingEquipo = false,
+  equipoError = null,
 }: CoachCalendarProps) {
   const formatTime = (fecha: string) => {
     const date = new Date(fecha);
@@ -72,6 +74,16 @@ export default function CoachCalendar({
             Como entrenador, puedes gestionar las convocatorias y alineaciones de tu equipo.
           </p>
         </div>
+        {isLoadingEquipo && (
+          <div className="mt-4 p-3 bg-blue-900/20 border border-blue-500/30 rounded-xl text-blue-400 text-sm text-center">
+            Cargando información de tu equipo...
+          </div>
+        )}
+        {equipoError && (
+          <div className="mt-4 p-3 bg-red-900/20 border border-red-500/30 rounded-xl text-red-400 text-sm text-center">
+            {equipoError}
+          </div>
+        )}
       </div>
 
       {/* Partidos en vivo */}
@@ -89,12 +101,6 @@ export default function CoachCalendar({
                   icon: '👥',
                   variant: 'convocatoria',
                   onClick: () => onManageConvocatoria(partido.id_partido),
-                },
-                {
-                  label: 'Plantillas',
-                  icon: '📋',
-                  variant: 'plantillas',
-                  onClick: () => onManageLineup(partido.id_partido),
                 },
               ];
               return (
@@ -128,12 +134,6 @@ export default function CoachCalendar({
                       icon: '👥',
                       variant: 'convocatoria',
                       onClick: () => onManageConvocatoria(partido.id_partido),
-                    },
-                    {
-                      label: 'Plantillas',
-                      icon: '📋',
-                      variant: 'plantillas',
-                      onClick: () => onManageLineup(partido.id_partido),
                     },
                   ];
                   return (
