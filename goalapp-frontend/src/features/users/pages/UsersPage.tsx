@@ -16,6 +16,7 @@ import {
   FaFutbol,
   FaClipboardList,
   FaMedal,
+  FaUserEdit,
 } from 'react-icons/fa';
 import Nav from '../../../components/Nav';
 import { useSelectedLeague } from '../../../context/SelectedLeagueContext';
@@ -24,6 +25,7 @@ import InviteUserModal from '../components/InviteUserModal';
 import GenerateUnionCodeModal from '../components/GenerateUnionCodeModal';
 import UserActionsModal from '../../league/components/UserActionsModal';
 import TeamMemberActionsModal from '../../team/components/TeamMemberActionsModal';
+import EditUserModal from '../components/EditUserModal';
 import { fetchMiembrosEquipo, type MiembroEquipo } from '../../team/services/teamMembersApi';
 import { apiGet } from '../../../services/api';
 
@@ -41,6 +43,7 @@ export default function UsersPage() {
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [isGenerateCodeModalOpen, setIsGenerateCodeModalOpen] = useState(false);
   const [isUserActionsModalOpen, setIsUserActionsModalOpen] = useState(false);
+  const [isEditUserModalOpen, setIsEditUserModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserWithRole | null>(null);
   const [roles, setRoles] = useState<Rol[]>([]);
 
@@ -617,12 +620,12 @@ export default function UsersPage() {
                         <button
                           onClick={() => {
                             setSelectedUser(user);
-                            setIsUserActionsModalOpen(true);
+                            setIsEditUserModalOpen(true);
                           }}
                           className="p-2 text-zinc-400 hover:text-white transition-colors"
-                          aria-label="Abrir menú de acciones del usuario"
+                          aria-label="Editar usuario"
                         >
-                          <FaEllipsisV />
+                          <FaUserEdit className="w-4 h-4" />
                         </button>
                       )}
                     </div>
@@ -768,6 +771,23 @@ export default function UsersPage() {
       )}
 
       {/* Modal para acciones de usuario (admin) */}
+      {selectedLeague && selectedUser && (
+        <EditUserModal
+          isOpen={isEditUserModalOpen}
+          onClose={() => {
+            setIsEditUserModalOpen(false);
+            setSelectedUser(null);
+          }}
+          onSuccess={() => {
+            loadUsers();
+            setIsEditUserModalOpen(false);
+            setSelectedUser(null);
+          }}
+          user={selectedUser}
+          ligaId={selectedLeague.id}
+        />
+      )}
+
       {selectedLeague && selectedUser && (
         <UserActionsModal
           isOpen={isUserActionsModalOpen}
