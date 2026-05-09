@@ -2,6 +2,8 @@ import { useEffect, useState, useMemo } from 'react';
 import { FaTimes, FaUsers, FaBolt, FaStar, FaShieldAlt, FaClock } from 'react-icons/fa';
 import type { ConvocatoriaResponse, JugadorConvocado } from '../types/convocatoria';
 import { fetchConvocatoria } from '../services/convocatoriaApi';
+import { useSelectedLeague } from '../../../context/SelectedLeagueContext';
+import { fetchLeagueConfig } from '../../league/services/leagueApi';
 
 export interface ConvocatoriaViewModalProps {
   isOpen: boolean;
@@ -30,12 +32,26 @@ export default function ConvocatoriaViewModal({
 }: ConvocatoriaViewModalProps) {
   const [convocatoria, setConvocatoria] = useState<ConvocatoriaResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [minutosPartido, setMinutosPartido] = useState(90);
+
+  const { selectedLeague } = useSelectedLeague();
 
   useEffect(() => {
     if (isOpen) {
       cargarConvocatoria();
+      cargarConfiguracion();
     }
   }, [isOpen, partidoId, equipoId]);
+
+  const cargarConfiguracion = async () => {
+    if (!selectedLeague) return;
+    try {
+      const config = await fetchLeagueConfig(selectedLeague.id);
+      setMinutosPartido(config.minutos_partido);
+    } catch (error) {
+      console.error('Error al cargar configuración de liga:', error);
+    }
+  };
 
   const cargarConvocatoria = async () => {
     setIsLoading(true);
@@ -248,7 +264,10 @@ export default function ConvocatoriaViewModal({
         </div>
 
         {/* Footer informativo */}
-        <div className="px-6 py-4 border-t border-gray-800 bg-gray-900/30">
+        <div className="px-6 py-4 border-t border-gray-800 bg-gray-900/30 space-y-1">
+          <p className="text-gray-500 text-xs text-center">
+            Duración del partido: {minutosPartido} min
+          </p>
           <p className="text-gray-500 text-xs text-center">
             {estadoPartido === 'programado'
               ? 'La convocatoria puede modificarse hasta el inicio del partido'

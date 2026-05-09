@@ -9,6 +9,9 @@ import { useToast } from '../../../contexts/ToastContext'
 import { apiGet } from '../../../services/api'
 import { fetchLiveMatches, type MatchWithTeams } from '../../match/services/matchApi'
 import FinishMatchModal, { type FinishData } from '../../match/components/FinishMatchModal'
+import ConvocatoriaModal from '../../match/components/ConvocatoriaModal'
+import EventRecorderModal from '../../match/components/EventRecorderModal'
+import TeamSelectorModal from '../../calendario/components/TeamSelectorModal'
 import { fetchTeamSquad, type PlayerWithStatsResponse } from '../../team/services/teamApi'
 
 export default function Live() {
@@ -29,6 +32,30 @@ export default function Live() {
   const [localTeamPlayers, setLocalTeamPlayers] = useState<PlayerWithStatsResponse[]>([])
   const [visitanteTeamPlayers, setVisitanteTeamPlayers] = useState<PlayerWithStatsResponse[]>([])
   const [delegadoEquipoId, setDelegadoEquipoId] = useState<number | null>(null)
+  const [showConvocatoriaModal, setShowConvocatoriaModal] = useState(false)
+  const [convocatoriaMatchData, setConvocatoriaMatchData] = useState<{
+    id_partido: number
+    id_equipo: number
+    nombre_equipo: string
+    fecha: string
+    estado: string
+  } | null>(null)
+  const [showEventModal, setShowEventModal] = useState(false)
+  const [eventMatchData, setEventMatchData] = useState<{
+    id_partido: number
+    localTeam: { nombre: string; id: number }
+    visitanteTeam: { nombre: string; id: number }
+  } | null>(null)
+  const [isLoadingPlayers, setIsLoadingPlayers] = useState(false)
+  const [showTeamSelectorModal, setShowTeamSelectorModal] = useState(false)
+  const [teamSelectorData, setTeamSelectorData] = useState<{
+    id_partido: number
+    nombre_equipo_local: string
+    id_equipo_local: number
+    nombre_equipo_visitante: string
+    id_equipo_visitante: number
+    accion: 'convocatoria'
+  } | null>(null)
 
   // Determinar rol del usuario
   const userRole = user?.rol_principal?.toLowerCase() || ''
@@ -125,6 +152,86 @@ export default function Live() {
       console.error('Error al finalizar partido:', error)
       toast.showError('No se pudo finalizar el partido')
       throw error
+    }
+  }
+
+  // Handler para abrir modal de convocatoria (solo lectura en partidos en vivo)
+  const handleOpenConvocatoria = (match: MatchWithTeams) => {
+    if (isAdmin) {
+      setTeamSelectorData({
+        id_partido: match.id_partido,
+        nombre_equipo_local: match.nombre_equipo_local,
+        id_equipo_local: match.id_equipo_local,
+        nombre_equipo_visitante: match.nombre_equipo_visitante,
+        id_equipo_visitante: match.id_equipo_visitante,
+        accion: 'convocatoria',
+      })
+      setShowTeamSelectorModal(true)
+      return
+    }
+
+    // Para coach/delegado, mostrar convocatoria de su equipo si está jugando
+    const equipoId = match.id_equipo_local === delegadoEquipoId
+      ? match.id_equipo_local
+      : match.id_equipo_visitante === delegadoEquipoId
+      ? match.id_equipo_visitante
+      : null
+
+    if (!equipoId) {
+      toast.showError('No tienes un equipo asignado en este partido')
+      return
+    }
+
+    setConvocatoriaMatchData({
+      id_partido: match.id_partido,
+      id_equipo: equipoId,
+      nombre_equipo: equipoId === match.id_equipo_local
+        ? match.nombre_equipo_local
+        : match.nombre_equipo_visitante,
+      fecha: match.fecha,
+      estado: 'en_juego',
+    })
+    setShowConvocatoriaModal(true)
+  }
+
+  // Handler para cuando el admin selecciona un equipo en el TeamSelector
+  const handleTeamSelected = (equipoId: number, nombreEquipo: string) => {
+    setShowTeamSelectorModal(false)
+    if (!teamSelectorData) return
+
+    setConvocatoriaMatchData({
+      id_partido: teamSelectorData.id_partido,
+      id_equipo: equipoId,
+      nombre_equipo: nombreEquipo,
+      fecha: new Date().toISOString(),
+      estado: 'en_juego',
+    })
+    setShowConvocatoriaModal(true)
+    setTeamSelectorData(null)
+  }
+
+  // Handler para abrir modal de eventos
+  const handleOpenEventModal = async (match: MatchWithTeams) => {
+    setIsLoadingPlayers(true)
+    try {
+      const [localPlayers, visitantePlayers] = await Promise.all([
+        fetchTeamSquad(match.id_equipo_local),
+        fetchTeamSquad(match.id_equipo_visitante),
+      ])
+      setLocalTeamPlayers(localPlayers)
+      setVisitanteTeamPlayers(visitantePlayers)
+
+      setEventMatchData({
+        id_partido: match.id_partido,
+        localTeam: { nombre: match.nombre_equipo_local, id: match.id_equipo_local },
+        visitanteTeam: { nombre: match.nombre_equipo_visitante, id: match.id_equipo_visitante },
+      })
+      setShowEventModal(true)
+    } catch (error) {
+      console.error('Error al cargar jugadores:', error)
+      toast.showError('No se pudo cargar la información de los jugadores')
+    } finally {
+      setIsLoadingPlayers(false)
     }
   }
 
@@ -256,14 +363,14 @@ export default function Live() {
                 <div className="flex gap-2 mt-3">
                   {canRegisterEvents(match) && (
                     <button
-                      onClick={() => navigate(`/live`)}
+                      onClick={() => handleOpenEventModal(match)}
                       className="flex-1 px-3 py-1.5 text-sm font-bold rounded-lg transition-colors border-2 bg-lime-800/40 text-lime-300 hover:bg-lime-800/60 border-lime-700"
                     >
                       🏆 Eventos
                     </button>
                   )}
                   <button
-                    onClick={() => navigate(`/live`)}
+                    onClick={() => handleOpenConvocatoria(match)}
                     className="flex-1 px-3 py-1.5 text-sm font-bold rounded-lg transition-colors border-2 bg-cyan-800/30 text-cyan-700 hover:bg-cyan-800/50 border-cyan-700"
                   >
                     👥 Convocatoria
@@ -308,6 +415,66 @@ export default function Live() {
               dorsal: p.dorsal,
             })),
           ]}
+        />
+      )}
+
+      {/* Modal de convocatoria (solo lectura) */}
+      {convocatoriaMatchData && (
+        <ConvocatoriaModal
+          isOpen={showConvocatoriaModal}
+          onClose={() => {
+            setShowConvocatoriaModal(false)
+            setConvocatoriaMatchData(null)
+          }}
+          onSuccess={() => {}}
+          partidoId={convocatoriaMatchData.id_partido}
+          equipoId={convocatoriaMatchData.id_equipo}
+          nombreEquipo={convocatoriaMatchData.nombre_equipo}
+          partidoFecha={convocatoriaMatchData.fecha}
+          competicion={selectedLeague?.nombre || 'Competición'}
+          estadoPartido={convocatoriaMatchData.estado}
+          canEdit={false}
+        />
+      )}
+
+      {/* Modal de registro de eventos */}
+      {eventMatchData && (
+        <EventRecorderModal
+          isOpen={showEventModal}
+          onClose={() => {
+            setShowEventModal(false)
+            setEventMatchData(null)
+          }}
+          onEventRegistered={async () => {
+            setShowEventModal(false)
+            if (selectedLeague?.id) {
+              const matches = await fetchLiveMatches(selectedLeague.id)
+              setLiveMatches(matches)
+            }
+          }}
+          partidoId={eventMatchData.id_partido}
+          localTeam={eventMatchData.localTeam}
+          visitanteTeam={eventMatchData.visitanteTeam}
+          localPlayers={localTeamPlayers}
+          visitantePlayers={visitanteTeamPlayers}
+          minuto={0}
+        />
+      )}
+
+      {/* Modal de selección de equipo para convocatoria */}
+      {teamSelectorData && (
+        <TeamSelectorModal
+          isOpen={showTeamSelectorModal}
+          onClose={() => {
+            setShowTeamSelectorModal(false)
+            setTeamSelectorData(null)
+          }}
+          onTeamSelected={handleTeamSelected}
+          nombreEquipoLocal={teamSelectorData.nombre_equipo_local}
+          idEquipoLocal={teamSelectorData.id_equipo_local}
+          nombreEquipoVisitante={teamSelectorData.nombre_equipo_visitante}
+          idEquipoVisitante={teamSelectorData.id_equipo_visitante}
+          accion={teamSelectorData.accion}
         />
       )}
     </div>

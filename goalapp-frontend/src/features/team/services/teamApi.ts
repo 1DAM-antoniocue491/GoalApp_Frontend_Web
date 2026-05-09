@@ -131,7 +131,7 @@ export interface PlayerWithStatsResponse {
 
 /**
  * Obtener equipos de una liga
- * GET /equipos/?id_liga={ligaId}
+ * GET /equipos/?liga_id={ligaId}
  */
 export async function fetchTeamsByLeague(ligaId: number): Promise<TeamResponse[]> {
   if (isMockEnabled()) {
@@ -140,7 +140,7 @@ export async function fetchTeamsByLeague(ligaId: number): Promise<TeamResponse[]
   }
 
   try {
-    return await apiGet<TeamResponse[]>(`/equipos/?id_liga=${ligaId}`);
+    return await apiGet<TeamResponse[]>(`/equipos/?liga_id=${ligaId}`);
   } catch (error) {
     throw new Error(getErrorMessage(error as ApiError));
   }

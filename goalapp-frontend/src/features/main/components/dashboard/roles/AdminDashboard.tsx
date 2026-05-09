@@ -18,7 +18,6 @@ import InitMatchModal from '../../../../match/components/InitMatchModal';
 import FinishMatchModal, { type FinishData } from '../../../../match/components/FinishMatchModal';
 import ConvocatoriaModal from '../../../../match/components/ConvocatoriaModal';
 import EventRecorderModal from '../../../../match/components/EventRecorderModal';
-import LineupEditModal from '../../../../calendario/components/LineupEditModal';
 import EditMatchModal from '../../../../match/components/EditMatchModal';
 import TeamSelectorModal from '../../../../calendario/components/TeamSelectorModal';
 import { useSelectedLeague, type SelectedLeague } from '../../../../../context';
@@ -34,6 +33,7 @@ import {
   type AdminDashboardStats,
 } from '../../../services/dashboardApi';
 import { fetchTeamSquad, type PlayerWithStatsResponse } from '../../../../team/services/teamApi';
+import { startMatch } from '../../../../match/services/matchApi';
 
 interface AdminDashboardProps {
   league: SelectedLeague;
@@ -50,7 +50,6 @@ export default function AdminDashboard({ league, userName, userRole }: AdminDash
   const [showFinishMatchModal, setShowFinishMatchModal] = useState(false);
   const [showConvocatoriaModal, setShowConvocatoriaModal] = useState(false);
   const [showEventModal, setShowEventModal] = useState(false);
-  const [showLineupModal, setShowLineupModal] = useState(false);
   const [showEditMatchModal, setShowEditMatchModal] = useState(false);
   const [showTeamSelectorModal, setShowTeamSelectorModal] = useState(false);
   const [selectedMatch, setSelectedMatch] = useState<DashboardUpcomingMatch | null>(null);
@@ -80,12 +79,6 @@ export default function AdminDashboard({ league, userName, userRole }: AdminDash
     id_partido: number;
     localTeam: { nombre: string; id: number };
     visitanteTeam: { nombre: string; id: number };
-    fecha: string;
-  } | null>(null);
-  const [lineupMatchData, setLineupMatchData] = useState<{
-    id_partido: number;
-    id_equipo: number;
-    nombre_equipo: string;
     fecha: string;
   } | null>(null);
   const [localTeamPlayers, setLocalTeamPlayers] = useState<PlayerWithStatsResponse[]>([]);
@@ -195,12 +188,7 @@ export default function AdminDashboard({ league, userName, userRole }: AdminDash
   const handleInitMatchConfirm = async () => {
     if (!selectedMatch) return;
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`/api/v1/partidos/${selectedMatch.id_partido}/iniciar`, {
-        method: 'PUT',
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
-      if (!response.ok) throw new Error('Error al iniciar el partido');
+      await startMatch(selectedMatch.id_partido);
       // Cerrar modal
       setShowInitMatchModal(false);
       setSelectedMatch(null);
@@ -213,8 +201,8 @@ export default function AdminDashboard({ league, userName, userRole }: AdminDash
       setLiveMatches(liveData);
       toast.showSuccess('Partido iniciado correctamente');
     } catch (error) {
-      console.error('Error al iniciar partido:', error);
-      toast.showError('No se pudo iniciar el partido');
+      const message = error instanceof Error ? error.message : 'Error al iniciar el partido';
+      toast.showError(message);
     }
   };
 
@@ -236,24 +224,15 @@ export default function AdminDashboard({ league, userName, userRole }: AdminDash
   const handleTeamSelected = (equipoId: number, nombreEquipo: string) => {
     setShowTeamSelectorModal(false);
     if (matchForTeamSelector) {
-      if (convocatoriaType === 'upcoming') {
-        setConvocatoriaMatchData({
-          id_partido: matchForTeamSelector.id_partido,
-          id_equipo: equipoId,
-          nombre_equipo: nombreEquipo,
-          fecha: matchForTeamSelector.fecha,
-          estado: 'PROGRAMADO',
-        });
-        setShowConvocatoriaModal(true);
-      } else {
-        setLineupMatchData({
-          id_partido: matchForTeamSelector.id_partido,
-          id_equipo: equipoId,
-          nombre_equipo: nombreEquipo,
-          fecha: matchForTeamSelector.fecha,
-        });
-        setShowLineupModal(true);
-      }
+      const isLive = convocatoriaType === 'live';
+      setConvocatoriaMatchData({
+        id_partido: matchForTeamSelector.id_partido,
+        id_equipo: equipoId,
+        nombre_equipo: nombreEquipo,
+        fecha: matchForTeamSelector.fecha,
+        estado: isLive ? 'en_juego' : 'PROGRAMADO',
+      });
+      setShowConvocatoriaModal(true);
       setMatchForTeamSelector(null);
     }
   };
@@ -615,27 +594,6 @@ export default function AdminDashboard({ league, userName, userRole }: AdminDash
           localPlayers={localTeamPlayers}
           visitantePlayers={visitanteTeamPlayers}
           minuto={parseInt(selectedLiveMatch?.minute || '0') || 0}
-        />
-      )}
-
-      {/* Modal de convocatoria para partidos en vivo */}
-      {lineupMatchData && (
-        <LineupEditModal
-          isOpen={showLineupModal}
-          onClose={() => {
-            setShowLineupModal(false);
-            setLineupMatchData(null);
-          }}
-          onSuccess={async () => {
-            const liveData = await fetchLiveMatches(league.id);
-            setLiveMatches(liveData);
-            setShowLineupModal(false);
-          }}
-          partidoId={lineupMatchData.id_partido}
-          equipoId={lineupMatchData.id_equipo}
-          nombreEquipo={lineupMatchData.nombre_equipo}
-          partidoFecha={lineupMatchData.fecha}
-          competicion={league.nombre}
         />
       )}
 

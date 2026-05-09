@@ -25,7 +25,6 @@ import {
   type AdminDashboardStats,
 } from '../../../services/dashboardApi';
 import ConvocatoriaModal from '../../../../match/components/ConvocatoriaModal';
-import LineupEditModal from '../../../../calendario/components/LineupEditModal';
 
 interface CoachDashboardProps {
   league: SelectedLeague;
@@ -42,19 +41,12 @@ export default function CoachDashboard({ league, userName, userRole }: CoachDash
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [coachTeamId, setCoachTeamId] = useState<number | null>(null);
   const [showConvocatoriaModal, setShowConvocatoriaModal] = useState(false);
-  const [showLineupModal, setShowLineupModal] = useState(false);
   const [convocatoriaMatchData, setConvocatoriaMatchData] = useState<{
     id_partido: number;
     id_equipo: number;
     nombre_equipo: string;
     fecha: string;
     estado: string;
-  } | null>(null);
-  const [lineupMatchData, setLineupMatchData] = useState<{
-    id_partido: number;
-    id_equipo: number;
-    nombre_equipo: string;
-    fecha: string;
   } | null>(null);
 
   // Cargar equipo del entrenador
@@ -116,17 +108,18 @@ export default function CoachDashboard({ league, userName, userRole }: CoachDash
     setShowConvocatoriaModal(true);
   };
 
-  // Función para abrir el modal de convocatoria (partidos en vivo)
+  // Función para abrir el modal de convocatoria (partidos en vivo) — solo lectura
   const handleOpenLineupModal = (match: DashboardLiveMatch) => {
     const equipoId = match.id_equipo_local === coachTeamId ? match.id_equipo_local : match.id_equipo_visitante;
     const nombreEquipo = match.id_equipo_local === coachTeamId ? match.nombre_equipo_local || match.home : match.nombre_equipo_visitante || match.away;
-    setLineupMatchData({
+    setConvocatoriaMatchData({
       id_partido: match.id_partido,
       id_equipo: equipoId || 0,
       nombre_equipo: nombreEquipo,
       fecha: new Date().toISOString(),
+      estado: 'en_juego',
     });
-    setShowLineupModal(true);
+    setShowConvocatoriaModal(true);
   };
 
   const statsCards = stats
@@ -296,26 +289,6 @@ export default function CoachDashboard({ league, userName, userRole }: CoachDash
         />
       )}
 
-      {/* Modal de convocatoria (partidos en vivo) */}
-      {lineupMatchData && (
-        <LineupEditModal
-          isOpen={showLineupModal}
-          onClose={() => {
-            setShowLineupModal(false);
-            setLineupMatchData(null);
-          }}
-          onSuccess={async () => {
-            const liveData = await fetchLiveMatches(league.id);
-            setLiveMatches(liveData);
-            setShowLineupModal(false);
-          }}
-          partidoId={lineupMatchData.id_partido}
-          equipoId={lineupMatchData.id_equipo}
-          nombreEquipo={lineupMatchData.nombre_equipo}
-          partidoFecha={lineupMatchData.fecha}
-          competicion={league.nombre}
-        />
-      )}
     </div>
   );
 }

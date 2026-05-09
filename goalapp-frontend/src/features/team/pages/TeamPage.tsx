@@ -138,14 +138,16 @@ export default function TeamPage() {
                 className="w-full sm:w-64 bg-zinc-800 border border-zinc-700 rounded-lg pl-10 pr-4 py-2 text-white text-sm focus:outline-none focus:border-lime-400 transition-colors"
               />
             </div>
-            {/* Botón Nuevo equipo */}
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="flex items-center justify-center gap-2 bg-lime-500 hover:bg-lime-400 text-zinc-950 font-semibold px-4 py-2 rounded-lg transition-colors"
-            >
-              <FaPlus />
-              <span>Nuevo equipo</span>
-            </button>
+            {/* Botón Nuevo equipo — solo admin */}
+            {userRole === 'admin' && (
+              <button
+                onClick={() => setIsModalOpen(true)}
+                className="flex items-center justify-center gap-2 bg-lime-500 hover:bg-lime-400 text-zinc-950 font-semibold px-4 py-2 rounded-lg transition-colors"
+              >
+                <FaPlus />
+                <span>Nuevo equipo</span>
+              </button>
+            )}
           </div>
         </div>
 

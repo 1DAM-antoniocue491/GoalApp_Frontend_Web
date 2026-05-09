@@ -29,7 +29,6 @@ import {
 import { fetchTeamSquad, type PlayerWithStatsResponse } from '../../../../team/services/teamApi';
 import FinishMatchModal, { type FinishData } from '../../../../match/components/FinishMatchModal';
 import EventRecorderModal from '../../../../match/components/EventRecorderModal';
-import LineupEditModal from '../../../../calendario/components/LineupEditModal';
 import ConvocatoriaModal from '../../../../match/components/ConvocatoriaModal';
 
 interface DelegateDashboardProps {
@@ -51,7 +50,6 @@ export default function DelegateDashboard({ league, userName, userRole }: Delega
   const [showFinishModal, setShowFinishModal] = useState(false);
   const [showEventModal, setShowEventModal] = useState(false);
   const [showConvocatoriaModal, setShowConvocatoriaModal] = useState(false);
-  const [showLineupModal, setShowLineupModal] = useState(false);
   const [finishMatchData, setFinishMatchData] = useState<{
     id_partido: number;
     localTeam: { nombre: string; id: number };
@@ -68,12 +66,6 @@ export default function DelegateDashboard({ league, userName, userRole }: Delega
     nombre_equipo: string;
     fecha: string;
     estado: string;
-  } | null>(null);
-  const [lineupMatchData, setLineupMatchData] = useState<{
-    id_partido: number;
-    id_equipo: number;
-    nombre_equipo: string;
-    fecha: string;
   } | null>(null);
   const [localTeamPlayers, setLocalTeamPlayers] = useState<PlayerWithStatsResponse[]>([]);
   const [visitanteTeamPlayers, setVisitanteTeamPlayers] = useState<PlayerWithStatsResponse[]>([]);
@@ -131,17 +123,18 @@ export default function DelegateDashboard({ league, userName, userRole }: Delega
     setShowConvocatoriaModal(true);
   };
 
-  // Función para abrir el modal de convocatoria (partidos en vivo)
+  // Función para abrir el modal de convocatoria (partidos en vivo) — solo lectura
   const handleOpenLineupModal = (match: DashboardLiveMatch) => {
     const equipoId = match.id_equipo_local === delegadoEquipoId ? match.id_equipo_local : match.id_equipo_visitante;
     const nombreEquipo = match.id_equipo_local === delegadoEquipoId ? match.nombre_equipo_local || match.home : match.nombre_equipo_visitante || match.away;
-    setLineupMatchData({
+    setConvocatoriaMatchData({
       id_partido: match.id_partido,
       id_equipo: equipoId || 0,
       nombre_equipo: nombreEquipo,
       fecha: new Date().toISOString(),
+      estado: 'en_juego',
     });
-    setShowLineupModal(true);
+    setShowConvocatoriaModal(true);
   };
 
   // Función para abrir el modal de finalizar partido
@@ -426,27 +419,6 @@ export default function DelegateDashboard({ league, userName, userRole }: Delega
           competicion={league.nombre}
           estadoPartido={convocatoriaMatchData.estado}
           canEdit={true}
-        />
-      )}
-
-      {/* Modal de convocatoria (partidos en vivo) */}
-      {lineupMatchData && (
-        <LineupEditModal
-          isOpen={showLineupModal}
-          onClose={() => {
-            setShowLineupModal(false);
-            setLineupMatchData(null);
-          }}
-          onSuccess={async () => {
-            const liveData = await fetchLiveMatches(league.id);
-            setLiveMatches(liveData);
-            setShowLineupModal(false);
-          }}
-          partidoId={lineupMatchData.id_partido}
-          equipoId={lineupMatchData.id_equipo}
-          nombreEquipo={lineupMatchData.nombre_equipo}
-          partidoFecha={lineupMatchData.fecha}
-          competicion={league.nombre}
         />
       )}
 

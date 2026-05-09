@@ -179,14 +179,9 @@ export default function Nav({ leagueName, userRole }: NavProps) {
               onClick={() => setShowLeagueMenu(!showLeagueMenu)}
               className="flex items-center gap-1.5 px-2 py-1 rounded-lg hover:bg-zinc-700 transition-colors"
             >
-              <span className="text-white font-bold text-sm md:text-base truncate max-w-[120px] md:max-w-[200px]">
+              <span className="text-white font-bold text-sm md:text-base truncate max-w-[120px] md:max-w-[100px] lg:max-w-[200px]">
                 {leagueName}
               </span>
-              {userRole && (
-                <span className="text-zinc-400 text-xs hidden sm:inline">
-                  ({userRole})
-                </span>
-              )}
               <FaChevronDown className={`w-3 h-3 text-zinc-400 transition-transform ${showLeagueMenu ? 'rotate-180' : ''}`} />
             </button>
           ) : (

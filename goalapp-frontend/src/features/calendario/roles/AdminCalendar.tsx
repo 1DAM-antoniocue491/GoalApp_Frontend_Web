@@ -27,6 +27,7 @@ interface AdminCalendarProps {
   onFinishMatch: (id: number) => void;
   onManageConvocatoria: (id: number) => void;
   onRegisterEvent: (id: number) => void;
+  onEditMatch: (id: number) => void;
   onEditCalendar: () => void;
   onOpenCreateCalendar: () => void;
   onOpenEditCalendar: () => void;
@@ -53,6 +54,7 @@ export default function AdminCalendar({
   onFinishMatch,
   onManageConvocatoria,
   onRegisterEvent,
+  onEditMatch,
   onEditCalendar,
   onOpenCreateCalendar,
   onOpenEditCalendar,
@@ -345,7 +347,7 @@ export default function AdminCalendar({
                       label: 'Editar',
                       icon: '✏️',
                       variant: 'editar',
-                      onClick: onEditCalendar,
+                      onClick: () => onEditMatch(partido.id_partido),
                     },
                     ...(isEnJuego
                       ? [{

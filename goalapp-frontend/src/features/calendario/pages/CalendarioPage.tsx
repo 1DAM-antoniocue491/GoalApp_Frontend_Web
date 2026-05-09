@@ -25,11 +25,11 @@ import type { CalendarConfig } from '../components/CreateCalendarModal';
 import CreateMatchModal from '../components/CreateMatchModal';
 import InitMatchModal from '../../match/components/InitMatchModal';
 import FinishMatchModal, { type FinishData } from '../../match/components/FinishMatchModal';
+import EditMatchModal from '../../match/components/EditMatchModal';
 import EventRecorderModal from '../../match/components/EventRecorderModal';
 import ConvocatoriaModal from '../../match/components/ConvocatoriaModal';
 import { fetchTeamSquad, type PlayerWithStatsResponse } from '../../team/services/teamApi';
 import { apiGet } from '../../../services/api';
-import LineupEditModal from '../components/LineupEditModal';
 import TeamSelectorModal from '../components/TeamSelectorModal';
 
 export default function CalendarioPage() {
@@ -73,17 +73,12 @@ export default function CalendarioPage() {
     estado: string;
   } | null>(null);
 
-  // Estados para modal de convocatoria
-  const [showLineupModal, setShowLineupModal] = useState(false);
-  const [lineupMatchData, setLineupMatchData] = useState<{
-    id_partido: number;
-    id_equipo: number;
-    nombre_equipo: string;
-    fecha: string;
-  } | null>(null);
-
   // Estados para modal de crear partido
   const [showCreateMatchModal, setShowCreateMatchModal] = useState(false);
+
+  // Estados para modal de editar partido
+  const [showEditMatchModal, setShowEditMatchModal] = useState(false);
+  const [matchToEdit, setMatchToEdit] = useState<MatchWithTeams | null>(null);
 
   // Estados para modal de selección de equipo (admin)
   const [showTeamSelectorModal, setShowTeamSelectorModal] = useState(false);
@@ -276,6 +271,19 @@ export default function CalendarioPage() {
   const handleCreateMatch = () => {
     if (!selectedLeague?.id) return;
     setShowCreateMatchModal(true);
+  };
+
+  const handleEditMatch = (idPartido: number) => {
+    const partido = partidosFiltrados.find(p => p.id_partido === idPartido);
+    if (!partido) return;
+    setMatchToEdit(partido);
+    setShowEditMatchModal(true);
+  };
+
+  const handleEditMatchSuccess = () => {
+    setShowEditMatchModal(false);
+    setMatchToEdit(null);
+    loadData();
   };
 
   const handleOpenCreateCalendar = () => {
@@ -477,16 +485,17 @@ export default function CalendarioPage() {
       return;
     }
 
-    setLineupMatchData({
+    setConvocatoriaMatchData({
       id_partido: idPartido,
       id_equipo: equipoId,
       nombre_equipo: equipoId === partido.id_equipo_local
         ? partido.nombre_equipo_local
         : partido.nombre_equipo_visitante,
       fecha: partido.fecha,
+      estado: partido.estado,
     });
 
-    setShowLineupModal(true);
+    setShowConvocatoriaModal(true);
   };
 
   // Handler para cuando el admin selecciona un equipo
@@ -507,14 +516,6 @@ export default function CalendarioPage() {
         estado: partido.estado,
       });
       setShowConvocatoriaModal(true);
-    } else if (teamSelectorData.accion === 'convocatoria') {
-      setLineupMatchData({
-        id_partido: teamSelectorData.id_partido,
-        id_equipo: equipoId,
-        nombre_equipo: nombreEquipo,
-        fecha: partido.fecha,
-      });
-      setShowLineupModal(true);
     }
   };
 
@@ -651,6 +652,7 @@ export default function CalendarioPage() {
     onInitMatch: handleInitMatch,
     onFinishMatch: handleFinishMatch,
     onManageConvocatoria: handleManageConvocatoria,
+    onEditMatch: handleEditMatch,
     onEditCalendar: handleEditCalendar,
     onDeleteCalendar: handleDeleteCalendar,
     showCreateCalendarModal,
@@ -763,17 +765,28 @@ export default function CalendarioPage() {
         />
       )}
 
-      {/* Modal de convocatoria */}
-      {lineupMatchData && (
-        <LineupEditModal
-          isOpen={showLineupModal}
-          onClose={() => setShowLineupModal(false)}
-          onSuccess={loadData}
-          partidoId={lineupMatchData.id_partido}
-          equipoId={lineupMatchData.id_equipo}
-          nombreEquipo={lineupMatchData.nombre_equipo}
-          partidoFecha={lineupMatchData.fecha}
-          competicion={leagueName || 'Competición'}
+      {/* Modal de editar partido */}
+      {matchToEdit && (
+        <EditMatchModal
+          isOpen={showEditMatchModal}
+          onClose={() => { setShowEditMatchModal(false); setMatchToEdit(null); }}
+          onSuccess={handleEditMatchSuccess}
+          match={{
+            id_partido: matchToEdit.id_partido,
+            league: selectedLeague?.nombre || '',
+            home: matchToEdit.nombre_equipo_local,
+            away: matchToEdit.nombre_equipo_visitante,
+            date: matchToEdit.fecha.split('T')[0],
+            time: matchToEdit.fecha.split('T')[1]?.slice(0, 5) || '00:00',
+            estado: matchToEdit.estado,
+            fecha_completa: matchToEdit.fecha,
+            id_equipo_local: matchToEdit.id_equipo_local,
+            id_equipo_visitante: matchToEdit.id_equipo_visitante,
+            nombre_equipo_local: matchToEdit.nombre_equipo_local,
+            nombre_equipo_visitante: matchToEdit.nombre_equipo_visitante,
+            goles_local: matchToEdit.goles_local,
+            goles_visitante: matchToEdit.goles_visitante,
+          }}
         />
       )}
 

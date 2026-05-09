@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FaCalendar, FaClock, FaTimes, FaFutbol, FaTrophy } from 'react-icons/fa';
+import { FaCalendar, FaClock, FaTimes, FaFutbol } from 'react-icons/fa';
 import { updateMatch, type MatchUpdatePayload } from '../../match/services/matchApi';
 import type { DashboardUpcomingMatch } from '../../../../main/services/dashboardApi';
 import { useToast } from '../../../contexts/ToastContext';
@@ -20,14 +20,11 @@ export default function EditMatchModal({ isOpen, onClose, onSuccess, match }: Ed
   const [fecha, setFecha] = useState('');
   const [hora, setHora] = useState('');
   const [estado, setEstado] = useState<'programado' | 'en_juego' | 'finalizado' | 'cancelado' | 'suspendido'>('programado');
-  const [golesLocal, setGolesLocal] = useState<string>('');
-  const [golesVisitante, setGolesVisitante] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
 
   // Inicializar formulario con datos del partido
   useEffect(() => {
     if (isOpen && match) {
-      // Extraer fecha y hora del campo fecha_completa (formato ISO: "2026-05-06T16:00:00")
       const dateObj = new Date(match.fecha_completa || `${match.date}T${match.time}:00`);
       const year = dateObj.getFullYear();
       const month = String(dateObj.getMonth() + 1).padStart(2, '0');
@@ -38,8 +35,6 @@ export default function EditMatchModal({ isOpen, onClose, onSuccess, match }: Ed
       setFecha(`${year}-${month}-${day}`);
       setHora(`${hours}:${minutes}`);
       setEstado(match.estado || 'programado');
-      setGolesLocal(match.goles_local?.toString() ?? '');
-      setGolesVisitante(match.goles_visitante?.toString() ?? '');
     }
   }, [isOpen, match]);
 
@@ -49,30 +44,12 @@ export default function EditMatchModal({ isOpen, onClose, onSuccess, match }: Ed
       return;
     }
 
-    // Validar que los goles sean números válidos si se proporcionan
-    if (golesLocal !== '' && (isNaN(Number(golesLocal)) || Number(golesLocal) < 0)) {
-      toast.showError('Los goles del equipo local deben ser un número válido');
-      return;
-    }
-    if (golesVisitante !== '' && (isNaN(Number(golesVisitante)) || Number(golesVisitante) < 0)) {
-      toast.showError('Los goles del equipo visitante deben ser un número válido');
-      return;
-    }
-
     setIsLoading(true);
     try {
       const payload: MatchUpdatePayload = {
         fecha: `${fecha}T${hora}:00`,
         estado,
       };
-
-      // Solo incluir goles si se han modificado
-      if (golesLocal !== '') {
-        payload.goles_local = Number(golesLocal);
-      }
-      if (golesVisitante !== '') {
-        payload.goles_visitante = Number(golesVisitante);
-      }
 
       await updateMatch(match.id_partido, payload);
       toast.showSuccess('Partido actualizado exitosamente');
@@ -90,8 +67,6 @@ export default function EditMatchModal({ isOpen, onClose, onSuccess, match }: Ed
     setFecha('');
     setHora('');
     setEstado('programado');
-    setGolesLocal('');
-    setGolesVisitante('');
     onClose();
   };
 
@@ -160,50 +135,7 @@ export default function EditMatchModal({ isOpen, onClose, onSuccess, match }: Ed
             </div>
           </div>
 
-          {/* Marcador */}
-          <div>
-            <h3 className="text-white font-semibold mb-3">Marcador (opcional)</h3>
-            <div className="flex items-center gap-4">
-              {/* Goles local */}
-              <div className="flex-1">
-                <label className="block text-gray-400 text-sm mb-2 truncate">
-                  {match.nombre_equipo_local}
-                </label>
-                <div className="relative">
-                  <input
-                    type="number"
-                    min="0"
-                    value={golesLocal}
-                    onChange={(e) => setGolesLocal(e.target.value)}
-                    placeholder="0"
-                    className="w-full bg-gray-900/50 border border-gray-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-lime-500/50 transition-colors"
-                  />
-                  <FaTrophy className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
-                </div>
-              </div>
 
-              {/* Separador */}
-              <div className="text-gray-500 font-bold text-xl pb-4">-</div>
-
-              {/* Goles visitante */}
-              <div className="flex-1">
-                <label className="block text-gray-400 text-sm mb-2 truncate">
-                  {match.nombre_equipo_visitante}
-                </label>
-                <div className="relative">
-                  <input
-                    type="number"
-                    min="0"
-                    value={golesVisitante}
-                    onChange={(e) => setGolesVisitante(e.target.value)}
-                    placeholder="0"
-                    className="w-full bg-gray-900/50 border border-gray-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-lime-500/50 transition-colors"
-                  />
-                  <FaTrophy className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
 
         {/* Botones de acción */}

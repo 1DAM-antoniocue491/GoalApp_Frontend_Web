@@ -2,6 +2,8 @@ import { useEffect, useState, useMemo, useCallback } from 'react';
 import { FaTimes, FaSearch, FaUsers, FaStar, FaBolt } from 'react-icons/fa';
 import type { Jugador, EstadoConvocatoria, ConvocatoriaResumen } from '../types/convocatoria';
 import { fetchConvocatoria, fetchJugadoresPorEquipo, createConvocatoria } from '../services/convocatoriaApi';
+import { useSelectedLeague } from '../../../context/SelectedLeagueContext';
+import { fetchLeagueConfig } from '../../league/services/leagueApi';
 
 export interface ConvocatoriaEditModalProps {
   isOpen: boolean;
@@ -33,6 +35,10 @@ export default function ConvocatoriaEditModal({
    const [isSaving, setIsSaving] = useState(false);
    const [busqueda, setBusqueda] = useState('');
    const [error, setError] = useState<string | null>(null);
+   const [maxConvocados, setMaxConvocados] = useState(23);
+   const [minConvocados, setMinConvocados] = useState(7);
+
+   const { selectedLeague } = useSelectedLeague();
 
    const cargarDatos = useCallback(async () => {
      setIsLoading(true);
@@ -73,6 +79,20 @@ export default function ConvocatoriaEditModal({
     }
   }, [isOpen, cargarDatos]);
 
+  // Cargar configuración de la liga
+  useEffect(() => {
+    if (isOpen && selectedLeague?.id) {
+      fetchLeagueConfig(selectedLeague.id)
+        .then(config => {
+          setMaxConvocados(config.max_convocados);
+          setMinConvocados(config.min_convocados);
+        })
+        .catch(() => {
+          // Keep defaults on error
+        });
+    }
+  }, [isOpen, selectedLeague?.id]);
+
   // Agrupar jugadores por posición
   const jugadoresPorPosicion = useMemo(() => {
     const filtrados = jugadores.filter(j => {
@@ -106,10 +126,10 @@ export default function ConvocatoriaEditModal({
       totalConvocados: titulares + suplentes,
       totalTitulares: titulares,
       totalSuplentes: suplentes,
-      maxConvocados: 23,
+      maxConvocados: maxConvocados,
       maxTitulares: 11,
     };
-  }, [jugadores]);
+  }, [jugadores, maxConvocados]);
 
   const cambiarEstado = (idJugador: number, nuevoEstado: EstadoConvocatoria) => {
     setJugadores(prev =>
@@ -136,10 +156,10 @@ export default function ConvocatoriaEditModal({
        return;
      }
 
-     if (resumen.totalConvocados < 7) {
-       const confirmar = window.confirm(
-         'Tienes menos de 7 jugadores convocados. ¿Estás seguro de guardar?'
-       );
+      if (resumen.totalConvocados < minConvocados) {
+        const confirmar = window.confirm(
+          `Tienes menos de ${minConvocados} jugadores convocados. ¿Estás seguro de guardar?`
+        );
        if (!confirmar) return;
      }
 
@@ -166,7 +186,7 @@ export default function ConvocatoriaEditModal({
      } finally {
        setIsSaving(false);
      }
-   }, [resumen.totalTitulares, resumen.totalConvocados, partidoId, jugadores, onSuccess, onClose]);
+   }, [resumen.totalTitulares, resumen.totalConvocados, minConvocados, partidoId, jugadores, onSuccess, onClose]);
 
   const seleccionarTodos = () => {
     setJugadores(prev =>

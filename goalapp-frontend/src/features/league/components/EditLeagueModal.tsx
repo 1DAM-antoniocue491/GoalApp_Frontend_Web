@@ -46,8 +46,6 @@ interface FormData {
   max_equipos: string;
   min_convocados: string;
   max_convocados: string;
-  min_plantilla: string;
-  max_plantilla: string;
   minutos_partido: string;
   max_partidos: string;
 }
@@ -82,8 +80,6 @@ export function EditLeagueModal({ isOpen, onClose, onSuccess, league }: EditLeag
     max_equipos: '',
     min_convocados: '',
     max_convocados: '',
-    min_plantilla: '',
-    max_plantilla: '',
     minutos_partido: '90',
     max_partidos: '',
   });
@@ -107,8 +103,6 @@ export function EditLeagueModal({ isOpen, onClose, onSuccess, league }: EditLeag
       max_equipos: '',
       min_convocados: '',
       max_convocados: '',
-      min_plantilla: '',
-      max_plantilla: '',
       minutos_partido: '90',
       max_partidos: '',
     });
@@ -126,8 +120,6 @@ export function EditLeagueModal({ isOpen, onClose, onSuccess, league }: EditLeag
           max_equipos: String(config.max_equipos),
           min_convocados: String(config.min_convocados),
           max_convocados: String(config.max_convocados),
-          min_plantilla: String(config.min_plantilla),
-          max_plantilla: String(config.max_plantilla),
           minutos_partido: String(config.minutos_partido),
           max_partidos: String(config.max_partidos),
         }));
@@ -162,11 +154,6 @@ export function EditLeagueModal({ isOpen, onClose, onSuccess, league }: EditLeag
       Number(formData.min_convocados) > Number(formData.max_convocados)) {
       newErrors.min_convocados = 'No puede ser mayor que el máximo';
     }
-    if (formData.min_plantilla && formData.max_plantilla &&
-      Number(formData.min_plantilla) > Number(formData.max_plantilla)) {
-      newErrors.min_plantilla = 'No puede ser mayor que el máximo';
-    }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -202,8 +189,6 @@ export function EditLeagueModal({ isOpen, onClose, onSuccess, league }: EditLeag
       max_equipos: Number(formData.max_equipos) || undefined,
       min_convocados: Number(formData.min_convocados) || undefined,
       max_convocados: Number(formData.max_convocados) || undefined,
-      min_plantilla: Number(formData.min_plantilla) || undefined,
-      max_plantilla: Number(formData.max_plantilla) || undefined,
       minutos_partido: Number(formData.minutos_partido) || undefined,
       max_partidos: Number(formData.max_partidos) || undefined,
     };
@@ -420,6 +405,7 @@ export function EditLeagueModal({ isOpen, onClose, onSuccess, league }: EditLeag
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm text-zinc-400 mb-1">Mín. convocados</label>
+                  <p className="text-zinc-600 text-xs mb-1">Titulares y suplentes</p>
                   <input
                     type="number"
                     value={formData.min_convocados}
@@ -432,39 +418,11 @@ export function EditLeagueModal({ isOpen, onClose, onSuccess, league }: EditLeag
                 </div>
                 <div>
                   <label className="block text-sm text-zinc-400 mb-1">Máx. convocados</label>
+                  <p className="text-zinc-600 text-xs mb-1">Titulares y suplentes</p>
                   <input
                     type="number"
                     value={formData.max_convocados}
                     onChange={(e) => updateField('max_convocados', e.target.value)}
-                    min={7}
-                    disabled={isSubmitting}
-                    className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-lime-500 disabled:opacity-50"
-                  />
-                </div>
-              </div>
-
-              {/* Mínimo/Máximo plantilla */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm text-zinc-400 mb-1">Mín. plantilla</label>
-                  <p className="text-zinc-600 text-xs mb-1">Titulares y suplentes</p>
-                  <input
-                    type="number"
-                    value={formData.min_plantilla}
-                    onChange={(e) => updateField('min_plantilla', e.target.value)}
-                    min={7}
-                    disabled={isSubmitting}
-                    className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-lime-500 disabled:opacity-50"
-                  />
-                  {errors.min_plantilla && <p className="text-red-400 text-xs mt-1">{errors.min_plantilla}</p>}
-                </div>
-                <div>
-                  <label className="block text-sm text-zinc-400 mb-1">Máx. plantilla</label>
-                  <p className="text-zinc-600 text-xs mb-1">Titulares y suplentes</p>
-                  <input
-                    type="number"
-                    value={formData.max_plantilla}
-                    onChange={(e) => updateField('max_plantilla', e.target.value)}
                     min={7}
                     disabled={isSubmitting}
                     className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-lime-500 disabled:opacity-50"
