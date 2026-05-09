@@ -35,10 +35,7 @@ export default function EventSubstitutionModal({
   const [selectedTeam, setSelectedTeam] = useState<number | null>(null);
   const [playerIn, setPlayerIn] = useState<number | null>(null);
   const [playerOut, setPlayerOut] = useState<number | null>(null);
-<<<<<<< HEAD
-=======
   const [minute, setMinute] = useState(minuto.toString());
->>>>>>> b824befd4673ce2c6335ef80a279c9e5cb34055a
 
   // Resetear estado al cerrar
   useEffect(() => {
@@ -47,10 +44,6 @@ export default function EventSubstitutionModal({
       setSelectedTeam(null);
       setPlayerIn(null);
       setPlayerOut(null);
-<<<<<<< HEAD
-    }
-  }, [isOpen]);
-=======
       setMinute(minuto.toString());
     }
   }, [isOpen, minuto]);
@@ -61,7 +54,6 @@ export default function EventSubstitutionModal({
       setMinute(minuto.toString());
     }
   }, [minuto, isOpen]);
->>>>>>> b824befd4673ce2c6335ef80a279c9e5cb34055a
 
   // Obtener jugadores del equipo seleccionado
   const availablePlayers = selectedTeam === localTeam.id ? localPlayers : visitantePlayers;
@@ -69,15 +61,12 @@ export default function EventSubstitutionModal({
   const handleConfirm = async () => {
     if (!playerIn || !playerOut) return;
 
-<<<<<<< HEAD
-=======
     const minuteValue = parseInt(minute, 10);
     if (isNaN(minuteValue) || minuteValue < 0 || minuteValue > 120) {
       toast.showError('El minuto debe estar entre 0 y 120');
       return;
     }
 
->>>>>>> b824befd4673ce2c6335ef80a279c9e5cb34055a
     if (playerIn === playerOut) {
       toast.showError('El jugador que entra no puede ser el mismo que sale');
       return;
@@ -88,21 +77,14 @@ export default function EventSubstitutionModal({
       await onConfirm({
         id_jugador: playerIn,
         id_jugador_sale: playerOut,
-<<<<<<< HEAD
-=======
         minuto: minuteValue,
->>>>>>> b824befd4673ce2c6335ef80a279c9e5cb34055a
       });
     } finally {
       setIsLoading(false);
     }
   };
 
-<<<<<<< HEAD
-  const isFormValid = selectedTeam && playerIn && playerOut && playerIn !== playerOut;
-=======
   const isFormValid = selectedTeam && playerIn && playerOut && playerIn !== playerOut && minute;
->>>>>>> b824befd4673ce2c6335ef80a279c9e5cb34055a
 
   if (!isOpen) return null;
 
@@ -240,17 +222,6 @@ export default function EventSubstitutionModal({
           {/* Minuto */}
           <div>
             <label className="text-gray-300 text-sm font-medium mb-2 block">
-<<<<<<< HEAD
-              Minuto
-            </label>
-            <input
-              type="text"
-              value={`${minuto}'`}
-              readOnly
-              className="w-full px-4 py-3 rounded-xl bg-gray-700/50 border border-gray-600 text-gray-400 cursor-not-allowed"
-            />
-            <p className="text-gray-500 text-xs mt-1">Minuto actual del partido</p>
-=======
               Minuto <span className="text-blue-400">*</span>
             </label>
             <input
@@ -262,7 +233,6 @@ export default function EventSubstitutionModal({
               className="w-full px-4 py-3 rounded-xl bg-gray-800/50 border border-gray-700 text-gray-300 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
               placeholder="Minuto del cambio"
             />
->>>>>>> b824befd4673ce2c6335ef80a279c9e5cb34055a
           </div>
         </div>
 
