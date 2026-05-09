@@ -121,7 +121,6 @@ export default function StatisticPage() {
             <button
               onClick={loadStats}
               className="text-lime-300 text-sm font-semibold hover:text-lime-400 transition-colors"
-              aria-label="Reintentar carga de estadísticas"
             >
               Reintentar
             </button>
@@ -164,9 +163,7 @@ export default function StatisticPage() {
                       <FaChartBar className="text-purple-400 text-lg" />
                     </div>
                     <p className="text-zinc-400 text-xs mb-1">Partidos</p>
-                    <p className="text-white text-2xl font-bold">
-                      {myStats.partidos_jugados > 0 ? myStats.partidos_jugados : '-'}
-                    </p>
+                    <p className="text-white text-2xl font-bold">{myStats.partidos_jugados}</p>
                   </div>
                   {/* MVPs */}
                   <div className="bg-zinc-800/50 rounded-lg p-4 text-center">
@@ -234,9 +231,7 @@ export default function StatisticPage() {
                     </div>
                   </div>
                   <p className="text-zinc-400 text-xs mb-1">Partidos jugados</p>
-                  <p className="text-white text-2xl font-bold">
-                    {seasonStats.total_partidos > 0 ? seasonStats.total_partidos : '-'}
-                  </p>
+                  <p className="text-white text-2xl font-bold">{seasonStats.total_partidos}</p>
                 </div>
               </div>
             )}
@@ -325,9 +320,7 @@ export default function StatisticPage() {
                           </div>
                         </td>
                         <td className="px-4 py-3 text-center text-zinc-400 text-sm">{scorer.nombre_equipo}</td>
-                        <td className="px-4 py-3 text-center text-zinc-400 text-sm">
-                          {scorer.partidos_jugados > 0 ? scorer.partidos_jugados : '-'}
-                        </td>
+                        <td className="px-4 py-3 text-center text-zinc-400 text-sm">{scorer.partidos_jugados}</td>
                         <td className="px-4 py-3 text-center text-lime-400 font-bold text-sm">{scorer.goles}</td>
                         <td className="px-4 py-3 text-center text-zinc-300 text-sm">{scorer.promedio_goles.toFixed(2)}</td>
                       </tr>

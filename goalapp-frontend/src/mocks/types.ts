@@ -244,9 +244,12 @@ export interface MockUserWithRole {
   rol: UserRole;
   activo: boolean;
   created_at: string;
+<<<<<<< HEAD
   id_equipo?: number;
   nombre_equipo?: string;
   estadio?: string;
+=======
+>>>>>>> b824befd4673ce2c6335ef80a279c9e5cb34055a
 }
 
 export type UserRole = 'admin' | 'entrenador' | 'delegado' | 'jugador' | 'observador';

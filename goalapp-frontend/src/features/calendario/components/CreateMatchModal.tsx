@@ -14,7 +14,6 @@ interface CreateMatchModalProps {
 
 export default function CreateMatchModal({ isOpen, onClose, ligaId, onSuccess }: CreateMatchModalProps) {
   const toast = useToast();
-  const hoy = new Date().toISOString().split('T')[0];
   const [fecha, setFecha] = useState('');
   const [hora, setHora] = useState('16:00');
   const [equipoLocalId, setEquipoLocalId] = useState<number>(0);
@@ -67,12 +66,7 @@ export default function CreateMatchModal({ isOpen, onClose, ligaId, onSuccess }:
       onSuccess();
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Error al crear el partido';
-      // Mostrar mensaje específico para duplicados
-      if (message.includes('Ya existe') || message.includes('duplicado') || message.includes('enfrentamiento')) {
-        toast.showWarning('Este partido ya está programado');
-      } else {
-        toast.showError(message);
-      }
+      toast.showError(message);
     } finally {
       setIsLoading(false);
     }
@@ -115,7 +109,6 @@ export default function CreateMatchModal({ isOpen, onClose, ligaId, onSuccess }:
                 <input
                   type="date"
                   value={fecha}
-                  min={hoy}
                   onChange={(e) => setFecha(e.target.value)}
                   className="w-full bg-gray-900/50 border border-gray-800 rounded-xl px-4 py-3 text-white pr-12 focus:outline-none focus:border-lime-500/50 transition-colors"
                 />

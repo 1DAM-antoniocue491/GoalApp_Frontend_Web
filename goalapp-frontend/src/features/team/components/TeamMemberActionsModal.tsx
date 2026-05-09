@@ -155,7 +155,7 @@ export default function TeamMemberActionsModal({
               >
                 <option value="">Seleccionar delegado...</option>
                 {usuariosDisponibles
-                  .filter(u => u.activo === true && u.id_usuario !== miembro.id_usuario)
+                  .filter(u => u.id_usuario !== miembro.id_usuario)
                   .map((usuario) => (
                     <option key={usuario.id_usuario} value={usuario.id_usuario}>
                       {usuario.nombre} - {usuario.email}

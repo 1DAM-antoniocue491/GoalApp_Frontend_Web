@@ -106,7 +106,6 @@ export default function ConvocatoriaModal({
           nombreEquipo={nombreEquipo}
           partidoFecha={partidoFecha}
           competicion={competicion}
-          estadoPartido={estadoPartido}
         />
       ) : (
         <ConvocatoriaViewModal

@@ -170,7 +170,7 @@ export default function FinishMatchModal({
               <option value="">Selecciona jugador MVP</option>
               {jugadoresDelEquipo.map((jugador) => (
                 <option key={jugador.id} value={jugador.id}>
-                  {jugador.dorsal && `#${jugador.dorsal} `}{jugador.nombre}
+                  {jugador.dorsal && `#${jugador.dorsador} `}{jugador.nombre}
                 </option>
               ))}
             </select>

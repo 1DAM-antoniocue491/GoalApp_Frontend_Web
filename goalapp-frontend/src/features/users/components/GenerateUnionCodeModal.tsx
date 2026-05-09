@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { FaTimes, FaQrcode, FaCopy, FaCheck, FaShareAlt, FaTrash } from 'react-icons/fa';
 import { GiSoccerBall, GiWhistle } from 'react-icons/gi';
 import { FaUser, FaTshirt, FaStopwatch } from 'react-icons/fa';
@@ -7,7 +7,6 @@ import { generateUnionCode, deleteUnionCode } from '../services/unionCodeApi';
 import type { GenerateCodePayload, UnionCodeResponse } from '../services/unionCodeApi';
 import { fetchTeamsByLeague } from '../services/usersApi';
 import type { TeamResponse } from '../services/usersApi';
-import { apiGet } from '../../../services/api';
 
 interface GenerateUnionCodeModalProps {
   isOpen: boolean;
@@ -15,7 +14,6 @@ interface GenerateUnionCodeModalProps {
   onSuccess: () => void;
   ligaId: number;
   ligaNombre?: string;
-  userRole?: 'admin' | 'entrenador' | 'delegado' | 'jugador' | 'observador';
 }
 
 type RolType = 'admin' | 'entrenador' | 'delegado' | 'jugador' | 'observador';
@@ -87,8 +85,7 @@ export default function GenerateUnionCodeModal({
   onClose,
   onSuccess,
   ligaId,
-  ligaNombre,
-  userRole = 'admin'
+  ligaNombre
 }: GenerateUnionCodeModalProps) {
   const [selectedRol, setSelectedRol] = useState<RolType | null>(null);
   const [equipos, setEquipos] = useState<TeamResponse[]>([]);
@@ -104,58 +101,16 @@ export default function GenerateUnionCodeModal({
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Estado para el equipo del usuario (entrenador/delegado)
-  const [miEquipoId, setMiEquipoId] = useState<number | null>(null);
-  const [isLoadingMiEquipo, setIsLoadingMiEquipo] = useState(false);
-
-  // Filtrar roles disponibles según el rol del usuario actual
-  const availableRoles = useMemo(() => {
-    switch (userRole) {
-      case 'admin':
-        return ROLES; // Admin puede generar cualquier rol
-      case 'entrenador':
-        return ROLES.filter(r => r.id === 'delegado' || r.id === 'jugador');
-      case 'delegado':
-        return ROLES.filter(r => r.id === 'jugador');
-      case 'jugador':
-      case 'observador':
-        return ROLES.filter(r => r.id === 'observador');
-      default:
-        return ROLES.filter(r => r.id === 'observador');
-    }
-  }, [userRole]);
-
-  // Determinar si se requiere seleccionar equipo manualmente (solo admin)
-  const requiereEquipoManual = useMemo(() => {
-    return userRole === 'admin' && selectedRol && (selectedRol === 'entrenador' || selectedRol === 'delegado' || selectedRol === 'jugador');
-  }, [userRole, selectedRol]);
-
-  // Cargar equipos cuando se selecciona un rol que lo requiere (solo admin)
+  // Cargar equipos cuando se selecciona un rol que lo requiere
   useEffect(() => {
-    if (isOpen && selectedRol && requiereEquipoManual) {
+    if (isOpen && selectedRol && (selectedRol === 'entrenador' || selectedRol === 'delegado' || selectedRol === 'jugador')) {
       setIsLoadingEquipos(true);
       fetchTeamsByLeague(ligaId)
         .then(setEquipos)
         .catch(console.error)
         .finally(() => setIsLoadingEquipos(false));
     }
-  }, [isOpen, selectedRol, ligaId, requiereEquipoManual]);
-
-  // Cargar el equipo del usuario cuando es entrenador o delegado
-  useEffect(() => {
-    if (isOpen && (userRole === 'entrenador' || userRole === 'delegado')) {
-      setIsLoadingMiEquipo(true);
-      apiGet<{ id_equipo: number }>('/equipos/usuario/mi-equipo', {
-        liga_id: ligaId,
-      })
-        .then(data => setMiEquipoId(data.id_equipo))
-        .catch(err => {
-          console.error('Error al cargar mi equipo:', err);
-          setError('No se pudo cargar tu equipo. Asegúrate de tener un equipo asignado.');
-        })
-        .finally(() => setIsLoadingMiEquipo(false));
-    }
-  }, [isOpen, userRole, ligaId]);
+  }, [isOpen, selectedRol, ligaId]);
 
   const handleGenerate = async () => {
     if (!selectedRol) {
@@ -163,15 +118,14 @@ export default function GenerateUnionCodeModal({
       return;
     }
 
-    // Validación de equipo solo para admin
-    if (userRole === 'admin' && (selectedRol === 'entrenador' || selectedRol === 'delegado' || selectedRol === 'jugador')) {
+    // Validaciones según el rol
+    if (selectedRol === 'entrenador' || selectedRol === 'delegado' || selectedRol === 'jugador') {
       if (!formData.id_equipo) {
         setError('Por favor, selecciona un equipo');
         return;
       }
     }
 
-    // Validaciones específicas para jugador (dorsal y posición siempre requeridos)
     if (selectedRol === 'jugador') {
       if (!formData.dorsal) {
         setError('Por favor, introduce el dorsal');
@@ -191,21 +145,8 @@ export default function GenerateUnionCodeModal({
         id_rol: rolIdMap[selectedRol],
       };
 
-      // Enviar id_equipo según el rol del usuario actual
-      // - Admin: lo selecciona manualmente del selector
-      // - Entrenador/Delegado: se obtiene automáticamente de su equipo
       if (selectedRol === 'entrenador' || selectedRol === 'delegado' || selectedRol === 'jugador') {
-        if (userRole === 'admin') {
-          payload.id_equipo = parseInt(formData.id_equipo, 10);
-        } else if (userRole === 'entrenador' || userRole === 'delegado') {
-          if (miEquipoId) {
-            payload.id_equipo = miEquipoId;
-          } else {
-            setError('No tienes un equipo asignado. Contacta con el administrador.');
-            setIsGenerating(false);
-            return;
-          }
-        }
+        payload.id_equipo = parseInt(formData.id_equipo, 10);
       }
 
       if (selectedRol === 'jugador') {
@@ -316,16 +257,9 @@ export default function GenerateUnionCodeModal({
 
           {/* Sección: Rol dentro de la liga */}
           <div>
-            <h3 className="text-white text-sm font-medium mb-3">
-              Rol que recibirá el usuario
-              {userRole !== 'admin' && (
-                <span className="block text-zinc-500 text-xs font-normal mt-1">
-                  ({availableRoles.length} roles disponibles para tu rol)
-                </span>
-              )}
-            </h3>
+            <h3 className="text-white text-sm font-medium mb-3">Rol que recibirá el usuario</h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {availableRoles.map((role) => {
+              {ROLES.map((role) => {
                 const isSelected = selectedRol === role.id;
                 return (
                   <button
@@ -349,61 +283,31 @@ export default function GenerateUnionCodeModal({
           {/* Campos condicionales según el rol */}
           {selectedRol && (
             <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
-              {/* Equipo - Solo admin debe seleccionarlo; entrenador/delegado se asigna automáticamente */}
+              {/* Equipo - Entrenador, Delegado, Jugador */}
               {(selectedRol === 'entrenador' || selectedRol === 'delegado' || selectedRol === 'jugador') && (
                 <div>
-                  {userRole === 'admin' ? (
-                    <>
-                      <label className="block text-zinc-300 text-sm font-medium mb-1">
-                        Equipo <span className="text-lime-400">*</span>
-                      </label>
-                      {isLoadingEquipos ? (
-                        <div className="flex items-center gap-2 text-zinc-500 text-sm">
-                          <div className="w-4 h-4 border-2 border-zinc-600 border-t-lime-400 rounded-full animate-spin" />
-                          Cargando equipos...
-                        </div>
-                      ) : (
-                        <select
-                          value={formData.id_equipo}
-                          onChange={(e) => setFormData({ ...formData, id_equipo: e.target.value })}
-                          className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-lime-400 transition-colors"
-                          required
-                        >
-                          <option value="">Selecciona un equipo</option>
-                          {equipos.map((equipo) => (
-                            <option key={equipo.id_equipo} value={equipo.id_equipo}>
-                              {equipo.nombre}
-                            </option>
-                          ))}
-                        </select>
-                      )}
-                    </>
-                  ) : isLoadingMiEquipo ? (
+                  <label className="block text-zinc-300 text-sm font-medium mb-1">
+                    Equipo <span className="text-lime-400">*</span>
+                  </label>
+                  {isLoadingEquipos ? (
                     <div className="flex items-center gap-2 text-zinc-500 text-sm">
                       <div className="w-4 h-4 border-2 border-zinc-600 border-t-lime-400 rounded-full animate-spin" />
-                      Cargando tu equipo...
-                    </div>
-                  ) : miEquipoId ? (
-                    <div className="bg-zinc-800/50 border border-zinc-700 rounded-lg p-4">
-                      <p className="text-zinc-300 text-sm">
-                        {userRole === 'entrenador' && (
-                          <>
-                            <span className="text-lime-400 font-semibold">Entrenador:</span> El código se asignará automáticamente a tu equipo (ID: {miEquipoId}).
-                          </>
-                        )}
-                        {userRole === 'delegado' && (
-                          <>
-                            <span className="text-lime-400 font-semibold">Delegado:</span> El código se asignará automáticamente a tu equipo (ID: {miEquipoId}).
-                          </>
-                        )}
-                      </p>
+                      Cargando equipos...
                     </div>
                   ) : (
-                    <div className="bg-red-900/20 border border-red-700/50 rounded-lg p-4">
-                      <p className="text-red-300 text-sm">
-                        No se pudo cargar tu equipo. Asegúrate de tener un equipo asignado en esta liga.
-                      </p>
-                    </div>
+                    <select
+                      value={formData.id_equipo}
+                      onChange={(e) => setFormData({ ...formData, id_equipo: e.target.value })}
+                      className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-lime-400 transition-colors"
+                      required
+                    >
+                      <option value="">Selecciona un equipo</option>
+                      {equipos.map((equipo) => (
+                        <option key={equipo.id_equipo} value={equipo.id_equipo}>
+                          {equipo.nombre}
+                        </option>
+                      ))}
+                    </select>
                   )}
                 </div>
               )}

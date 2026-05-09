@@ -258,9 +258,22 @@ export function OnboardingPage() {
   };
 
   const handleJoinLeague = () => {
+    console.log('[Onboarding] handleJoinLeague llamado manualmente');
     setIsJoinLeagueModalOpen(true);
   };
 
+  // Debug: rastrear cambios en los estados de los modales
+  useEffect(() => {
+    console.log('[Onboarding] isJoinLeagueModalOpen:', isJoinLeagueModalOpen);
+  }, [isJoinLeagueModalOpen]);
+
+  useEffect(() => {
+    console.log('[Onboarding] isCreateLeagueModalOpen:', isCreateLeagueModalOpen);
+  }, [isCreateLeagueModalOpen]);
+
+  useEffect(() => {
+    console.log('[Onboarding] isReactivateModalOpen:', isReactivateModalOpen);
+  }, [isReactivateModalOpen]);
 
   const handleEnterLeague = (leagueId: number) => {
     // Encontrar la liga seleccionada
@@ -427,7 +440,6 @@ export function OnboardingPage() {
                   setIsProfileOpen(false);
                 }}
                 className="p-2 text-zinc-400 hover:text-white transition-colors relative"
-                aria-label="Ver notificaciones"
               >
                 <FiBell className="w-5 h-5" />
                 <span 
@@ -450,7 +462,6 @@ export function OnboardingPage() {
                   setIsNotificationsOpen(false);
                 }}
                 className="flex items-center gap-2 cursor-pointer hover:bg-zinc-800 rounded-lg p-1.5 transition-colors"
-                aria-label="Ver perfil"
               >
                 {onboardingUser?.avatar ? (
                   <img

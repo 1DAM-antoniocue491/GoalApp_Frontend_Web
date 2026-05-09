@@ -13,7 +13,10 @@ export type Usuario = {
   id_usuario: number;
   nombre: string;
   email: string;
+<<<<<<< HEAD
   activo?: boolean;
+=======
+>>>>>>> b824befd4673ce2c6335ef80a279c9e5cb34055a
 };
 
 export interface TeamMemberActionsModalProps {

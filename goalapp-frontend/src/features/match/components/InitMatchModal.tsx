@@ -1,14 +1,11 @@
 import { useEffect, useState } from 'react';
 import { FaPlay, FaTimes, FaCalendar, FaUsers, FaMapMarkerAlt, FaTrophy } from 'react-icons/fa';
 import { getInitials } from '../../../utils/getInitials';
-import { fetchConvocatoria } from '../services/convocatoriaApi';
 
 interface InitMatchModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: () => Promise<void>;
-  partidoId: number;
-  localTeamId: number;
   localTeam: { nombre: string };
   visitanteTeam: { nombre: string };
   fecha: string;
@@ -20,8 +17,6 @@ export default function InitMatchModal({
   isOpen,
   onClose,
   onConfirm,
-  partidoId,
-  localTeamId,
   localTeam,
   visitanteTeam,
   fecha,
@@ -29,7 +24,6 @@ export default function InitMatchModal({
   campo,
 }: InitMatchModalProps) {
   const [isLoading, setIsLoading] = useState(false);
-  const [validacionError, setValidacionError] = useState<string | null>(null);
 
   // Resetear estado al cerrar
   useEffect(() => {
@@ -40,23 +34,8 @@ export default function InitMatchModal({
 
   const handleConfirm = async () => {
     setIsLoading(true);
-    setValidacionError(null);
     try {
-      // Obtener convocatoria del equipo local
-      const convocatoria = await fetchConvocatoria(partidoId, localTeamId);
-      const titularesCount = convocatoria.titulares.length;
-
-      // Validar que haya exactamente 11 titulares
-      if (titularesCount !== 11) {
-        setValidacionError(`La convocatoria debe tener exactamente 11 titulares. Actualmente tiene ${titularesCount}.`);
-        setIsLoading(false);
-        return;
-      }
-
-      // Si validación pasa, proceder
       await onConfirm();
-    } catch (error) {
-      setValidacionError('No se pudo verificar la convocatoria. Inténtalo de nuevo.');
     } finally {
       setIsLoading(false);
     }
@@ -136,13 +115,6 @@ export default function InitMatchModal({
               <strong>Importante:</strong> Al iniciar el partido, la convocatoria quedará bloqueada.
             </p>
           </div>
-
-          {/* Error de validación */}
-          {validacionError && (
-            <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 mb-6">
-              <p className="text-red-400 text-sm font-medium">{validacionError}</p>
-            </div>
-          )}
         </div>
 
         {/* Botones de acción */}

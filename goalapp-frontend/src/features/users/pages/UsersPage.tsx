@@ -16,7 +16,10 @@ import {
   FaFutbol,
   FaClipboardList,
   FaMedal,
+<<<<<<< HEAD
   FaUserEdit,
+=======
+>>>>>>> b824befd4673ce2c6335ef80a279c9e5cb34055a
 } from 'react-icons/fa';
 import Nav from '../../../components/Nav';
 import { useSelectedLeague } from '../../../context/SelectedLeagueContext';
@@ -25,7 +28,10 @@ import InviteUserModal from '../components/InviteUserModal';
 import GenerateUnionCodeModal from '../components/GenerateUnionCodeModal';
 import UserActionsModal from '../../league/components/UserActionsModal';
 import TeamMemberActionsModal from '../../team/components/TeamMemberActionsModal';
+<<<<<<< HEAD
 import EditUserModal from '../components/EditUserModal';
+=======
+>>>>>>> b824befd4673ce2c6335ef80a279c9e5cb34055a
 import { fetchMiembrosEquipo, type MiembroEquipo } from '../../team/services/teamMembersApi';
 import { apiGet } from '../../../services/api';
 
@@ -43,7 +49,10 @@ export default function UsersPage() {
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [isGenerateCodeModalOpen, setIsGenerateCodeModalOpen] = useState(false);
   const [isUserActionsModalOpen, setIsUserActionsModalOpen] = useState(false);
+<<<<<<< HEAD
   const [isEditUserModalOpen, setIsEditUserModalOpen] = useState(false);
+=======
+>>>>>>> b824befd4673ce2c6335ef80a279c9e5cb34055a
   const [selectedUser, setSelectedUser] = useState<UserWithRole | null>(null);
   const [roles, setRoles] = useState<Rol[]>([]);
 
@@ -92,8 +101,13 @@ export default function UsersPage() {
       });
       setMiEquipoId(data.id_equipo);
       await cargarMiembrosEquipo(data.id_equipo);
+<<<<<<< HEAD
       // Cargar usuarios disponibles para asignar delegado (solo activos)
       const usuarios = await fetchUsersByLeague(selectedLeague!.id, true);
+=======
+      // Cargar usuarios disponibles para asignar delegado
+      const usuarios = await fetchUsersByLeague(selectedLeague!.id);
+>>>>>>> b824befd4673ce2c6335ef80a279c9e5cb34055a
       setUsuariosParaDelegado(usuarios);
     } catch (error) {
       console.error('Error al cargar equipo:', error);
@@ -486,6 +500,7 @@ export default function UsersPage() {
                 />
               </div>
 
+<<<<<<< HEAD
               {/* Botones Invitar usuario y Generar código - Según rol */}
               {(userRole === 'admin' || userRole === 'entrenador' || userRole === 'delegado' || userRole === 'jugador') && (
                 <div className="flex flex-col sm:flex-row gap-2">
@@ -500,6 +515,18 @@ export default function UsersPage() {
                     </button>
                   )}
                   {/* Todos los roles pueden generar códigos (con restricciones según rol) */}
+=======
+              {/* Botones Invitar usuario y Generar código - Solo admin */}
+              {userRole === 'admin' && (
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <button
+                    onClick={() => setIsInviteModalOpen(true)}
+                    className="flex items-center justify-center gap-2 bg-lime-500 hover:bg-lime-400 text-zinc-950 font-semibold px-4 py-2 rounded-lg transition-colors whitespace-nowrap"
+                  >
+                    <FaUserPlus />
+                    <span className="hidden sm:inline">Invitar usuario</span>
+                  </button>
+>>>>>>> b824befd4673ce2c6335ef80a279c9e5cb34055a
                   <button
                     onClick={() => setIsGenerateCodeModalOpen(true)}
                     className="flex items-center justify-center gap-2 bg-zinc-700 hover:bg-zinc-600 text-white font-semibold px-4 py-2 rounded-lg transition-colors whitespace-nowrap"
@@ -569,6 +596,7 @@ export default function UsersPage() {
                             <span className="text-zinc-500 text-xs truncate">{user.nombre_equipo}</span>
                           </div>
                         )}
+<<<<<<< HEAD
                         {/* Estadio del equipo - Si existe */}
                         {user.estadio && (
                           <div className="flex items-center gap-1 mt-1">
@@ -576,6 +604,8 @@ export default function UsersPage() {
                             <span className="text-zinc-500 text-xs truncate">{user.estadio}</span>
                           </div>
                         )}
+=======
+>>>>>>> b824befd4673ce2c6335ef80a279c9e5cb34055a
                         {/* Estadísticas deportivas - Solo para jugadores */}
                         {userSportsStats[user.id_usuario] && (
                           <div className="flex items-center gap-3 mt-2">
@@ -584,6 +614,13 @@ export default function UsersPage() {
                               {userSportsStats[user.id_usuario].goles} goles
                             </span>
                             <span className="flex items-center gap-1 text-xs text-zinc-500">
+<<<<<<< HEAD
+=======
+                              <FaClipboardList className="text-blue-400" />
+                              {userSportsStats[user.id_usuario].asistencias} asistencias
+                            </span>
+                            <span className="flex items-center gap-1 text-xs text-zinc-500">
+>>>>>>> b824befd4673ce2c6335ef80a279c9e5cb34055a
                               <FaMedal className="text-purple-400" />
                               {userSportsStats[user.id_usuario].partidos_jugados} partidos
                             </span>
@@ -620,12 +657,20 @@ export default function UsersPage() {
                         <button
                           onClick={() => {
                             setSelectedUser(user);
+<<<<<<< HEAD
                             setIsEditUserModalOpen(true);
                           }}
                           className="p-2 text-zinc-400 hover:text-white transition-colors"
                           aria-label="Editar usuario"
                         >
                           <FaUserEdit className="w-4 h-4" />
+=======
+                            setIsUserActionsModalOpen(true);
+                          }}
+                          className="p-2 text-zinc-400 hover:text-white transition-colors"
+                        >
+                          <FaEllipsisV />
+>>>>>>> b824befd4673ce2c6335ef80a279c9e5cb34055a
                         </button>
                       )}
                     </div>
@@ -708,7 +753,10 @@ export default function UsersPage() {
                           setIsTeamMemberModalOpen(true);
                         }}
                         className="p-2 text-zinc-400 hover:text-white transition-colors"
+<<<<<<< HEAD
                         aria-label="Abrir menú de acciones del miembro"
+=======
+>>>>>>> b824befd4673ce2c6335ef80a279c9e5cb34055a
                       >
                         <FaEllipsisV />
                       </button>
@@ -766,12 +814,16 @@ export default function UsersPage() {
           }}
           ligaId={selectedLeague.id}
           ligaNombre={selectedLeague.nombre}
+<<<<<<< HEAD
           userRole={userRole}
+=======
+>>>>>>> b824befd4673ce2c6335ef80a279c9e5cb34055a
         />
       )}
 
       {/* Modal para acciones de usuario (admin) */}
       {selectedLeague && selectedUser && (
+<<<<<<< HEAD
         <EditUserModal
           isOpen={isEditUserModalOpen}
           onClose={() => {
@@ -789,6 +841,8 @@ export default function UsersPage() {
       )}
 
       {selectedLeague && selectedUser && (
+=======
+>>>>>>> b824befd4673ce2c6335ef80a279c9e5cb34055a
         <UserActionsModal
           isOpen={isUserActionsModalOpen}
           onClose={() => {
@@ -833,7 +887,10 @@ export default function UsersPage() {
             id_usuario: u.id_usuario,
             nombre: u.nombre,
             email: u.email,
+<<<<<<< HEAD
             activo: u.activo,
+=======
+>>>>>>> b824befd4673ce2c6335ef80a279c9e5cb34055a
           }))}
           esEntrenador={true}
         />

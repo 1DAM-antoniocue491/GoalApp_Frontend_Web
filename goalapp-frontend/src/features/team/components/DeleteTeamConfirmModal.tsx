@@ -16,7 +16,6 @@ interface DeleteTeamConfirmModalProps {
 export default function DeleteTeamConfirmModal({ isOpen, onClose, equipoNombre, ligaId, equipoId, onConfirm }: DeleteTeamConfirmModalProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const navigate = useNavigate();
 
   const handleDelete = async () => {
     setIsDeleting(true);

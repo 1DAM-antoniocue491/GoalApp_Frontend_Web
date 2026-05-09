@@ -34,6 +34,7 @@ export default function EventYellowCardModal({
   const [isLoading, setIsLoading] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState<number | null>(null);
   const [selectedPlayer, setSelectedPlayer] = useState<number | null>(null);
+  const [minute, setMinute] = useState(minuto.toString());
   const [motivo, setMotivo] = useState('');
 
   // Resetear estado al cerrar
@@ -42,9 +43,17 @@ export default function EventYellowCardModal({
       setIsLoading(false);
       setSelectedTeam(null);
       setSelectedPlayer(null);
+      setMinute(minuto.toString());
       setMotivo('');
     }
-  }, [isOpen]);
+  }, [isOpen, minuto]);
+
+  // Actualizar minuto cuando cambia el minuto prop
+  useEffect(() => {
+    if (isOpen) {
+      setMinute(minuto.toString());
+    }
+  }, [minuto, isOpen]);
 
   // Obtener jugadores del equipo seleccionado
   const availablePlayers = selectedTeam === localTeam.id ? localPlayers : visitantePlayers;
@@ -52,12 +61,19 @@ export default function EventYellowCardModal({
   const handleConfirm = async () => {
     if (!selectedPlayer) return;
 
+    const minuteValue = parseInt(minute, 10);
+    if (isNaN(minuteValue) || minuteValue < 0 || minuteValue > 120) {
+      toast.showError('El minuto debe estar entre 0 y 120');
+      return;
+    }
+
     const motivoValue = motivo || 'Sin especificar';
 
     setIsLoading(true);
     try {
       await onConfirm({
         id_jugador: selectedPlayer,
+        minuto: minuteValue,
         motivo: motivoValue,
       });
     } finally {
@@ -65,7 +81,7 @@ export default function EventYellowCardModal({
     }
   };
 
-  const isFormValid = selectedTeam && selectedPlayer;
+  const isFormValid = selectedTeam && selectedPlayer && minute;
 
   if (!isOpen) return null;
 
@@ -172,15 +188,17 @@ export default function EventYellowCardModal({
           {/* Minuto */}
           <div>
             <label className="text-gray-300 text-sm font-medium mb-2 block">
-              Minuto
+              Minuto <span className="text-yellow-400">*</span>
             </label>
             <input
-              type="text"
-              value={`${minuto}'`}
-              readOnly
-              className="w-full px-4 py-3 rounded-xl bg-gray-700/50 border border-gray-600 text-gray-400 cursor-not-allowed"
+              type="number"
+              value={minute}
+              onChange={(e) => setMinute(e.target.value)}
+              min="1"
+              max="120"
+              className="w-full px-4 py-3 rounded-xl bg-gray-800/50 border border-gray-700 text-gray-300 focus:border-yellow-500 focus:outline-none focus:ring-1 focus:ring-yellow-500"
+              placeholder="Minuto de la tarjeta"
             />
-            <p className="text-gray-500 text-xs mt-1">Minuto actual del partido</p>
           </div>
 
           {/* Motivo (Opcional) */}

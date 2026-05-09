@@ -10,7 +10,10 @@ import { apiGet } from '../../../services/api'
 import { fetchLiveMatches, type MatchWithTeams } from '../../match/services/matchApi'
 import FinishMatchModal, { type FinishData } from '../../match/components/FinishMatchModal'
 import { fetchTeamSquad, type PlayerWithStatsResponse } from '../../team/services/teamApi'
+<<<<<<< HEAD
 import { fetchLeagueConfig } from '../../league/services/leagueApi'
+=======
+>>>>>>> b824befd4673ce2c6335ef80a279c9e5cb34055a
 
 export default function Live() {
   const navigate = useNavigate()
@@ -30,7 +33,10 @@ export default function Live() {
   const [localTeamPlayers, setLocalTeamPlayers] = useState<PlayerWithStatsResponse[]>([])
   const [visitanteTeamPlayers, setVisitanteTeamPlayers] = useState<PlayerWithStatsResponse[]>([])
   const [delegadoEquipoId, setDelegadoEquipoId] = useState<number | null>(null)
+<<<<<<< HEAD
   const [ligaMinutos, setLigaMinutos] = useState<number>(90)
+=======
+>>>>>>> b824befd4673ce2c6335ef80a279c9e5cb34055a
 
   // Determinar rol del usuario
   const userRole = user?.rol_principal?.toLowerCase() || ''
@@ -65,6 +71,7 @@ export default function Live() {
     cargarEquipo();
   }, [selectedLeague?.id, isDelegado]);
 
+<<<<<<< HEAD
   // Cargar configuración de liga para obtener minutos del partido
   useEffect(() => {
     const cargarConfigLiga = async () => {
@@ -82,10 +89,15 @@ export default function Live() {
 
   // Calcular minuto de juego desde fecha_inicio
   const calcularMinuto = (fechaInicio: string): { texto: string; excedido: boolean } => {
+=======
+  // Calcular minuto de juego desde fecha_inicio
+  const calcularMinuto = (fechaInicio: string): string => {
+>>>>>>> b824befd4673ce2c6335ef80a279c9e5cb34055a
     const inicio = new Date(fechaInicio)
     const ahora = new Date()
     const diffMs = ahora.getTime() - inicio.getTime()
     const minutos = Math.floor(diffMs / 60000)
+<<<<<<< HEAD
 
     const minutosVisuales = Math.min(minutos, ligaMinutos + 15)
     const excedido = minutos > ligaMinutos
@@ -94,6 +106,9 @@ export default function Live() {
       texto: `${minutosVisuales}'`,
       excedido,
     }
+=======
+    return `${minutos}'`
+>>>>>>> b824befd4673ce2c6335ef80a279c9e5cb34055a
   }
 
   // Función para abrir el modal de finalizar partido
@@ -258,6 +273,7 @@ export default function Live() {
               >
                 <div className="flex items-center justify-end gap-1 mb-2">
                   <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+<<<<<<< HEAD
                   {(() => {
                     const { texto: minutoTexto, excedido } = calcularMinuto(match.fecha)
                     return (
@@ -266,6 +282,11 @@ export default function Live() {
                       </span>
                     )
                   })()}
+=======
+                  <span className="text-red-400 text-sm font-medium">
+                    {calcularMinuto(match.fecha)}
+                  </span>
+>>>>>>> b824befd4673ce2c6335ef80a279c9e5cb34055a
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
@@ -282,6 +303,7 @@ export default function Live() {
                 </div>
                 <div className='w-full border border-zinc-900 mt-2'></div>
                 <div className="flex gap-2 mt-3">
+<<<<<<< HEAD
                   {(() => {
                     const { excedido } = calcularMinuto(match.fecha)
                     return canRegisterEvents(match) && !excedido ? (
@@ -300,11 +322,25 @@ export default function Live() {
                       </button>
                     ) : null
                   })()}
+=======
+                  {canRegisterEvents(match) && (
+                    <button
+                      onClick={() => navigate(`/live`)}
+                      className="flex-1 px-3 py-1.5 text-sm font-bold rounded-lg transition-colors border-2 bg-lime-800/40 text-lime-300 hover:bg-lime-800/60 border-lime-700"
+                    >
+                      🏆 Eventos
+                    </button>
+                  )}
+>>>>>>> b824befd4673ce2c6335ef80a279c9e5cb34055a
                   <button
                     onClick={() => navigate(`/live`)}
                     className="flex-1 px-3 py-1.5 text-sm font-bold rounded-lg transition-colors border-2 bg-cyan-800/30 text-cyan-700 hover:bg-cyan-800/50 border-cyan-700"
                   >
+<<<<<<< HEAD
                     {match.estado === 'en_juego' ? '📋 Alineación' : '👥 Convocatoria'}
+=======
+                    👥 Convocatoria
+>>>>>>> b824befd4673ce2c6335ef80a279c9e5cb34055a
                   </button>
                   {(isAdmin || canRegisterEvents(match)) && (
                     <button

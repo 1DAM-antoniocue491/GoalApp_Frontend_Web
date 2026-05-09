@@ -140,7 +140,7 @@ export async function fetchTeamsByLeague(ligaId: number): Promise<TeamResponse[]
   }
 
   try {
-    return await apiGet<TeamResponse[]>(`/equipos/?liga_id=${ligaId}`);
+    return await apiGet<TeamResponse[]>(`/equipos/?id_liga=${ligaId}`);
   } catch (error) {
     throw new Error(getErrorMessage(error as ApiError));
   }
@@ -340,7 +340,7 @@ export interface UpdateTeamPayload {
 
 /**
  * Actualizar un equipo existente
- * PUT /equipos/{equipoId}
+ * PATCH /equipos/{equipoId}
  */
 export async function updateTeam(equipoId: number, team: UpdateTeamPayload): Promise<TeamResponse> {
   if (isMockEnabled()) {
@@ -348,8 +348,8 @@ export async function updateTeam(equipoId: number, team: UpdateTeamPayload): Pro
   }
 
   try {
-    const { apiPut } = await import('../../../services/api');
-    return await apiPut<TeamResponse>(`/equipos/${equipoId}`, team);
+    const { apiPatch } = await import('../../../services/api');
+    return await apiPatch<TeamResponse>(`/equipos/${equipoId}`, team);
   } catch (error) {
     throw new Error(getErrorMessage(error as ApiError));
   }

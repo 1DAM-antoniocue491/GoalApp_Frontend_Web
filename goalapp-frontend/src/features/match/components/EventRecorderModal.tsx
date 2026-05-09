@@ -40,16 +40,13 @@ export default function EventRecorderModal({
 }: EventRecorderModalProps) {
   const toast = useToast();
   const [selectedEventType, setSelectedEventType] = useState<EventType>(null);
-  const [currentMinute, setCurrentMinute] = useState(minuto);
 
-  // Resetear estado al cerrar y sincronizar minuto
+  // Resetear estado al cerrar
   useEffect(() => {
     if (!isOpen) {
       setSelectedEventType(null);
-      return;
     }
-    setCurrentMinute(minuto);
-  }, [isOpen, minuto]);
+  }, [isOpen]);
 
   const handleSelectEventType = (type: 'gol' | 'tarjeta_amarilla' | 'tarjeta_roja' | 'cambio') => {
     setSelectedEventType(type);
@@ -61,14 +58,21 @@ export default function EventRecorderModal({
 
   const handleEventConfirmed = async (eventData: {
     id_jugador: number;
+    minuto: number;
     id_jugador_sale?: number;
     incidencias?: string;
   }) => {
+    const minuteValue = eventData.minuto;
+    if (isNaN(minuteValue) || minuteValue < 0 || minuteValue > 120) {
+      toast.showError('El minuto debe estar entre 0 y 120');
+      return;
+    }
+
     try {
       await createMatchEvent(partidoId, {
         id_jugador: eventData.id_jugador,
         tipo_evento: selectedEventType as 'gol' | 'tarjeta_amarilla' | 'tarjeta_roja' | 'cambio',
-        minuto: currentMinute,
+        minuto: minuteValue,
         id_jugador_sale: eventData.id_jugador_sale,
         incidencias: eventData.incidencias,
       });
@@ -107,7 +111,7 @@ export default function EventRecorderModal({
           visitanteTeam={visitanteTeam}
           localPlayers={localPlayers}
           visitantePlayers={visitantePlayers}
-          minuto={currentMinute}
+          minuto={minuto}
         />
       )}
 
@@ -121,7 +125,7 @@ export default function EventRecorderModal({
           visitanteTeam={visitanteTeam}
           localPlayers={localPlayers}
           visitantePlayers={visitantePlayers}
-          minuto={currentMinute}
+          minuto={minuto}
         />
       )}
 
@@ -135,7 +139,7 @@ export default function EventRecorderModal({
           visitanteTeam={visitanteTeam}
           localPlayers={localPlayers}
           visitantePlayers={visitantePlayers}
-          minuto={currentMinute}
+          minuto={minuto}
         />
       )}
 
@@ -149,7 +153,7 @@ export default function EventRecorderModal({
           visitanteTeam={visitanteTeam}
           localPlayers={localPlayers}
           visitantePlayers={visitantePlayers}
-          minuto={currentMinute}
+          minuto={minuto}
         />
       )}
     </>

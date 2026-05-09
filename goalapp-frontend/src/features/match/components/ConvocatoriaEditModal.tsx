@@ -12,7 +12,6 @@ export interface ConvocatoriaEditModalProps {
   nombreEquipo: string;
   partidoFecha: string;
   competicion: string;
-  estadoPartido: string;
 }
 
 interface JugadorUI extends Jugador {
@@ -28,7 +27,6 @@ export default function ConvocatoriaEditModal({
   nombreEquipo,
   partidoFecha,
   competicion,
-  estadoPartido,
 }: ConvocatoriaEditModalProps) {
    const [jugadores, setJugadores] = useState<JugadorUI[]>([]);
    const [isLoading, setIsLoading] = useState(false);
@@ -49,10 +47,7 @@ export default function ConvocatoriaEditModal({
        const convocadosTitulares = new Set(convocatoriaData?.titulares.map(j => j.id_jugador) || []);
        const convocadosSuplentes = new Set(convocatoriaData?.suplentes.map(j => j.id_jugador) || []);
 
-       // Filtro defensivo: solo jugadores activos (el filtrado principal ya está en backend)
-       const jugadoresActivos = jugadoresData.filter(j => j.activo === true);
-
-       const jugadoresConEstado: JugadorUI[] = jugadoresActivos.map(j => ({
+       const jugadoresConEstado: JugadorUI[] = jugadoresData.map(j => ({
          ...j,
          estado: convocadosTitulares.has(j.id_jugador)
            ? 'titular'
@@ -281,7 +276,7 @@ export default function ConvocatoriaEditModal({
         <div className="p-6 border-b border-gray-800">
           <div className="flex items-start justify-between">
             <div>
-              <h2 className="text-white text-2xl font-bold">{estadoPartido === 'en_juego' ? 'Alineación' : 'Editar Convocatoria'}</h2>
+              <h2 className="text-white text-2xl font-bold">Editar Convocatoria</h2>
               <p className="text-gray-400 text-sm mt-1">
                 {nombreEquipo} • {fechaTexto}
               </p>

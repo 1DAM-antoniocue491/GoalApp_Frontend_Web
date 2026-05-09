@@ -26,7 +26,6 @@ export interface UserWithRole {
   created_at: string;
   id_equipo?: number;
   nombre_equipo?: string;
-  estadio?: string;
 }
 
 export interface InviteUserPayload {
@@ -119,16 +118,14 @@ export async function fetchTeamsByLeague(ligaId: number): Promise<TeamResponse[]
 /**
  * Obtener usuarios con rol en una liga
  * GET /usuarios/ligas/{ligaId}/usuarios
- * @param ligaId - ID de la liga
- * @param solo_activos - Si true, filtra solo usuarios activos (default: false)
  */
-export async function fetchUsersByLeague(ligaId: number, solo_activos: boolean = false): Promise<UserWithRole[]> {
+export async function fetchUsersByLeague(ligaId: number): Promise<UserWithRole[]> {
   if (isMockEnabled()) {
     return await mockApi.mockFetchUsersByLeague(ligaId);
   }
 
   try {
-    return await apiGet<UserWithRole[]>(`/usuarios/ligas/${ligaId}/usuarios?solo_activos=${solo_activos}`);
+    return await apiGet<UserWithRole[]>(`/usuarios/ligas/${ligaId}/usuarios`);
   } catch (error) {
     throw new Error(getErrorMessage(error as ApiError));
   }

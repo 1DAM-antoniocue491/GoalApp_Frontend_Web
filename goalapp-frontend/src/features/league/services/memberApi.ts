@@ -22,14 +22,12 @@ export interface EstadoUpdatePayload {
 
 /**
  * Obtener todos los usuarios de una liga
- * @param ligaId - ID de la liga
- * @param solo_activos - Si true, filtra solo usuarios activos (default: false)
  */
-export const fetchUsuariosLiga = async (ligaId: number, solo_activos: boolean = false): Promise<UsuarioLiga[]> => {
+export const fetchUsuariosLiga = async (ligaId: number): Promise<UsuarioLiga[]> => {
   if (isMockEnabled()) {
     return await mockApi.mockFetchUsuariosLiga(ligaId);
   }
-  return apiClient.get<UsuarioLiga[]>(`/ligas/${ligaId}/usuarios?solo_activos=${solo_activos}`);
+  return apiClient.get<UsuarioLiga[]>(`/ligas/${ligaId}/usuarios`);
 };
 
 /**
