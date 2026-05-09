@@ -1,0 +1,79 @@
+[
+  {
+    "id_evento": 1,
+    "id_partido": 1,
+    "id_jugador": 2,
+    "tipo_evento": "gol",
+    "minuto": 12,
+    "puntuacion_mvp": null,
+    "incidencias": null,
+    "created_at": "2026-04-28T10:30:00",
+    "updated_at": "2026-04-28T10:30:00"
+  },
+  {
+    "id_evento": 2,
+    "id_partido": 1,
+    "id_jugador": 5,
+    "tipo_evento": "tarjeta_amarilla",
+    "minuto": 23,
+    "puntuacion_mvp": null,
+    "incidencias": null,
+    "created_at": "2026-04-28T10:35:00",
+    "updated_at": "2026-04-28T10:35:00"
+  },
+  {
+    "id_evento": 3,
+    "id_partido": 1,
+    "id_jugador": 1,
+    "tipo_evento": "gol",
+    "minuto": 35,
+    "puntuacion_mvp": null,
+    "incidencias": null,
+    "created_at": "2026-04-28T11:00:00",
+    "updated_at": "2026-04-28T11:00:00"
+  },
+  {
+    "id_evento": 4,
+    "id_partido": 1,
+    "id_jugador": 5,
+    "tipo_evento": "gol",
+    "minuto": 58,
+    "puntuacion_mvp": null,
+    "incidencias": null,
+    "created_at": "2026-04-28T11:30:00",
+    "updated_at": "2026-04-28T11:30:00"
+  },
+  {
+    "id_evento": 5,
+    "id_partido": 1,
+    "id_jugador": 2,
+    "tipo_evento": "gol",
+    "minuto": 78,
+    "puntuacion_mvp": null,
+    "incidencias": null,
+    "created_at": "2026-04-28T12:00:00",
+    "updated_at": "2026-04-28T12:00:00"
+  },
+  {
+    "id_evento": 6,
+    "id_partido": 3,
+    "id_jugador": 3,
+    "tipo_evento": "tarjeta_amarilla",
+    "minuto": 15,
+    "puntuacion_mvp": null,
+    "incidencias": null,
+    "created_at": "2026-04-29T09:15:00",
+    "updated_at": "2026-04-29T09:15:00"
+  },
+  {
+    "id_evento": 7,
+    "id_partido": 6,
+    "id_jugador": 9,
+    "tipo_evento": "gol",
+    "minuto": 67,
+    "puntuacion_mvp": null,
+    "incidencias": null,
+    "created_at": "2026-04-29T14:20:00",
+    "updated_at": "2026-04-29T14:20:00"
+  }
+]

@@ -1,0 +1,74 @@
+[
+  {
+    "id_equipo": 1,
+    "nombre": "CD Fútbol Base Madrid",
+    "id_liga": 1,
+    "entrenador": "María Fernández Ruiz",
+    "escudo_url": null,
+    "created_at": "2025-09-05T10:00:00Z",
+    "updated_at": "2025-09-05T10:00:00Z"
+  },
+  {
+    "id_equipo": 2,
+    "nombre": "UD San Blas",
+    "id_liga": 1,
+    "entrenador": "Laura Rodríguez Navarro",
+    "escudo_url": null,
+    "created_at": "2025-09-05T10:30:00Z",
+    "updated_at": "2025-09-05T10:30:00Z"
+  },
+  {
+    "id_equipo": 3,
+    "nombre": "Atlético Hortaleza",
+    "id_liga": 1,
+    "entrenador": "Carlos García López",
+    "escudo_url": null,
+    "created_at": "2025-09-06T11:00:00Z",
+    "updated_at": "2025-09-06T11:00:00Z"
+  },
+  {
+    "id_equipo": 4,
+    "nombre": "CF Villa de Vallecas",
+    "id_liga": 1,
+    "entrenador": "Pedro Sánchez Moreno",
+    "escudo_url": null,
+    "created_at": "2025-09-06T11:30:00Z",
+    "updated_at": "2025-09-06T11:30:00Z"
+  },
+  {
+    "id_equipo": 5,
+    "nombre": "AD Barrial San Blas",
+    "id_liga": 2,
+    "entrenador": "María Fernández Ruiz",
+    "escudo_url": null,
+    "created_at": "2025-09-20T12:00:00Z",
+    "updated_at": "2025-09-20T12:00:00Z"
+  },
+  {
+    "id_equipo": 6,
+    "nombre": "Rácing Fuenlabrada",
+    "id_liga": 4,
+    "entrenador": "Laura Rodríguez Navarro",
+    "escudo_url": null,
+    "created_at": "2025-10-05T09:00:00Z",
+    "updated_at": "2025-10-05T09:00:00Z"
+  },
+  {
+    "id_equipo": 7,
+    "nombre": "CF Leganés Norte",
+    "id_liga": 4,
+    "entrenador": "Carlos García López",
+    "escudo_url": null,
+    "created_at": "2025-10-05T09:30:00Z",
+    "updated_at": "2025-10-05T09:30:00Z"
+  },
+  {
+    "id_equipo": 8,
+    "nombre": "Veteranos Vallecas FC",
+    "id_liga": 3,
+    "entrenador": "Ana López Díaz",
+    "escudo_url": null,
+    "created_at": "2024-08-25T10:00:00Z",
+    "updated_at": "2024-08-25T10:00:00Z"
+  }
+]

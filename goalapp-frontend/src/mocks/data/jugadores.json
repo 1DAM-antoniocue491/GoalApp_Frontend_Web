@@ -1,0 +1,102 @@
+[
+  {
+    "id_jugador": 1,
+    "id_usuario": 1,
+    "id_equipo": 1,
+    "posicion": "centrocampista",
+    "dorsal": 8,
+    "activo": true,
+    "created_at": "2025-01-15T10:00:00Z",
+    "updated_at": null
+  },
+  {
+    "id_jugador": 2,
+    "id_usuario": 2,
+    "id_equipo": 1,
+    "posicion": "delantero",
+    "dorsal": 9,
+    "activo": true,
+    "created_at": "2025-01-15T10:00:00Z",
+    "updated_at": null
+  },
+  {
+    "id_jugador": 3,
+    "id_usuario": 3,
+    "id_equipo": 1,
+    "posicion": "defensa",
+    "dorsal": 4,
+    "activo": true,
+    "created_at": "2025-01-15T10:00:00Z",
+    "updated_at": null
+  },
+  {
+    "id_jugador": 4,
+    "id_usuario": 4,
+    "id_equipo": 1,
+    "posicion": "portero",
+    "dorsal": 1,
+    "activo": true,
+    "created_at": "2025-01-15T10:00:00Z",
+    "updated_at": null
+  },
+  {
+    "id_jugador": 5,
+    "id_usuario": 5,
+    "id_equipo": 2,
+    "posicion": "delantero",
+    "dorsal": 7,
+    "activo": true,
+    "created_at": "2025-01-15T10:00:00Z",
+    "updated_at": null
+  },
+  {
+    "id_jugador": 6,
+    "id_usuario": 6,
+    "id_equipo": 2,
+    "posicion": "centrocampista",
+    "dorsal": 10,
+    "activo": true,
+    "created_at": "2025-01-15T10:00:00Z",
+    "updated_at": null
+  },
+  {
+    "id_jugador": 7,
+    "id_usuario": 7,
+    "id_equipo": 3,
+    "posicion": "delantero",
+    "dorsal": 11,
+    "activo": true,
+    "created_at": "2025-01-15T10:00:00Z",
+    "updated_at": null
+  },
+  {
+    "id_jugador": 8,
+    "id_usuario": 8,
+    "id_equipo": 3,
+    "posicion": "defensa",
+    "dorsal": 2,
+    "activo": true,
+    "created_at": "2025-01-15T10:00:00Z",
+    "updated_at": null
+  },
+  {
+    "id_jugador": 9,
+    "id_usuario": 9,
+    "id_equipo": 4,
+    "posicion": "centrocampista",
+    "dorsal": 6,
+    "activo": true,
+    "created_at": "2025-01-15T10:00:00Z",
+    "updated_at": null
+  },
+  {
+    "id_jugador": 10,
+    "id_usuario": 10,
+    "id_equipo": 4,
+    "posicion": "delantero",
+    "dorsal": 17,
+    "activo": true,
+    "created_at": "2025-01-15T10:00:00Z",
+    "updated_at": null
+  }
+]
