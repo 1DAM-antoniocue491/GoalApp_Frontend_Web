@@ -386,7 +386,7 @@ export default function AdminDashboard({ league, userName, userRole }: AdminDash
                   onClick: () => handleOpenEventModal(match),
                 },
                 {
-                  label: 'Convocatoria',
+                  label: 'Alineación',
                   variant: 'convocatoria',
                   icon: '👥',
                   onClick: () => handleOpenConvocatoriaModalLive(match),

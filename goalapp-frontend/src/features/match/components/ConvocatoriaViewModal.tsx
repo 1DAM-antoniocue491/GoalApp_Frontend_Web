@@ -176,7 +176,7 @@ export default function ConvocatoriaViewModal({
         <div className="p-6 border-b border-gray-800">
           <div className="flex items-start justify-between">
             <div>
-              <h2 className="text-white text-2xl font-bold">Convocatoria</h2>
+              <h2 className="text-white text-2xl font-bold">Alineación</h2>
               <p className="text-gray-400 text-sm mt-1">
                 {nombreEquipo} • {fechaTexto}
               </p>

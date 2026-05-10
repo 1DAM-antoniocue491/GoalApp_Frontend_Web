@@ -20,6 +20,8 @@ interface PlayerCalendarProps {
   totalJornadas: number;
   proximosCount: number;
   enVivoCount: number;
+  partidosHoy: number;
+  partidosManana: number;
 }
 
 export default function PlayerCalendar({
@@ -30,6 +32,8 @@ export default function PlayerCalendar({
   totalJornadas,
   proximosCount,
   enVivoCount,
+  partidosHoy,
+  partidosManana,
 }: PlayerCalendarProps) {
   const formatTeams = (local: string, visitante: string) => `${local} vs ${visitante}`;
 
@@ -59,8 +63,8 @@ export default function PlayerCalendar({
         <StatsCard number={totalPartidos} texto="Total partidos" />
         <StatsCard number={totalJornadas} texto="Jornadas" />
         <StatsCard number={proximosCount} texto="Próximos" color="text-blue-400" />
-        <StatsCard number={0} texto="Mañana" color="text-purple-400" />
-        <StatsCard number={enVivoCount} texto="Hoy" color="text-lime-400" />
+        <StatsCard number={partidosManana} texto="Mañana" color="text-purple-400" />
+        <StatsCard number={partidosHoy} texto="Hoy" color="text-lime-400" />
       </div>
 
       {/* Info card para player */}

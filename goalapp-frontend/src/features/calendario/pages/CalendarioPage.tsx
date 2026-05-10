@@ -592,6 +592,18 @@ export default function CalendarioPage() {
   const proximosCount = proximosPartidos.length;
   const enVivoCount = partidosEnVivo.length;
 
+  // Calcular partidos de hoy y mañana
+  const todayStr = new Date().toDateString();
+  const tomorrowDate = new Date();
+  tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+  const tomorrowStr = tomorrowDate.toDateString();
+  const partidosHoy = partidosFiltrados.filter(
+    (p) => new Date(p.fecha).toDateString() === todayStr
+  ).length;
+  const partidosManana = partidosFiltrados.filter(
+    (p) => new Date(p.fecha).toDateString() === tomorrowStr
+  ).length;
+
   // Obtener jugadores de los equipos para el selector MVP
   const jugadoresParaMvp = selectedMatchData ? [
     // Se cargarán dinámicamente desde la API cuando se implemente
@@ -655,6 +667,8 @@ export default function CalendarioPage() {
     totalJornadas,
     proximosCount,
     enVivoCount,
+    partidosHoy,
+    partidosManana,
     onCreateCalendar: () => setShowCreateCalendarModal(true),
     onOpenCreateCalendar: handleOpenCreateCalendar,
     onOpenEditCalendar: handleOpenEditCalendar,

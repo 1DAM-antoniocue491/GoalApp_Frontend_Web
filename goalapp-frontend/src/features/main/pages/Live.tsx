@@ -335,7 +335,7 @@ export default function Live() {
                 });
               }
               actions.push({
-                label: 'Convocatoria',
+                label: 'Alineación',
                 variant: 'convocatoria',
                 icon: '👥',
                 onClick: () => handleOpenConvocatoria(match),
