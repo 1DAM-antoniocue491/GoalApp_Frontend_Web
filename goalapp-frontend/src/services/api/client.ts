@@ -205,8 +205,9 @@ const createApiClient = (): AxiosInstance => {
 
       // Error 403 - Sin permisos
       if (statusCode === 403) {
+        const data = error.response.data as { detail?: string };
         const forbiddenError: ApiError = {
-          message: 'No tienes permisos para realizar esta acción.',
+          message: data?.detail || 'No tienes permisos para realizar esta acción.',
           statusCode: 403,
           isNetworkError: false,
           isAuthError: true,

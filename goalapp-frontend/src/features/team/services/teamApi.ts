@@ -17,6 +17,8 @@ export interface TeamResponse {
   id_equipo: number;
   nombre: string;
   colores: string | null;
+  ciudad: string | null;
+  estadio: string | null;
   id_liga: number;
   id_entrenador: number;
   id_delegado: number;
@@ -205,6 +207,8 @@ export async function fetchPlayersWithStatsByTeam(equipoId: number): Promise<Pla
 export interface CreateTeamPayload {
   nombre: string;
   colores?: string;
+  ciudad?: string;
+  estadio?: string;
   id_liga: number;
   id_entrenador?: number;
   id_delegado?: number;

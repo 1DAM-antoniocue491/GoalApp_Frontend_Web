@@ -660,10 +660,12 @@ export async function mockCreateTeam(data: {
 }): Promise<MockEquipo> {
   await simulateDelay(MOCK_WRITE_DELAY_MS);
 
-  const nuevoEquipo: MockEquipo = {
+    const nuevoEquipo: MockEquipo = {
     id_equipo: generateId(),
     nombre: data.nombre,
     colores: data.colores ?? '#D4FF59',
+    ciudad: data.ciudad ?? null,
+    estadio: data.estadio ?? null,
     id_liga: data.id_liga,
     id_entrenador: data.id_entrenador ?? 1,
     id_delegado: data.id_delegado ?? 1,

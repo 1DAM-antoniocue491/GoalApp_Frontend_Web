@@ -42,6 +42,8 @@ export default function CreateTeamModal({ isOpen, onClose, onSuccess, ligaId }: 
       const payload: CreateTeamPayload = {
         nombre: formData.nombre,
         colores: formData.colores,
+        ciudad: formData.ciudad || undefined,
+        estadio: formData.estadio || undefined,
         id_liga: ligaId,
       };
 

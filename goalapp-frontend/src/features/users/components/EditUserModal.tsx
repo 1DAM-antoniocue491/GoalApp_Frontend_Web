@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { FaTimes, FaUser, FaTshirt, FaStopwatch, FaUserEdit, FaCheckCircle, FaTimesCircle, FaTrash, FaExclamationTriangle } from 'react-icons/fa';
+import { FaTimes, FaUser, FaTshirt, FaStopwatch, FaUserEdit, FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
 import { GiSoccerBall, GiWhistle } from 'react-icons/gi';
 import Modal from '../../../components/ui/Modal';
 import { fetchTeamsByLeague, type TeamResponse, type UserWithRole } from '../services/usersApi';
-import { apiPut, apiPatch, apiDelete } from '../../../services/api';
+import { apiPut, apiPatch } from '../../../services/api';
 import { useToast } from '../../../contexts/ToastContext';
 
 interface EditUserModalProps {
@@ -149,24 +149,6 @@ export default function EditUserModal({ isOpen, onClose, onSuccess, user, ligaId
       toast.showError(msg);
     } finally {
       setIsTogglingActive(false);
-    }
-  };
-
-  const handleDeleteUser = async () => {
-    if (!user) return;
-    setIsDeleting(true);
-    setError(null);
-    try {
-      await apiDelete(`/ligas/${ligaId}/usuarios/${user.id_usuario}`);
-      toast.showSuccess('Usuario eliminado de la liga');
-      onSuccess();
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Error al eliminar usuario';
-      setError(msg);
-      toast.showError(msg);
-    } finally {
-      setIsDeleting(false);
-      setShowDeleteConfirm(false);
     }
   };
 
@@ -404,52 +386,6 @@ export default function EditUserModal({ isOpen, onClose, onSuccess, user, ligaId
           </button>
         </div>
 
-        {/* Zona de peligro: Eliminar usuario */}
-        <div className="pt-6 border-t border-red-900/30">
-          <h3 className="text-red-400 text-sm font-medium mb-2 flex items-center gap-2">
-            <FaExclamationTriangle />
-            Zona de peligro
-          </h3>
-          {!showDeleteConfirm ? (
-            <button
-              type="button"
-              onClick={() => setShowDeleteConfirm(true)}
-              className="flex items-center gap-2 px-4 py-2.5 bg-red-600/20 hover:bg-red-600/30 text-red-400 hover:text-red-300 border border-red-600/30 rounded-lg font-medium transition-all"
-            >
-              <FaTrash />
-              Eliminar usuario de la liga
-            </button>
-          ) : (
-            <div className="bg-red-900/20 border border-red-600/30 rounded-lg p-4 space-y-3">
-              <p className="text-red-300 text-sm">
-                ¿Estás seguro? Esta acción eliminará permanentemente al usuario de la liga y no se puede deshacer.
-              </p>
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setShowDeleteConfirm(false)}
-                  disabled={isDeleting}
-                  className="flex-1 px-4 py-2 bg-zinc-700 hover:bg-zinc-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="button"
-                  onClick={handleDeleteUser}
-                  disabled={isDeleting}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg font-semibold transition-colors disabled:opacity-50"
-                >
-                  {isDeleting ? (
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <FaTrash />
-                  )}
-                  Eliminar
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
       </form>
     </Modal>
   );
