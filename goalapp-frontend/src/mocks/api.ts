@@ -304,8 +304,6 @@ const leagueConfigs: Record<number, {
   max_equipos: number;
   min_convocados: number;
   max_convocados: number;
-  min_plantilla: number;
-  max_plantilla: number;
   min_jugadores_equipo: number;
   min_partidos_entre_equipos: number;
   minutos_partido: number;
@@ -316,21 +314,21 @@ const leagueConfigs: Record<number, {
   1: {
     id_configuracion: 1, id_liga: 1, hora_partidos: '17:00:00',
     min_equipos: 6, max_equipos: 30, min_convocados: 18, max_convocados: 28,
-    min_plantilla: 18, max_plantilla: 28, min_jugadores_equipo: 7,
+    min_jugadores_equipo: 7,
     min_partidos_entre_equipos: 2, minutos_partido: 90, max_partidos: 45,
     created_at: '2025-09-01T10:00:00Z', updated_at: '2025-09-01T10:00:00Z',
   },
   2: {
     id_configuracion: 2, id_liga: 2, hora_partidos: '18:00:00',
     min_equipos: 4, max_equipos: 16, min_convocados: 14, max_convocados: 22,
-    min_plantilla: 14, max_plantilla: 22, min_jugadores_equipo: 7,
+    min_jugadores_equipo: 7,
     min_partidos_entre_equipos: 2, minutos_partido: 80, max_partidos: 30,
     created_at: '2025-09-15T14:30:00Z', updated_at: '2025-09-15T14:30:00Z',
   },
   3: {
     id_configuracion: 3, id_liga: 3, hora_partidos: '19:00:00',
     min_equipos: 4, max_equipos: 42, min_convocados: 18, max_convocados: 28,
-    min_plantilla: 18, max_plantilla: 28, min_jugadores_equipo: 7,
+    min_jugadores_equipo: 7,
     min_partidos_entre_equipos: 2, minutos_partido: 90, max_partidos: 45,
     created_at: '2024-08-20T09:00:00Z', updated_at: '2025-06-30T18:00:00Z',
   },

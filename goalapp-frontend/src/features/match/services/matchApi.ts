@@ -375,6 +375,7 @@ export async function fetchMatchEvents(partidoId: number): Promise<MatchEvent[]>
       created_at: e.created_at ?? new Date().toISOString(),
       updated_at: e.updated_at ?? new Date().toISOString(),
       nombre_jugador: e.nombre_jugador,
+      id_equipo: e.id_equipo,
       nombre_equipo: e.nombre_equipo,
     }));
   }

@@ -9,7 +9,7 @@ import { useAuth } from '../../auth/hooks/useAuth'
 import { useSelectedLeague } from '../../../context'
 import { useToast } from '../../../contexts/ToastContext'
 import { apiGet } from '../../../services/api'
-import { fetchLiveMatches, type MatchWithTeams } from '../../match/services/matchApi'
+import { fetchLiveMatches, finishMatch, type MatchWithTeams } from '../../match/services/matchApi'
 import FinishMatchModal, { type FinishData } from '../../match/components/FinishMatchModal'
 import ConvocatoriaModal from '../../match/components/ConvocatoriaModal'
 import EventRecorderModal from '../../match/components/EventRecorderModal'
@@ -98,7 +98,7 @@ export default function Live() {
     const inicio = new Date(fechaInicio)
     const ahora = new Date()
     const diffMs = ahora.getTime() - inicio.getTime()
-    const minutos = Math.floor(diffMs / 60000)
+    const minutos = Math.max(Math.floor(diffMs / 60000), 0)
 
     return `${minutos}'`
   }
@@ -131,26 +131,12 @@ export default function Live() {
     if (!finishMatchData) return
 
     try {
-      const token = localStorage.getItem('token')
-      const response = await fetch(`/api/v1/partidos/${finishMatchData.id_partido}/finalizar`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      })
-      if (!response.ok) throw new Error('Error al finalizar el partido')
+      await finishMatch(finishMatchData.id_partido, data)
 
       setShowFinishModal(false)
       setFinishMatchData(null)
       toast.showSuccess('Partido finalizado correctamente')
-
-      // Recargar partidos en vivo
-      if (selectedLeague?.id) {
-        const matches = await fetchLiveMatches(selectedLeague.id)
-        setLiveMatches(matches)
-      }
+      window.location.reload()
     } catch (error) {
       console.error('Error al finalizar partido:', error)
       toast.showError('No se pudo finalizar el partido')

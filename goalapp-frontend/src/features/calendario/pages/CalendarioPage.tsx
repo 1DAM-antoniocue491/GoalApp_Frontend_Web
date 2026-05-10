@@ -381,7 +381,7 @@ export default function CalendarioPage() {
       await finishMatch(selectedMatchId, payload);
       toast.showSuccess('Partido finalizado correctamente');
       setShowFinishModal(false);
-      await loadData();
+      window.location.reload();
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Error al finalizar el partido';
       toast.showError(message);

@@ -79,8 +79,6 @@ export interface LeagueConfigResponse {
   max_equipos: number;
   min_convocados: number;
   max_convocados: number;
-  min_plantilla: number;
-  max_plantilla: number;
   min_jugadores_equipo: number;
   min_partidos_entre_equipos: number;
   minutos_partido: number;
@@ -98,8 +96,6 @@ export interface UpdateLeagueConfigRequest {
   max_equipos?: number;
   min_convocados?: number;
   max_convocados?: number;
-  min_plantilla?: number;
-  max_plantilla?: number;
   min_jugadores_equipo?: number;
   min_partidos_entre_equipos?: number;
   minutos_partido?: number;

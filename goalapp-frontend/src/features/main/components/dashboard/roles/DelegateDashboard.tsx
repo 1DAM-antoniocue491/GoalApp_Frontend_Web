@@ -27,6 +27,7 @@ import {
   type DashboardUpcomingMatch,
 } from '../../../services/dashboardApi';
 import { fetchTeamSquad, type PlayerWithStatsResponse } from '../../../../team/services/teamApi';
+import { finishMatch } from '../../../../match/services/matchApi';
 import FinishMatchModal, { type FinishData } from '../../../../match/components/FinishMatchModal';
 import EventRecorderModal from '../../../../match/components/EventRecorderModal';
 import ConvocatoriaModal from '../../../../match/components/ConvocatoriaModal';
@@ -172,23 +173,12 @@ export default function DelegateDashboard({ league, userName, userRole }: Delega
     if (!finishMatchData) return;
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`/api/v1/partidos/${finishMatchData.id_partido}/finalizar`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
-      if (!response.ok) throw new Error('Error al finalizar el partido');
+      await finishMatch(finishMatchData.id_partido, data);
 
       setShowFinishModal(false);
       setFinishMatchData(null);
       toast.showSuccess('Partido finalizado correctamente');
-
-      const liveData = await fetchLiveMatches(league.id);
-      setLiveMatches(liveData);
+      window.location.reload();
     } catch (error) {
       console.error('Error al finalizar partido:', error);
       toast.showError('No se pudo finalizar el partido');

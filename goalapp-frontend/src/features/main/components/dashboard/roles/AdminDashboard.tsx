@@ -34,7 +34,7 @@ import {
   type AdminDashboardStats,
 } from '../../../services/dashboardApi';
 import { fetchTeamSquad, type PlayerWithStatsResponse } from '../../../../team/services/teamApi';
-import { startMatch } from '../../../../match/services/matchApi';
+import { startMatch, finishMatch } from '../../../../match/services/matchApi';
 
 interface AdminDashboardProps {
   league: SelectedLeague;
@@ -156,24 +156,12 @@ export default function AdminDashboard({ league, userName, userRole }: AdminDash
     if (!finishMatchData) return;
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`/api/v1/partidos/${finishMatchData.id_partido}/finalizar`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
-      if (!response.ok) throw new Error('Error al finalizar el partido');
+      await finishMatch(finishMatchData.id_partido, data);
 
       setShowFinishMatchModal(false);
       setFinishMatchData(null);
-
-      // Recargar datos del dashboard
-      const liveData = await fetchLiveMatches(league.id);
-      setLiveMatches(liveData);
       toast.showSuccess('Partido finalizado correctamente');
+      window.location.reload();
     } catch (error) {
       console.error('Error al finalizar partido:', error);
       toast.showError('No se pudo finalizar el partido');

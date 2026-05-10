@@ -130,7 +130,7 @@ function calcularMinuto(fechaInicio: string): string {
   const inicio = new Date(fechaInicio)
   const ahora = new Date()
   const diffMs = ahora.getTime() - inicio.getTime()
-  const minutos = Math.floor(diffMs / 60000)
+  const minutos = Math.max(Math.floor(diffMs / 60000), 0)
   return `${minutos}'`
 }
 

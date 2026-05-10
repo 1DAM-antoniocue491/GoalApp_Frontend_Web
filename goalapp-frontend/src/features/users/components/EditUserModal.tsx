@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { FaTimes, FaUser, FaTshirt, FaStopwatch, FaUserEdit, FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
+import { FaTimes, FaUser, FaTshirt, FaStopwatch, FaUserEdit, FaCheckCircle, FaTimesCircle, FaTrash, FaExclamationTriangle } from 'react-icons/fa';
 import { GiSoccerBall, GiWhistle } from 'react-icons/gi';
 import Modal from '../../../components/ui/Modal';
 import { fetchTeamsByLeague, type TeamResponse, type UserWithRole } from '../services/usersApi';
-import { apiPut, apiPatch } from '../../../services/api';
+import { apiPut, apiPatch, apiDelete } from '../../../services/api';
+import { useToast } from '../../../contexts/ToastContext';
 
 interface EditUserModalProps {
   isOpen: boolean;
@@ -98,6 +99,8 @@ export default function EditUserModal({ isOpen, onClose, onSuccess, user, ligaId
   const [isLoadingEquipos, setIsLoadingEquipos] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isTogglingActive, setIsTogglingActive] = useState(false);
+  const toast = useToast();
 
   useEffect(() => {
     if (isOpen && user) {
@@ -130,6 +133,43 @@ export default function EditUserModal({ isOpen, onClose, onSuccess, user, ligaId
     }
   }, [isOpen, selectedRol, ligaId]);
 
+  const handleToggleActive = async () => {
+    if (!user || isTogglingActive) return;
+    setIsTogglingActive(true);
+    setError(null);
+    try {
+      const nuevoEstado = !formData.activo;
+      await apiPatch(`/usuarios/${user.id_usuario}/estado?liga_id=${ligaId}`, { activo: nuevoEstado });
+      setFormData(prev => ({ ...prev, activo: nuevoEstado }));
+      toast.showSuccess(`Usuario ${nuevoEstado ? 'activado' : 'desactivado'} correctamente`);
+      onSuccess();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Error al cambiar estado';
+      setError(msg);
+      toast.showError(msg);
+    } finally {
+      setIsTogglingActive(false);
+    }
+  };
+
+  const handleDeleteUser = async () => {
+    if (!user) return;
+    setIsDeleting(true);
+    setError(null);
+    try {
+      await apiDelete(`/ligas/${ligaId}/usuarios/${user.id_usuario}`);
+      toast.showSuccess('Usuario eliminado de la liga');
+      onSuccess();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Error al eliminar usuario';
+      setError(msg);
+      toast.showError(msg);
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteConfirm(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
@@ -155,7 +195,7 @@ export default function EditUserModal({ isOpen, onClose, onSuccess, user, ligaId
       });
 
       // Update Status
-      await apiPatch(`/usuarios/${user.id_usuario}/estado`, {
+      await apiPatch(`/usuarios/${user.id_usuario}/estado?liga_id=${ligaId}`, {
         activo: formData.activo,
       });
 
@@ -188,6 +228,50 @@ export default function EditUserModal({ isOpen, onClose, onSuccess, user, ligaId
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Estado de la cuenta - siempre visible, auto-guarda */}
+        <div>
+          <label className="block text-zinc-300 text-sm font-medium mb-2">
+            Estado de la cuenta
+          </label>
+          <div className="flex items-center gap-3 p-3 bg-zinc-800 border border-zinc-700 rounded-lg">
+            <button
+              type="button"
+              onClick={handleToggleActive}
+              disabled={isTogglingActive}
+              className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-md transition-all ${
+                formData.activo
+                  ? 'bg-lime-500 text-zinc-900 font-semibold'
+                  : 'bg-zinc-700 text-zinc-400 hover:bg-zinc-600'
+              }`}
+            >
+              {isTogglingActive ? (
+                <div className="w-4 h-4 border-2 border-zinc-600 border-t-lime-400 rounded-full animate-spin" />
+              ) : (
+                <FaCheckCircle />
+              )}
+              Activo
+            </button>
+            <button
+              type="button"
+              onClick={handleToggleActive}
+              disabled={isTogglingActive}
+              className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-md transition-all ${
+                !formData.activo
+                  ? 'bg-red-500 text-white font-semibold'
+                  : 'bg-zinc-700 text-zinc-400 hover:bg-zinc-600'
+              }`}
+            >
+              {isTogglingActive ? (
+                <div className="w-4 h-4 border-2 border-zinc-600 border-t-red-400 rounded-full animate-spin" />
+              ) : (
+                <FaTimesCircle />
+              )}
+              Inactivo
+            </button>
+          </div>
+        </div>
+
+        {/* Rol dentro de la liga */}
         <div>
           <h3 className="text-white text-sm font-medium mb-3">Rol dentro de la liga</h3>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -227,36 +311,6 @@ export default function EditUserModal({ isOpen, onClose, onSuccess, user, ligaId
                   className="w-full bg-zinc-800 border border-zinc-700 rounded-lg pl-10 pr-4 py-2.5 text-white placeholder-zinc-500 focus:outline-none focus:border-lime-400 transition-colors"
                   required
                 />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-zinc-300 text-sm font-medium mb-1">
-                Estado de la cuenta
-              </label>
-              <div className="flex items-center gap-3 p-3 bg-zinc-800 border border-zinc-700 rounded-lg">
-                <button
-                  type="button"
-                  onClick={() => setFormData({ ...formData, activo: true })}
-                  className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-md transition-all ${
-                    formData.activo
-                      ? 'bg-lime-500 text-zinc-900 font-semibold'
-                      : 'bg-zinc-700 text-zinc-400 hover:bg-zinc-600'
-                  }`}
-                >
-                  <FaCheckCircle /> Activo
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFormData({ ...formData, activo: false })}
-                  className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-md transition-all ${
-                    !formData.activo
-                      ? 'bg-red-500 text-white font-semibold'
-                      : 'bg-zinc-700 text-zinc-400 hover:bg-zinc-600'
-                  }`}
-                >
-                  <FaTimesCircle /> Inactivo
-                </button>
               </div>
             </div>
 
@@ -331,6 +385,7 @@ export default function EditUserModal({ isOpen, onClose, onSuccess, user, ligaId
           </div>
         )}
 
+        {/* Botones de acción */}
         <div className="flex justify-end gap-3 pt-4 border-t border-zinc-800">
           <button
             type="button"
@@ -347,6 +402,53 @@ export default function EditUserModal({ isOpen, onClose, onSuccess, user, ligaId
           >
             {isSubmitting ? 'Guardando...' : 'Guardar cambios'}
           </button>
+        </div>
+
+        {/* Zona de peligro: Eliminar usuario */}
+        <div className="pt-6 border-t border-red-900/30">
+          <h3 className="text-red-400 text-sm font-medium mb-2 flex items-center gap-2">
+            <FaExclamationTriangle />
+            Zona de peligro
+          </h3>
+          {!showDeleteConfirm ? (
+            <button
+              type="button"
+              onClick={() => setShowDeleteConfirm(true)}
+              className="flex items-center gap-2 px-4 py-2.5 bg-red-600/20 hover:bg-red-600/30 text-red-400 hover:text-red-300 border border-red-600/30 rounded-lg font-medium transition-all"
+            >
+              <FaTrash />
+              Eliminar usuario de la liga
+            </button>
+          ) : (
+            <div className="bg-red-900/20 border border-red-600/30 rounded-lg p-4 space-y-3">
+              <p className="text-red-300 text-sm">
+                ¿Estás seguro? Esta acción eliminará permanentemente al usuario de la liga y no se puede deshacer.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteConfirm(false)}
+                  disabled={isDeleting}
+                  className="flex-1 px-4 py-2 bg-zinc-700 hover:bg-zinc-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDeleteUser}
+                  disabled={isDeleting}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg font-semibold transition-colors disabled:opacity-50"
+                >
+                  {isDeleting ? (
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <FaTrash />
+                  )}
+                  Eliminar
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </form>
     </Modal>
