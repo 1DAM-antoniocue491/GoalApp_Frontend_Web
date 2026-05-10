@@ -124,6 +124,17 @@ interface LigaApi {
 // ============================================
 
 /**
+ * Calcular el minuto actual de un partido desde su fecha de inicio
+ */
+function calcularMinuto(fechaInicio: string): string {
+  const inicio = new Date(fechaInicio)
+  const ahora = new Date()
+  const diffMs = ahora.getTime() - inicio.getTime()
+  const minutos = Math.floor(diffMs / 60000)
+  return `${minutos}'`
+}
+
+/**
  * Obtener partidos en vivo para el dashboard
  * GET /partidos/?liga_id={leagueId} (filtrado en cliente por estado en_juego)
  *
@@ -139,7 +150,7 @@ export async function fetchLiveMatches(leagueId: number): Promise<DashboardLiveM
       away: p.nombre_equipo_visitante,
       homeScore: p.goles_local ?? 0,
       awayScore: p.goles_visitante ?? 0,
-      minute: "En juego",
+      minute: calcularMinuto(p.fecha),
       id_equipo_local: p.id_equipo_local,
       id_equipo_visitante: p.id_equipo_visitante,
       nombre_equipo_local: p.nombre_equipo_local,
@@ -171,7 +182,7 @@ export async function fetchLiveMatches(leagueId: number): Promise<DashboardLiveM
       away: equiposMap.get(p.id_equipo_visitante) || `Equipo ${p.id_equipo_visitante}`,
       homeScore: p.goles_local ?? 0,
       awayScore: p.goles_visitante ?? 0,
-      minute: "En juego",
+      minute: calcularMinuto(p.fecha),
       id_equipo_local: p.id_equipo_local,
       id_equipo_visitante: p.id_equipo_visitante,
       nombre_equipo_local: equiposMap.get(p.id_equipo_local) || `Equipo ${p.id_equipo_local}`,

@@ -7,68 +7,29 @@ import { PiRankingBold, PiCirclesFourBold } from "react-icons/pi";
 import { Link } from "react-router";
 import Footer from "../components/Footer";
 import Header from "../components/Header";
-import { isMockEnabled } from '../../../mocks/env';
-import * as dashboardApi from '../services/dashboardApi';
-import { useState, useEffect } from 'react';
 
+const resultadosRecientes = [
+    { league: "Liga Élite", home: "Atlético Madrid", away: "FC Barcelona", homeScore: 3, awayScore: 1 },
+    { league: "Liga Élite", home: "Real Madrid", away: "Sevilla FC", homeScore: 2, awayScore: 2 },
+    { league: "Liga Pro", home: "Sporting Gijón", away: "Deportivo La Coruña", homeScore: 1, awayScore: 0 },
+];
+
+const proximosPartidos = [
+    { id_partido: 1, league: "Liga Élite", home: "FC Barcelona", away: "Real Madrid", date: "12 May", time: "20:00" },
+    { id_partido: 2, league: "Liga Pro", home: "Real Oviedo", away: "Sporting Gijón", date: "13 May", time: "18:30" },
+    { id_partido: 3, league: "Liga Élite", home: "Sevilla FC", away: "Atlético Madrid", date: "14 May", time: "21:00" },
+];
+
+const clasificacion = [
+    { posicion: 1, equipo: "Atlético Madrid", pj: 10, pts: 25 },
+    { posicion: 2, equipo: "Real Madrid", pj: 10, pts: 22 },
+    { posicion: 3, equipo: "FC Barcelona", pj: 10, pts: 20 },
+    { posicion: 4, equipo: "Sevilla FC", pj: 10, pts: 17 },
+    { posicion: 5, equipo: "Sporting Gijón", pj: 10, pts: 15 },
+    { posicion: 6, equipo: "Real Oviedo", pj: 10, pts: 12 },
+];
 
 export default function PublicDashboardPage() {
-    const [resultadosRecientes, setResultadosRecientes] = useState<dashboardApi.DashboardResult[]>([]);
-    const [proximosPartidos, setProximosPartidos] = useState<dashboardApi.DashboardUpcomingMatch[]>([]);
-    const [clasificacion, setClasificacion] = useState<Array<{posicion: number; equipo: string; pj: number; pts: number}>>([]);
-    const [cargando, setCargando] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-
-    useEffect(() => {
-        const cargarDatos = async () => {
-            try {
-                setCargando(true);
-                const leagueId = 1; 
-                if (isMockEnabled()) {
-                    const partidosMock = await dashboardApi.fetchRecentResults(leagueId, 3);
-                    setResultadosRecientes(partidosMock);
-                    const proximosMock = await dashboardApi.fetchUpcomingMatches(leagueId, 3);
-                    setProximosPartidos(proximosMock);
-                } else {
-                    const partidos = await dashboardApi.fetchRecentResults(leagueId, 3);
-                    setResultadosRecientes(partidos);
-                    const proximos = await dashboardApi.fetchUpcomingMatches(leagueId, 3);
-                    setProximosPartidos(proximos);
-                }
-                const ligas = await dashboardApi.fetchLeagueStandings(leagueId);
-                setClasificacion(ligas);
-                setError(null);
-            } catch (err) {
-                setError('Error al cargar los datos');
-                console.error(err);
-            } finally {
-                setCargando(false);
-            }
-        };
-        cargarDatos();
-    }, []);
-
-    if (cargando) {
-        return (
-            <>
-            <Header />
-            <div className="bg-zinc-900 min-h-screen flex items-center justify-center">
-                <p className="text-white">Cargando datos...</p>
-            </div>
-            </>
-        );
-    }
-
-    if (error) {
-        return (
-            <>
-            <Header />
-            <div className="bg-zinc-900 min-h-screen flex items-center justify-center">
-                <p className="text-red-400">{error}</p>
-            </div>
-            </>
-        );
-    }
 
     return (
         <>
@@ -144,7 +105,6 @@ export default function PublicDashboardPage() {
                         <PiCirclesFourBold className="text-lime-300 w-4 h-4"/>
                         <p className="text-white font-semibold">Resultados Recientes</p>
                     </div>
-                    <a href="#" className="text-cyan-600 text-sm hover:underline">Ver todos</a>
                 </div>
                 <div className="flex flex-col gap-2 mt-3">
                     {resultadosRecientes.map((resultado, index) => (
@@ -169,7 +129,6 @@ export default function PublicDashboardPage() {
                         <PiCirclesFourBold className="text-lime-300 w-4 h-4"/>
                         <p className="text-white font-semibold">Próximos Partidos</p>
                     </div>
-                    <a href="#" className="text-cyan-600 text-sm hover:underline">Ver todos</a>
                 </div>
                 <div className="flex flex-col gap-2 mt-3">
                     {proximosPartidos.map((partido, index) => (
@@ -194,11 +153,10 @@ export default function PublicDashboardPage() {
 
         <div className="bg-zinc-800 px-5 sm:px-20 lg:px-80 py-10 flex flex-col ga">
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end">
-                <div className="flex flex-row items-center gap-1">
-                    <PiCirclesFourBold className="text-lime-300 w-4 h-4"/>
-                    <p className="text-white font-semibold">Clasificación</p>
-                </div>
-                <a href="#" className="text-cyan-600 text-sm hover:underline">Ver completa</a>
+                    <div className="flex flex-row items-center gap-1">
+                        <PiCirclesFourBold className="text-lime-300 w-4 h-4"/>
+                        <p className="text-white font-semibold">Clasificación</p>
+                    </div>
             </div>
             <div className="shadow-md shadow-zinc-900 rounded-md mt-5">
                 <table className="w-full text-sm">
@@ -213,7 +171,7 @@ export default function PublicDashboardPage() {
                     <tbody>
                         {clasificacion.map((fila, index) => (
                             <tr key={index} className="border-t border-zinc-700">
-                                <td className="text-center text-zinc-300 font-semibold py-2">{index + 1}</td>
+                                <td className="text-center text-zinc-300 font-semibold py-2">{fila.posicion}</td>
                                 <td className="pl-5 text-zinc-300 font-semibold py-2">{fila.equipo}</td>
                                 <td className="text-center text-zinc-400 font-semibold py-2">{fila.pj}</td>
                                 <td className="text-center text-lime-300 font-semibold py-2">{fila.pts}</td>

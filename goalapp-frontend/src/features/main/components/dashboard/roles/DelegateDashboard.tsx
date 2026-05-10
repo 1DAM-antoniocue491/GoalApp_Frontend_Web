@@ -55,6 +55,7 @@ export default function DelegateDashboard({ league, userName, userRole }: Delega
     localTeam: { nombre: string; id: number };
     visitanteTeam: { nombre: string; id: number };
   } | null>(null);
+  const [finishPlayers, setFinishPlayers] = useState<{ id: number; nombre: string; id_equipo: number; dorsal?: number }[]>([]);
   const [eventMatchData, setEventMatchData] = useState<{
     id_partido: number;
     localTeam: { nombre: string; id: number };
@@ -148,11 +149,17 @@ export default function DelegateDashboard({ league, userName, userRole }: Delega
         fetchTeamSquad(equipoVisitanteId),
       ]);
 
+      const todosLosJugadores = [
+        ...localPlayers.map(p => ({ id: p.id_jugador, nombre: p.nombre_jugador || p.nombre, id_equipo: equipoLocalId, dorsal: p.dorsal })),
+        ...visitantePlayers.map(p => ({ id: p.id_jugador, nombre: p.nombre_jugador || p.nombre, id_equipo: equipoVisitanteId, dorsal: p.dorsal })),
+      ];
+
       setFinishMatchData({
         id_partido: match.id_partido,
         localTeam: { nombre: match.nombre_equipo_local || match.home, id: equipoLocalId },
         visitanteTeam: { nombre: match.nombre_equipo_visitante || match.away, id: equipoVisitanteId },
       });
+      setFinishPlayers(todosLosJugadores);
       setShowFinishModal(true);
     } catch (error) {
       console.error('Error al cargar jugadores:', error);
@@ -429,11 +436,13 @@ export default function DelegateDashboard({ league, userName, userRole }: Delega
           onClose={() => {
             setShowFinishModal(false);
             setFinishMatchData(null);
+            setFinishPlayers([]);
           }}
           onConfirm={handleConfirmFinishMatch}
           localTeam={finishMatchData.localTeam}
           visitanteTeam={finishMatchData.visitanteTeam}
-          jugadores={[]}
+          partidoId={finishMatchData.id_partido}
+          jugadores={finishPlayers}
         />
       )}
 

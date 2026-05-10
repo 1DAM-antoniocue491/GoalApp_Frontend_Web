@@ -1,5 +1,3 @@
-import { FaRegClock } from "react-icons/fa";
-
 export interface MatchAction {
   label: string;
   icon?: string;
@@ -12,6 +10,9 @@ interface MatchCardDashboardProps {
   home: string;
   away: string;
   time: string;
+  homeScore?: number;
+  awayScore?: number;
+  isLive?: boolean;
   actions?: MatchAction[];
 }
 
@@ -19,6 +20,9 @@ export default function MatchCardDashboard({
   home,
   away,
   time,
+  homeScore,
+  awayScore,
+  isLive = false,
   actions = [],
 }: MatchCardDashboardProps) {
   const getVariantClasses = (variant: MatchAction['variant']) => {
@@ -40,19 +44,36 @@ export default function MatchCardDashboard({
 
   return (
     <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4">
-      {/* Header con hora */}
+      {/* Header con hora o minuto en vivo */}
       <div className="flex items-center justify-end gap-1 mb-3">
-        <FaRegClock className="text-zinc-500 text-sm" />
-        <span className="text-zinc-400 text-sm font-medium">{time}</span>
+        {isLive ? (
+          <>
+            <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+            <span className="text-red-400 text-sm font-medium">{time}</span>
+          </>
+        ) : (
+          <>
+            <svg className="text-zinc-500 text-sm w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm0 18c-4.4 0-8-3.6-8-8s3.6-8 8-8 8 3.6 8 8-3.6 8-8 8zm.5-13H11v6l5.2 3.2.8-1.3-4.5-2.7V7z" />
+            </svg>
+            <span className="text-zinc-400 text-sm font-medium">{time}</span>
+          </>
+        )}
       </div>
 
-      {/* Equipos */}
-      <div className="flex items-center justify-between mb-4">
+      {/* Equipos y resultado */}
+      <div className="flex items-center justify-between">
         <div className="flex-1">
           <p className="text-white font-medium">{home}</p>
         </div>
         <div className="px-4">
-          <span className="text-zinc-500 text-sm">vs</span>
+          {isLive && homeScore !== undefined && awayScore !== undefined ? (
+            <span className="text-white text-xl font-bold">
+              {homeScore}<span className="text-zinc-500 mx-1">-</span>{awayScore}
+            </span>
+          ) : (
+            <span className="text-zinc-500 text-sm">vs</span>
+          )}
         </div>
         <div className="flex-1 text-right">
           <p className="text-white font-medium">{away}</p>

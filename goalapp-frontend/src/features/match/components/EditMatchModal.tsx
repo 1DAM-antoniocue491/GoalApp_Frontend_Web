@@ -26,11 +26,11 @@ export default function EditMatchModal({ isOpen, onClose, onSuccess, match }: Ed
   useEffect(() => {
     if (isOpen && match) {
       const dateObj = new Date(match.fecha_completa || `${match.date}T${match.time}:00`);
-      const year = dateObj.getFullYear();
-      const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-      const day = String(dateObj.getDate()).padStart(2, '0');
-      const hours = String(dateObj.getHours()).padStart(2, '0');
-      const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+      const year = dateObj.getUTCFullYear();
+      const month = String(dateObj.getUTCMonth() + 1).padStart(2, '0');
+      const day = String(dateObj.getUTCDate()).padStart(2, '0');
+      const hours = String(dateObj.getUTCHours()).padStart(2, '0');
+      const minutes = String(dateObj.getUTCMinutes()).padStart(2, '0');
 
       setFecha(`${year}-${month}-${day}`);
       setHora(`${hours}:${minutes}`);
@@ -47,7 +47,7 @@ export default function EditMatchModal({ isOpen, onClose, onSuccess, match }: Ed
     setIsLoading(true);
     try {
       const payload: MatchUpdatePayload = {
-        fecha: `${fecha}T${hora}:00`,
+        fecha: `${fecha}T${hora}:00Z`,
         estado,
       };
 

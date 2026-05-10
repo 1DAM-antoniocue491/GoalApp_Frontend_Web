@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { FaFlag, FaTimes, FaTrophy, FaStar } from 'react-icons/fa';
 import { useToast } from '../../../contexts/ToastContext';
+import { fetchMatchEvents } from '../services/matchApi';
+import type { MatchEvent } from '../services/matchApi';
 
 interface FinishMatchModalProps {
   isOpen: boolean;
@@ -8,6 +10,7 @@ interface FinishMatchModalProps {
   onConfirm: (data: FinishData) => Promise<void>;
   localTeam: { nombre: string; id: number };
   visitanteTeam: { nombre: string; id: number };
+  partidoId: number;
   jugadores: JugadorData[];
 }
 
@@ -32,6 +35,7 @@ export default function FinishMatchModal({
   onConfirm,
   localTeam,
   visitanteTeam,
+  partidoId,
   jugadores,
 }: FinishMatchModalProps) {
   const toast = useToast();
@@ -50,6 +54,29 @@ export default function FinishMatchModal({
   useEffect(() => {
     setIdJugadorMvp('');
   }, [idEquipoMvp]);
+
+  // Cargar eventos y calcular goles al abrir
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const cargarEventos = async () => {
+      try {
+        const eventos = await fetchMatchEvents(partidoId);
+        const golesLocal = eventos.filter(
+          e => e.tipo_evento === 'gol' && e.id_equipo === localTeam.id
+        ).length;
+        const golesVisitante = eventos.filter(
+          e => e.tipo_evento === 'gol' && e.id_equipo === visitanteTeam.id
+        ).length;
+        setGolesLocal(golesLocal > 0 ? golesLocal : 0);
+        setGolesVisitante(golesVisitante > 0 ? golesVisitante : 0);
+      } catch {
+        // Si falla, dejar valores por defecto
+      }
+    };
+
+    cargarEventos();
+  }, [isOpen, partidoId, localTeam.id, visitanteTeam.id]);
 
   // Resetear estado al cerrar
   useEffect(() => {

@@ -208,11 +208,17 @@ export default function CalendarioPage() {
 
     try {
       // Convertir de camelCase (frontend) a snake_case (backend)
+      // Ajustar hora local a UTC para que el backend no la desfase
+      const [h, m] = config.hora.split(':').map(Number);
+      const offsetMin = new Date().getTimezoneOffset(); // -120 en UTC+2
+      const utcH = ((h + offsetMin / 60) % 24 + 24) % 24;
+      const adjustedHora = `${String(Math.floor(utcH)).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+
       const configBackend = {
         tipo: config.tipo,
         fecha_inicio: config.fechaInicio,
         dias_partido: config.diasPartido,
-        hora: config.hora,
+        hora: adjustedHora,
       };
 
       if (isEditMode) {
@@ -251,12 +257,16 @@ export default function CalendarioPage() {
 
     try {
       const configBackend = await fetchCalendarConfig(selectedLeague.id);
+      // Convertir hora UTC (backend) a hora local para el formulario
+      const [hUtc, mUtc] = configBackend.hora.split(':').map(Number);
+      const offsetMinLoad = new Date().getTimezoneOffset();
+      const localH = ((hUtc - offsetMinLoad / 60) % 24 + 24) % 24;
       // Convertir de snake_case (backend) a camelCase (frontend)
       const config: CalendarConfig = {
         tipo: configBackend.tipo,
         fechaInicio: configBackend.fecha_inicio,
         diasPartido: configBackend.dias_partido,
-        hora: configBackend.hora,
+        hora: `${String(Math.floor(localH)).padStart(2, '0')}:${String(mUtc).padStart(2, '0')}`,
       };
       // Cargar config en el modal y abrirlo en modo edición
       setInitialConfig(config);

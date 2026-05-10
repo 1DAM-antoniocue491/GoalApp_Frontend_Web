@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router'
 import Card from '../components/Finish/Card'
 import SectionHeader from '../components/dashboard/SectionHeader'
+import LiveMatchCard from '../components/dashboard/LiveMatchCard'
+import type { MatchAction } from '../components/dashboard/MatchCardDashboard'
 import { FiArrowLeft } from 'react-icons/fi'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { useSelectedLeague } from '../../../context'
@@ -57,8 +59,9 @@ export default function Live() {
     accion: 'convocatoria'
   } | null>(null)
 
-  // Determinar rol del usuario
-  const userRole = user?.rol_principal?.toLowerCase() || ''
+  // Determinar rol del usuario desde la liga seleccionada (selectedLeague.rol es confiable,
+  // a diferencia de user?.rol_principal que el backend no devuelve en /auth/me)
+  const userRole = selectedLeague?.rol?.toLowerCase() || ''
   const isAdmin = userRole === 'admin'
   const isDelegado = userRole === 'delegado'
 
@@ -279,7 +282,7 @@ export default function Live() {
       <div className="flex flex-col gap-2 mb-6">
         <div className="flex items-center gap-3">
           <button
-            onClick={() => navigate(-1)}
+            onClick={() => navigate('/dashboard')}
             className="p-2 -ml-2 text-zinc-400 hover:text-white transition-colors"
           >
             <FiArrowLeft className="w-5 h-5" />
@@ -335,57 +338,42 @@ export default function Live() {
           </div>
         ) : (
           <div className="flex flex-col gap-3">
-            {liveMatches.map((match) => (
-              <div
-                key={match.id_partido}
-                className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4"
-              >
-                <div className="flex items-center justify-end gap-1 mb-2">
-                  <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
-                  <span className="text-red-400 text-sm font-medium">
-                    {calcularMinuto(match.fecha)}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <p className="text-white font-medium">{match.nombre_equipo_local}</p>
-                  </div>
-                  <div className="px-4 bg-zinc-800 rounded-lg">
-                    <span className="text-white text-xl font-bold">{match.goles_local ?? 0}</span>
-                    <span className="text-zinc-500 mx-2">-</span>
-                    <span className="text-white text-xl font-bold">{match.goles_visitante ?? 0}</span>
-                  </div>
-                  <div className="flex-1 text-right">
-                    <p className="text-white font-medium">{match.nombre_equipo_visitante}</p>
-                  </div>
-                </div>
-                <div className='w-full border border-zinc-900 mt-2'></div>
-                <div className="flex gap-2 mt-3">
-                  {canRegisterEvents(match) && (
-                    <button
-                      onClick={() => handleOpenEventModal(match)}
-                      className="flex-1 px-3 py-1.5 text-sm font-bold rounded-lg transition-colors border-2 bg-lime-800/40 text-lime-300 hover:bg-lime-800/60 border-lime-700"
-                    >
-                      🏆 Eventos
-                    </button>
-                  )}
-                  <button
-                    onClick={() => handleOpenConvocatoria(match)}
-                    className="flex-1 px-3 py-1.5 text-sm font-bold rounded-lg transition-colors border-2 bg-cyan-800/30 text-cyan-700 hover:bg-cyan-800/50 border-cyan-700"
-                  >
-                    👥 Convocatoria
-                  </button>
-                  {(isAdmin || canRegisterEvents(match)) && (
-                    <button
-                      onClick={() => handleOpenFinishMatchModal(match)}
-                      className="flex-1 px-3 py-1.5 text-sm font-bold rounded-lg transition-colors border-2 bg-yellow-800/30 text-yellow-700 hover:bg-yellow-800/50 border-yellow-700"
-                    >
-                      🔒 Finalizar
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
+            {liveMatches.map((match) => {
+              const actions: MatchAction[] = [];
+              if (canRegisterEvents(match)) {
+                actions.push({
+                  label: 'Eventos',
+                  variant: 'eventos',
+                  icon: '🏆',
+                  onClick: () => handleOpenEventModal(match),
+                });
+              }
+              actions.push({
+                label: 'Convocatoria',
+                variant: 'convocatoria',
+                icon: '👥',
+                onClick: () => handleOpenConvocatoria(match),
+              });
+              if (isAdmin || canRegisterEvents(match)) {
+                actions.push({
+                  label: 'Finalizar',
+                  variant: 'finalizar',
+                  icon: '🔒',
+                  onClick: () => handleOpenFinishMatchModal(match),
+                });
+              }
+              return (
+                <LiveMatchCard
+                  key={match.id_partido}
+                  home={match.nombre_equipo_local}
+                  away={match.nombre_equipo_visitante}
+                  minute={calcularMinuto(match.fecha)}
+                  homeScore={match.goles_local ?? 0}
+                  awayScore={match.goles_visitante ?? 0}
+                  actions={actions}
+                />
+              );
+            })}
           </div>
         )}
       </div>

@@ -81,6 +81,7 @@ export interface MatchEvent {
   updated_at: string;
   // Campos adicionales para mostrar en UI
   nombre_jugador?: string;
+  id_equipo?: number;
   nombre_equipo?: string;
 }
 

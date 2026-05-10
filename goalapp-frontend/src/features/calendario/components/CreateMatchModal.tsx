@@ -57,7 +57,7 @@ export default function CreateMatchModal({ isOpen, onClose, ligaId, onSuccess }:
         id_liga: ligaId,
         id_equipo_local: equipoLocalId,
         id_equipo_visitante: equipoVisitanteId,
-        fecha: `${fecha}T${hora}:00`,
+        fecha: `${fecha}T${hora}:00Z`,
         estado: 'programado',
       };
       await createMatch(payload);

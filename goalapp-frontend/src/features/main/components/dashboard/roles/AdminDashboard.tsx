@@ -12,6 +12,7 @@ import SummaryCard from '../SummaryCard';
 import ResultCard from '../ResultCard';
 import SectionHeader from '../SectionHeader';
 import MatchCardDashboard, { type MatchAction } from '../MatchCardDashboard';
+import LiveMatchCard from '../LiveMatchCard';
 import Badge from '../../../../../components/ui/Badge';
 import { EditLeagueModal } from '../../../../league/components/EditLeagueModal';
 import InitMatchModal from '../../../../match/components/InitMatchModal';
@@ -67,6 +68,7 @@ export default function AdminDashboard({ league, userName, userRole }: AdminDash
     localTeam: { nombre: string; id: number };
     visitanteTeam: { nombre: string; id: number };
   } | null>(null);
+  const [finishPlayers, setFinishPlayers] = useState<{ id: number; nombre: string; id_equipo: number; dorsal?: number }[]>([]);
   const [convocatoriaMatchData, setConvocatoriaMatchData] = useState<{
     id_partido: number;
     id_equipo: number;
@@ -141,6 +143,7 @@ export default function AdminDashboard({ league, userName, userRole }: AdminDash
         localTeam: { nombre: match.nombre_equipo_local || match.home, id: equipoLocalId },
         visitanteTeam: { nombre: match.nombre_equipo_visitante || match.away, id: equipoVisitanteId },
       });
+      setFinishPlayers(todosLosJugadores);
       setShowFinishMatchModal(true);
     } catch (error) {
       console.error('Error al cargar jugadores:', error);
@@ -408,11 +411,13 @@ export default function AdminDashboard({ league, userName, userRole }: AdminDash
                 },
               ];
               return (
-                <MatchCardDashboard
+                <LiveMatchCard
                   key={i}
                   home={match.home}
                   away={match.away}
-                  time={match.minute}
+                  minute={match.minute || '0\''}
+                  homeScore={match.homeScore}
+                  awayScore={match.awayScore}
                   actions={actions}
                 />
               );
@@ -428,18 +433,22 @@ export default function AdminDashboard({ league, userName, userRole }: AdminDash
           linkText="Ver todos"
           linkHref="/finish"
         />
-        <div className="flex flex-col gap-2">
-          {recentResults.map((match, i) => (
-            <ResultCard
-              key={i}
-              league={match.league}
-              home={match.home}
-              away={match.away}
-              score={`${match.homeScore} - ${match.awayScore}`}
-              status="FT"
-            />
-          ))}
-        </div>
+        {recentResults.length === 0 ? (
+          <p className="text-zinc-500 text-sm py-4">No hay resultados recientes</p>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {recentResults.map((match, i) => (
+              <ResultCard
+                key={i}
+                league={match.league}
+                home={match.home}
+                away={match.away}
+                score={`${match.homeScore} - ${match.awayScore}`}
+                status="FT"
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Próximos partidos */}
@@ -604,11 +613,13 @@ export default function AdminDashboard({ league, userName, userRole }: AdminDash
           onClose={() => {
             setShowFinishMatchModal(false);
             setFinishMatchData(null);
+            setFinishPlayers([]);
           }}
           onConfirm={handleConfirmFinishMatch}
           localTeam={finishMatchData.localTeam}
           visitanteTeam={finishMatchData.visitanteTeam}
-          jugadores={[]}
+          partidoId={finishMatchData.id_partido}
+          jugadores={finishPlayers}
         />
       )}
     </div>
