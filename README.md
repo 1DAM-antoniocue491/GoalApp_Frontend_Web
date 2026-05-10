@@ -1,125 +1,78 @@
-# Estructura del Proyecto Web de Fútbol (React + TypeScript)
+# 💻 GoalApp Frontend Web
 
-## 1. Objetivo
+El frontend web de GoalApp es una aplicación de administración y consulta de datos deportivos, diseñada para ofrecer una experiencia de usuario fluida, tipada y altamente escalable. Está construida sobre un stack moderno que prioriza la velocidad de desarrollo y la resiliencia en la comunicación con el servidor.
 
-Definir una estructura profesional, modular y escalable para un proyecto web de fútbol usando **React + TypeScript**, que permita:
+## 🛠️ Stack Tecnológico
 
-- Separación clara de responsabilidades.
-- Escalabilidad para nuevos features.
-- Reutilización de componentes y lógica.
-- Facilitar la integración de estado global y llamadas a API.
-
----
-
-## 2. Estructura de Carpetas
-
-``` txt
-my-football-app/  
-├─ public/                    # Archivos estáticos  
-│  ├─ index.html  
-│  └─ favicon.ico  
-├─ src/  
-│  ├─ assets/                 # Imágenes, íconos, fuentes  
-│  ├─ components/             # Componentes reutilizables en toda la app  
-│  │   ├─ Button.tsx  
-│  │   ├─ Card.tsx  
-│  │   └─ Modal.tsx  
-│  ├─ features/               # Funcionalidades o dominios  
-│  │   ├─ auth/  
-│  │   │   ├─ pages/  
-│  │   │   │   ├─ LoginPage.tsx  
-│  │   │   │   ├─ RegisterPage.tsx  
-│  │   │   │   └─ ForgotPasswordPage.tsx  
-│  │   │   ├─ hooks/  
-│  │   │   │   └─ useAuth.ts
-│  │   │   ├─ types/  
-│  │   │   │   └─ Interfaces.ts 
-│  │   │   └─ services/  
-│  │   │       └─ authApi.ts  
-│  │   ├─ users/  
-│  │   │   ├─ pages/  
-│  │   │   │   ├─ UsersListPage.tsx  
-│  │   │   │   ├─ UserDetailPage.tsx  
-│  │   │   │   └─ UserFormPage.tsx   # Admin / Gestión interna  
-│  │   │   ├─ components/  
-│  │   │   │   ├─ UserCard.tsx  
-│  │   │   │   └─ UserAvatar.tsx  
-│  │   │   ├─ hooks/  
-│  │   │   │   └─ useUsers.ts  
-│  │   │   ├─ types/  
-│  │   │   │   └─ Interfaces.ts 
-│  │   │   └─ services/  
-│  │   │       └─ usersApi.ts  
-│  │   ├─ players/  
-│  │   │   ├─ pages/  
-│  │   │   │   ├─ PlayersPage.tsx  
-│  │   │   │   └─ PlayerDetailPage.tsx  
-│  │   │   ├─ components/  
-│  │   │   │   ├─ PlayerCard.tsx  
-│  │   │   │   └─ PlayerList.tsx  
-│  │   │   ├─ hooks/  
-│  │   │   │   └─ usePlayers.ts  
-│  │   │   ├─ types/  
-│  │   │   │   └─ Interfaces.ts 
-│  │   │   └─ services/  
-│  │   │       └─ playersApi.ts  
-│  │   └─ teams/               # Otro feature ejemplo  
-│  │       ├─ pages/  
-│  │       ├─ components/  
-│  │       ├─ hooks/ 
-│  │       ├─ types/  
-│  │       └─ services/  
-│  ├─ hooks/                   # Hooks globales reutilizables  
-│  │   ├─ useFetch.ts  
-│  │   └─ useDebounce.ts  
-│  ├─ navigation/              # React Router: rutas principales  
-│  │   └─ AppRoutes.tsx  
-│  ├─ services/                # Servicios globales  
-│  │   └─ apiClient.ts         # Cliente Axios global con token/interceptors  
-│  ├─ store/                   # Estado global  
-│  │   ├─ index.ts  
-│  │   └─ rootReducer.ts  
-│  ├─ styles/                  # Estilos globales y variables  
-│  │   ├─ variables.ts  
-│  │   └─ global.css  
-│  ├─ utils/                   # Funciones auxiliares  
-│  ├─ App.tsx  
-│  └─ index.tsx  
-├─ package.json  
-├─ tsconfig.json  
-└─ vite.config.ts / webpack.config.js
-```
+- **Core**: React `^19.2.0` con TypeScript `~5.9.3`
+- **Build Tool**: Vite `^7.3.1`
+- **Estilos**: Tailwind CSS `^4.2.1` (utilizando la integración nativa `@tailwindcss/vite`)
+- **Navegación**: React Router `^7.13.1`
+- **Comunicación HTTP**: Axios `^1.15.0`
+- **Iconografía**: React Icons (FontAwesome)
 
 ---
 
-## 3. Descripción de cada carpeta
+## 🏗️ Arquitectura del Proyecto
 
-|Carpeta|Contenido / Función|
-|---|---|
-|`public/`|Archivos estáticos servidos tal cual (`index.html`, favicon).|
-|`assets/`|Recursos como imágenes, íconos y fuentes.|
-|`components/`|Componentes reutilizables en varios features (botones, tarjetas, modales).|
-|`features/`|Cada dominio o funcionalidad de la app (auth, users, players, teams).|
-|`features/<feature>/pages`|Pantallas completas o rutas del feature.|
-|`features/<feature>/components`|Componentes internos del feature, no globales.|
-|`features/<feature>/hooks`|Hooks específicos del feature.|
-|`features/<feature>/services`|Llamadas API o lógica específica del feature.|
-|`hooks/`|Hooks globales reutilizables en toda la app.|
-|`navigation/`|Rutas principales usando React Router.|
-|`services/`|Funciones y cliente global para API (axios con interceptors, token, etc.).|
-|`store/`|Estado global (Redux, Zustand, etc.).|
-|`styles/`|Estilos globales, variables y temas.|
-|`utils/`|Funciones auxiliares, helpers, formateos.|
+El proyecto implementa una **Arquitectura Basada en Features**, eliminando la estructura tradicional de carpetas genéricas y organizando el código por dominios funcionales del negocio.
+
+### Organización de Features
+Cada funcionalidad (ej. `auth`, `league`, `calendario`, `onboarding`) se encapsula en su propio módulo con la siguiente estructura interna:
+- `components/`: UI exclusiva de la funcionalidad.
+- `pages/`: Vistas principales y pantallas.
+- `services/`: Lógica de llamadas a la API específica del dominio.
+- `hooks/`: Lógica de estado y efectos locales.
+- `types/`: Interfaces y tipos TypeScript específicos.
+- `index.ts`: Punto de entrada para exportaciones limpias.
+
+### Componentes Globales y Servicios
+- **`src/components/ui/`**: Biblioteca de componentes atómicos reutilizables (Button, Input, Modal, Toast, etc.).
+- **`src/services/api/`**: Centraliza la configuración de red y el cliente Axios global.
+- **`src/context/`**: Gestión de estado global mediante Context API para datos transversales como la sesión de usuario (`AuthContext`) y la liga seleccionada (`SelectedLeagueContext`).
 
 ---
 
-## 4. Reglas y Buenas Prácticas
+## 🔒 Gestión de Red y Seguridad
 
-1. **Hooks:** prefijo `use` obligatorio, encapsulan lógica, no UI.
-2. **Componentes:** pequeños, reutilizables y desacoplados.
-3. **Servicios:** separados entre feature-local y global.
-4. **Pages/Screens:** solo pantallas completas, nunca lógica de negocio.
-5. **Estado:** Redux Toolkit o Zustand para global; `useState`/`useReducer` para local.
-6. **Estilos:** CSS Modules, Tailwind o Styled Components, variables en `styles/variables.ts`.
-7. **Rutas:** React Router v6+, dividir por feature.
-8. **Tipado:** TypeScript obligatorio para mantener consistencia.
+### Flujo de Refresh Token (Sincronización Crítica)
+Para evitar que la sesión del usuario expire abruptamente, se ha implementado un sistema avanzado de gestión de tokens en la capa de red:
+1. **Interceptores de Request**: Inyectan automáticamente el token JWT en las cabeceras.
+2. **Cola de Peticiones (`failedQueue`)**: Cuando una petición devuelve un error `401` (No autorizado), el sistema pausa todas las peticiones salientes y las coloca en una cola.
+3. **Renovación Automática**: Se solicita un nuevo token mediante el endpoint `/auth/refresh`.
+4. **Re-ejecución**: Una vez obtenido el nuevo token, se procesan todas las peticiones encoladas con la nueva credencial, haciendo que el proceso sea invisible para el usuario.
+
+### Auth Guards y Navegación
+- **`PrivateRoute`**: Componente guardián que protege las rutas privadas. Si el usuario no está autenticado, es redirigido al `/login`.
+- **Persistencia de Intención**: El sistema recuerda la ruta que el usuario intentaba visitar antes de ser redirigido al login, permitiendo volver a ella inmediatamente después de autenticarse.
+- **Onboarding**: Flujo obligatorio para usuarios autenticados que aún no pertenecen a una liga, permitiéndoles unirse mediante código o crear una nueva.
+
+---
+
+## 🚀 Instalación y Ejecución
+
+### Requisitos previos
+- Node.js (Versión LTS recomendada)
+- Gestor de paquetes `npm`
+
+### Pasos para el despliegue local
+1. **Instalación de dependencias**:
+   ```bash
+   npm install
+   ```
+2. **Configuración de variables de entorno**:
+   Cree un archivo `.env` en la raíz del proyecto con la URL de la API:
+   ```env
+   VITE_API_URL=https://goalapp-api.onrender.com
+   ```
+3. **Lanzar modo desarrollo**:
+   ```bash
+   npm run dev
+   ```
+4. **Generar build de producción**:
+   ```bash
+   npm run build
+   ```
+
+## 🌐 Despliegue
+La aplicación está configurada para ser desplegada en **Firebase Hosting**, aprovechando su CDN global para servir la aplicación de forma estática y optimizada.

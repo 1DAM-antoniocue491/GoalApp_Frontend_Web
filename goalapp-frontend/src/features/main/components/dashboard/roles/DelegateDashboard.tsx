@@ -1,14 +1,13 @@
 /**
  * Dashboard para el rol Delegado
- * Muestra gestión completa de ligas, equipos y usuarios
- * con partidos en vivo, resultados y próximos partidos
+ * Muestra partidos en vivo, resultados y próximos partidos
+ * El delegado solo puede iniciar partidos y registrar eventos
+ * cuando su equipo es LOCAL
  */
 
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router';
 import { FiAward, FiLoader } from 'react-icons/fi';
 import { useToast } from '../../../../../contexts/ToastContext';
-import { useAuth } from '../../../../../features/auth/hooks/useAuth';
 import SummaryCard from '../SummaryCard';
 import ResultCard from '../ResultCard';
 import SectionHeader from '../SectionHeader';
@@ -27,10 +26,10 @@ import {
   type DashboardUpcomingMatch,
 } from '../../../services/dashboardApi';
 import { fetchTeamSquad, type PlayerWithStatsResponse } from '../../../../team/services/teamApi';
-import { finishMatch } from '../../../../match/services/matchApi';
+import { finishMatch, startMatch } from '../../../../match/services/matchApi';
 import FinishMatchModal, { type FinishData } from '../../../../match/components/FinishMatchModal';
 import EventRecorderModal from '../../../../match/components/EventRecorderModal';
-import ConvocatoriaModal from '../../../../match/components/ConvocatoriaModal';
+import InitMatchModal from '../../../../match/components/InitMatchModal';
 
 interface DelegateDashboardProps {
   league: SelectedLeague;
@@ -39,8 +38,6 @@ interface DelegateDashboardProps {
 }
 
 export default function DelegateDashboard({ league, userName, userRole }: DelegateDashboardProps) {
-  const navigate = useNavigate();
-  const { user } = useAuth();
   const [stats, setStats] = useState<AdminDashboardStats | null>(null);
   const [liveMatches, setLiveMatches] = useState<DashboardLiveMatch[]>([]);
   const [recentResults, setRecentResults] = useState<DashboardResult[]>([]);
@@ -50,7 +47,7 @@ export default function DelegateDashboard({ league, userName, userRole }: Delega
   // Estados para modales
   const [showFinishModal, setShowFinishModal] = useState(false);
   const [showEventModal, setShowEventModal] = useState(false);
-  const [showConvocatoriaModal, setShowConvocatoriaModal] = useState(false);
+  const [showInitModal, setShowInitModal] = useState(false);
   const [finishMatchData, setFinishMatchData] = useState<{
     id_partido: number;
     localTeam: { nombre: string; id: number };
@@ -62,12 +59,13 @@ export default function DelegateDashboard({ league, userName, userRole }: Delega
     localTeam: { nombre: string; id: number };
     visitanteTeam: { nombre: string; id: number };
   } | null>(null);
-  const [convocatoriaMatchData, setConvocatoriaMatchData] = useState<{
+  const [initMatchData, setInitMatchData] = useState<{
     id_partido: number;
-    id_equipo: number;
-    nombre_equipo: string;
+    localTeam: { nombre: string };
+    visitanteTeam: { nombre: string };
     fecha: string;
-    estado: string;
+    competicion: string;
+    campo: string;
   } | null>(null);
   const [localTeamPlayers, setLocalTeamPlayers] = useState<PlayerWithStatsResponse[]>([]);
   const [visitanteTeamPlayers, setVisitanteTeamPlayers] = useState<PlayerWithStatsResponse[]>([]);
@@ -93,50 +91,44 @@ export default function DelegateDashboard({ league, userName, userRole }: Delega
   }, [league.id]);
 
   // Función para verificar si el usuario puede registrar eventos en un partido
-  // Solo muestra el botón si es admin o si el partido es de uno de sus equipos (para delegado)
+  // Para delegado: solo puede registrar eventos si su equipo es LOCAL
   const canRegisterEvents = (match: DashboardLiveMatch): boolean => {
-    // Admin siempre puede registrar eventos
-    if (user?.rol_principal?.toLowerCase() === 'admin') {
-      return true;
-    }
-
-    // Para delegado: solo puede registrar eventos si el partido es de su equipo
     if (!delegadoEquipoId) return false;
-    return match.id_equipo_local === delegadoEquipoId || match.id_equipo_visitante === delegadoEquipoId;
+    return match.id_equipo_local === delegadoEquipoId;
   };
 
-  // Función para verificar si el equipo del delegado está jugando
-  const isDelegadoTeamPlaying = (match: DashboardLiveMatch | DashboardUpcomingMatch): boolean => {
+  // Función para verificar si el equipo del delegado es LOCAL en este partido (próximos)
+  const isDelegadoHomeTeam = (match: DashboardUpcomingMatch): boolean => {
     if (!delegadoEquipoId) return false;
-    return match.id_equipo_local === delegadoEquipoId || match.id_equipo_visitante === delegadoEquipoId;
+    return match.id_equipo_local === delegadoEquipoId;
   };
 
-  // Función para abrir el modal de convocatoria (partidos próximos)
-  const handleOpenConvocatoriaModal = (match: DashboardUpcomingMatch) => {
-    const equipoId = match.id_equipo_local === delegadoEquipoId ? match.id_equipo_local : match.id_equipo_visitante;
-    const nombreEquipo = match.id_equipo_local === delegadoEquipoId ? match.nombre_equipo_local || match.home : match.nombre_equipo_visitante || match.away;
-    setConvocatoriaMatchData({
+  // Función para abrir el modal de iniciar partido (solo si es local)
+  const handleOpenInitMatchModal = (match: DashboardUpcomingMatch) => {
+    setInitMatchData({
       id_partido: match.id_partido,
-      id_equipo: equipoId || 0,
-      nombre_equipo: nombreEquipo,
+      localTeam: { nombre: match.nombre_equipo_local || match.home },
+      visitanteTeam: { nombre: match.nombre_equipo_visitante || match.away },
       fecha: match.fecha_completa || `${match.date} ${match.time}`,
-      estado: match.estado || 'PROGRAMADO',
+      competicion: match.league,
+      campo: match.campo || 'Campo principal',
     });
-    setShowConvocatoriaModal(true);
+    setShowInitModal(true);
   };
 
-  // Función para abrir el modal de convocatoria (partidos en vivo) — solo lectura
-  const handleOpenLineupModal = (match: DashboardLiveMatch) => {
-    const equipoId = match.id_equipo_local === delegadoEquipoId ? match.id_equipo_local : match.id_equipo_visitante;
-    const nombreEquipo = match.id_equipo_local === delegadoEquipoId ? match.nombre_equipo_local || match.home : match.nombre_equipo_visitante || match.away;
-    setConvocatoriaMatchData({
-      id_partido: match.id_partido,
-      id_equipo: equipoId || 0,
-      nombre_equipo: nombreEquipo,
-      fecha: new Date().toISOString(),
-      estado: 'en_juego',
-    });
-    setShowConvocatoriaModal(true);
+  // Función para confirmar el inicio del partido
+  const handleConfirmInitMatch = async () => {
+    if (!initMatchData) return;
+    try {
+      await startMatch(initMatchData.id_partido);
+      setShowInitModal(false);
+      setInitMatchData(null);
+      toast.showSuccess('Partido iniciado correctamente');
+      window.location.reload();
+    } catch (error) {
+      console.error('Error al iniciar partido:', error);
+      toast.showError('No se pudo iniciar el partido');
+    }
   };
 
   // Función para abrir el modal de finalizar partido
@@ -304,19 +296,12 @@ export default function DelegateDashboard({ league, userName, userRole }: Delega
           <div className="flex flex-col gap-3">
             {liveMatches.map((match, i) => {
               const puedeRegistrarEventos = canRegisterEvents(match);
-              const accionesConvocatoria = isDelegadoTeamPlaying(match);
               const actions: MatchAction[] = [
                 ...(puedeRegistrarEventos ? [{
                   label: 'Eventos',
                   variant: 'eventos',
                   icon: '📋',
                   onClick: () => handleOpenEventModal(match),
-                }] : []),
-                ...(accionesConvocatoria ? [{
-                  label: 'Convocatoria',
-                  variant: 'convocatoria',
-                  icon: '👥',
-                  onClick: () => handleOpenLineupModal(match),
                 }] : []),
                 {
                   label: 'Finalizar',
@@ -376,14 +361,14 @@ export default function DelegateDashboard({ league, userName, userRole }: Delega
         ) : (
           <div className="flex flex-col gap-3">
             {upcomingMatches.map((match, i) => {
-              const accionesConvocatoria = isDelegadoTeamPlaying(match);
+              const esLocal = isDelegadoHomeTeam(match);
               const actions: MatchAction[] = [];
-              if (accionesConvocatoria) {
+              if (esLocal) {
                 actions.push({
-                  label: 'Convocatoria',
-                  variant: 'convocatoria',
-                  icon: '📋',
-                  onClick: () => handleOpenConvocatoriaModal(match),
+                  label: 'Iniciar',
+                  variant: 'iniciar',
+                  icon: '▶',
+                  onClick: () => handleOpenInitMatchModal(match),
                 });
               }
               return (
@@ -400,22 +385,20 @@ export default function DelegateDashboard({ league, userName, userRole }: Delega
         )}
       </div>
 
-      {/* Modal de convocatoria (próximos partidos) */}
-      {convocatoriaMatchData && (
-        <ConvocatoriaModal
-          isOpen={showConvocatoriaModal}
-          onClose={() => setShowConvocatoriaModal(false)}
-          onSuccess={async () => {
-            const upcomingData = await fetchUpcomingMatches(league.id, 3);
-            setUpcomingMatches(upcomingData);
+      {/* Modal de iniciar partido (solo local) */}
+      {initMatchData && (
+        <InitMatchModal
+          isOpen={showInitModal}
+          onClose={() => {
+            setShowInitModal(false);
+            setInitMatchData(null);
           }}
-          partidoId={convocatoriaMatchData.id_partido}
-          equipoId={convocatoriaMatchData.id_equipo}
-          nombreEquipo={convocatoriaMatchData.nombre_equipo}
-          partidoFecha={convocatoriaMatchData.fecha}
-          competicion={league.nombre}
-          estadoPartido={convocatoriaMatchData.estado}
-          canEdit={true}
+          onConfirm={handleConfirmInitMatch}
+          localTeam={initMatchData.localTeam}
+          visitanteTeam={initMatchData.visitanteTeam}
+          fecha={initMatchData.fecha}
+          competicion={initMatchData.competicion}
+          campo={initMatchData.campo}
         />
       )}
 

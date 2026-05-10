@@ -186,10 +186,10 @@ export default function CoachDashboard({ league, userName, userRole }: CoachDash
           <div className="flex flex-col gap-3">
             {liveMatches.map((match, i) => {
               const actions: MatchAction[] = [];
-              // Solo mostrar botón de convocatoria si es el equipo del entrenador
+              // Solo mostrar botón de alineación si es el equipo del entrenador
               if (isCoachTeamPlaying(match)) {
                 actions.push({
-                  label: 'Convocatoria',
+                  label: 'Alineación',
                   variant: 'convocatoria',
                   icon: '👥',
                   onClick: () => handleOpenLineupModal(match),
